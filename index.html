@@ -2,716 +2,602 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Rise Playable Builder</title>
 <style>
-/* ── Reset & tokens ────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:         #0d0d14;
-  --surface:    #161622;
-  --surface2:   #1e1e2e;
-  --border:     rgba(255,255,255,0.07);
-  --accent:     #7c6cf5;
-  --accent2:    #e05252;
-  --text:       #e8e8f0;
-  --text-dim:   rgba(232,232,240,0.45);
-  --radius:     12px;
-  --radius-sm:  8px;
-  --font:       'Inter', system-ui, sans-serif;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d14;--surf:#161622;--surf2:#1e1e2e;
+  --brd:rgba(255,255,255,.07);--acc:#7c6cf5;--acc2:#e05252;
+  --txt:#e8e8f0;--dim:rgba(232,232,240,.42);
+  --r:10px;--r2:7px;
 }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Header ─────────────────────────────────────────────────────────────── */
-header {
-  padding: 18px 28px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky; top: 0;
-  background: var(--bg);
-  z-index: 100;
-}
-.logo {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
-}
-.logo-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-.header-actions { display: flex; gap: 10px; align-items: center; }
-.badge {
-  font-size: 11px; font-weight: 600;
-  padding: 3px 8px; border-radius: 20px;
-  background: rgba(124,108,245,0.15);
-  color: var(--accent);
-  border: 1px solid rgba(124,108,245,0.25);
-}
-
-/* ── Layout ─────────────────────────────────────────────────────────────── */
-.workspace {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 0;
-  overflow: hidden;
-  height: calc(100vh - 61px);
-}
-
-/* ── Sidebar ─────────────────────────────────────────────────────────────── */
-.sidebar {
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-/* ── Tabs ───────────────────────────────────────────────────────────────── */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  gap: 2px;
-}
-.tab-btn {
-  padding: 14px 12px 12px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-dim);
-  font-size: 13px; font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
-/* ── Tab panels ─────────────────────────────────────────────────────────── */
-.tab-panel { display: none; padding: 20px 16px; flex-direction: column; gap: 6px; }
-.tab-panel.active { display: flex; }
-
-/* ── Section ────────────────────────────────────────────────────────────── */
-.section {
-  margin-bottom: 4px;
-}
-.section-title {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  padding: 14px 0 8px;
-  display: flex; align-items: center; gap: 6px;
-}
-.section-title::after {
-  content: ''; flex: 1;
-  height: 1px; background: var(--border);
-}
-
-/* ── Field ──────────────────────────────────────────────────────────────── */
-.field {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-}
-.field-wide { grid-template-columns: 1fr; gap: 6px; }
-.field label {
-  font-size: 13px; color: var(--text);
-  display: flex; flex-direction: column; gap: 2px;
-}
-.field label small {
-  font-size: 11px; color: var(--text-dim);
-  font-weight: 400;
-}
-
-/* Inputs */
-input[type=number], input[type=text] {
-  width: 72px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  padding: 6px 8px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-input[type=number]:focus, input[type=text]:focus {
-  border-color: var(--accent);
-}
-input[type=color] {
-  width: 38px; height: 32px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface2);
-  cursor: pointer;
-  padding: 2px;
-}
-
-input[type=range] {
-  -webkit-appearance: none;
-  width: 100%; height: 4px;
-  background: var(--surface2);
-  border-radius: 4px;
-  outline: none;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: 2px solid var(--bg);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.range-row {
-  display: grid;
-  grid-template-columns: 1fr 50px;
-  gap: 10px; align-items: center;
-}
-.range-row span {
-  font-size: 13px; font-weight: 600;
-  color: var(--accent); text-align: right;
-}
-
-/* Color swatch grid */
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin-top: 4px;
-}
-.color-cell {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-}
-.color-cell label { font-size: 10px; color: var(--text-dim); }
-
-/* ── Preview panel ──────────────────────────────────────────────────────── */
-.preview-panel {
-  background: #080810;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 28px;
-  gap: 20px;
-  overflow-y: auto;
-}
-.preview-frame-wrap {
-  width: 260px;
-  height: 563px;
-  border-radius: 36px;
-  overflow: hidden;
-  border: 1.5px solid var(--border);
-  box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-  position: relative;
-  background: #0d0d14;
-  flex-shrink: 0;
-}
-.preview-frame-wrap iframe {
-  width: 390px; height: 844px;
-  transform: scale(0.6667);
-  transform-origin: top left;
-  border: none;
-  pointer-events: none;
-}
-.preview-frame-wrap.interactive iframe {
-  pointer-events: auto;
-}
-.preview-label {
-  font-size: 12px; color: var(--text-dim);
-  text-align: center;
-}
-
-/* ── Build bar ──────────────────────────────────────────────────────────── */
-.build-bar {
-  padding: 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ── Buttons ────────────────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 10px 18px;
-  border-radius: var(--radius);
-  font-size: 14px; font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
-  line-height: 1;
-}
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-}
-.btn-primary:hover { background: #6a5ce0; }
-.btn-primary:active { transform: scale(0.97); }
-
-.btn-secondary {
-  background: var(--surface2);
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-.btn-download {
-  background: linear-gradient(135deg, var(--accent), #9c5df5);
-  color: #fff;
-  width: 100%;
-  padding: 13px;
-  font-size: 15px;
-}
-.btn-download:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(124,108,245,0.3); }
-.btn-download:disabled {
-  opacity: 0.5; pointer-events: none; transform: none; box-shadow: none;
-}
-.btn-download:active { transform: translateY(0); }
-
-/* ── Progress ───────────────────────────────────────────────────────────── */
-.progress-wrap {
-  display: none;
-  flex-direction: column; gap: 6px;
-}
-.progress-wrap.visible { display: flex; }
-.progress-bar-bg {
-  height: 4px; background: var(--surface2);
-  border-radius: 4px; overflow: hidden;
-}
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), #9c5df5);
-  border-radius: 4px;
-  transition: width 0.3s;
-  width: 0%;
-}
-.progress-msg {
-  font-size: 12px; color: var(--text-dim);
-}
-.size-badge {
-  display: none;
-  font-size: 12px; color: var(--accent);
-  font-weight: 600;
-}
-.size-badge.visible { display: block; }
-
-/* ── Error toast ────────────────────────────────────────────────────────── */
-.error-msg {
-  display: none;
-  padding: 10px 12px;
-  background: rgba(224,82,82,0.15);
-  border: 1px solid rgba(224,82,82,0.3);
-  border-radius: var(--radius-sm);
-  color: var(--accent2);
-  font-size: 13px;
-}
-.error-msg.visible { display: block; }
-
-/* ── Preview action bar ─────────────────────────────────────────────────── */
-.preview-actions {
-  display: flex; gap: 10px;
-}
-
-/* ── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .workspace {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  .sidebar { max-height: 55vh; border-right: none; border-bottom: 1px solid var(--border); }
-  .preview-panel { padding: 16px; }
-  .preview-frame-wrap { width: 195px; height: 422px; border-radius: 28px; }
-  .preview-frame-wrap iframe { transform: scale(0.5); }
-}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+/* Header */
+header{padding:14px 24px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg);z-index:10;}
+.logo{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;}
+.logo-icon{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:16px;}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(124,108,245,.15);color:var(--acc);border:1px solid rgba(124,108,245,.25);}
+/* Layout */
+.workspace{flex:1;display:grid;grid-template-columns:320px 1fr;overflow:hidden;}
+/* Sidebar */
+.sidebar{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;border-bottom:1px solid var(--brd);padding:0 12px;gap:2px;flex-shrink:0;}
+.tab{padding:12px 10px 10px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:.15s;}
+.tab:hover{color:var(--txt);}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc);}
+.panel{display:none;flex:1;overflow-y:auto;padding:16px 14px;flex-direction:column;gap:4px;}
+.panel.on{display:flex;}
+.panel::-webkit-scrollbar{width:3px;}
+.panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+/* Fields */
+.sec-title{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:12px 0 6px;display:flex;align-items:center;gap:6px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--brd);}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:5px 0;}
+.row.wide{grid-template-columns:1fr;gap:5px;}
+.row label{font-size:13px;display:flex;flex-direction:column;gap:2px;}
+.row label small{font-size:11px;color:var(--dim);}
+input[type=number],input[type=text]{width:68px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;}
+input[type=number]:focus,input[type=text]:focus{border-color:var(--acc);}
+input[type=color]{width:36px;height:30px;border:1px solid var(--brd);border-radius:var(--r2);background:var(--surf2);cursor:pointer;padding:2px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--surf2);border-radius:4px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--acc);cursor:pointer;border:2px solid var(--bg);}
+.rr{display:grid;grid-template-columns:1fr 44px;gap:8px;align-items:center;}
+.rr span{font-size:13px;font-weight:600;color:var(--acc);text-align:right;}
+.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:4px;}
+.cc{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.cc label{font-size:10px;color:var(--dim);}
+/* Sprite upload */
+.sprite-row{display:flex;flex-direction:column;gap:6px;padding:5px 0;}
+.sprite-row label{font-size:13px;}
+.sprite-upload{display:flex;align-items:center;gap:8px;}
+.sprite-thumb{width:40px;height:40px;border:1px solid var(--brd);border-radius:var(--r2);background:var(--surf2);object-fit:contain;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px;flex-shrink:0;overflow:hidden;}
+.sprite-thumb img{width:100%;height:100%;object-fit:contain;}
+.btn-upload{background:var(--surf2);border:1px dashed rgba(255,255,255,.2);border-radius:var(--r2);color:var(--dim);font-size:12px;padding:6px 10px;cursor:pointer;transition:.15s;}
+.btn-upload:hover{border-color:var(--acc);color:var(--acc);}
+/* Build bar */
+.build-bar{padding:14px;border-top:1px solid var(--brd);flex-shrink:0;display:flex;flex-direction:column;gap:8px;}
+.prog{display:none;flex-direction:column;gap:5px;}
+.prog.on{display:flex;}
+.prog-bg{height:3px;background:var(--surf2);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--acc),#9c5df5);border-radius:3px;width:0;transition:width .3s;}
+.prog-msg{font-size:11px;color:var(--dim);}
+.size-badge{display:none;font-size:12px;color:var(--acc);font-weight:600;}
+.size-badge.on{display:block;}
+.err{display:none;padding:8px 10px;background:rgba(224,82,82,.15);border:1px solid rgba(224,82,82,.3);border-radius:var(--r2);color:var(--acc2);font-size:12px;}
+.err.on{display:block;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;}
+.btn-sec{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);}
+.btn-sec:hover{border-color:var(--acc);color:var(--acc);}
+.btn-dl{background:linear-gradient(135deg,var(--acc),#9c5df5);color:#fff;width:100%;padding:12px;font-size:14px;}
+.btn-dl:hover{opacity:.9;transform:translateY(-1px);}
+.btn-dl:disabled{opacity:.45;pointer-events:none;transform:none;}
+.btn-dl:active{transform:translateY(0);}
+/* Preview */
+.preview-panel{background:#080810;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px;gap:16px;overflow-y:auto;}
+.phone{width:240px;height:520px;border-radius:32px;overflow:hidden;border:1.5px solid var(--brd);box-shadow:0 30px 60px rgba(0,0,0,.6);position:relative;background:#0d0d14;flex-shrink:0;}
+.phone iframe{width:390px;height:844px;transform:scale(.6154);transform-origin:top left;border:none;pointer-events:none;}
+.phone.interact iframe{pointer-events:auto;}
+.preview-label{font-size:12px;color:var(--dim);text-align:center;}
+.pactions{display:flex;gap:8px;}
+/* Level editor */
+#level-editor{display:flex;flex-direction:column;gap:0;height:100%;}
+.stage-tabs{display:flex;gap:4px;padding:10px 14px 0;flex-shrink:0;}
+.stab{padding:6px 12px;border-radius:var(--r2) var(--r2) 0 0;background:var(--surf2);border:1px solid var(--brd);border-bottom:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--dim);transition:.15s;}
+.stab.on{background:var(--bg);color:var(--txt);border-color:var(--brd);}
+.editor-canvas-wrap{flex:1;position:relative;overflow:hidden;border-top:1px solid var(--brd);}
+#editor-canvas{display:block;width:100%;height:100%;cursor:crosshair;}
+.editor-toolbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;}
+.tool-btn{padding:5px 10px;border-radius:var(--r2);background:var(--surf2);border:1px solid var(--brd);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
+.tool-btn.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.tool-btn:hover:not(.on){border-color:var(--acc);color:var(--acc);}
+.editor-sep{width:1px;height:20px;background:var(--brd);margin:0 2px;}
+.obs-prop{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);}
+.obs-prop input[type=number]{width:52px;font-size:12px;padding:4px 6px;}
+.obs-prop input[type=color]{width:28px;height:26px;}
+.obs-prop select{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:12px;padding:4px 6px;outline:none;}
 </style>
 </head>
 <body>
 
-<!-- ── Header ───────────────────────────────────────────────────────────── -->
 <header>
   <div class="logo">
     <div class="logo-icon">🎈</div>
     Rise Playable Builder
     <span class="badge">Beta</span>
   </div>
-  <div class="header-actions">
-    <button class="btn btn-secondary" id="btn-reset" title="Reset to defaults">↺ Reset</button>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-sec" id="btn-reset">↺ Reset</button>
   </div>
 </header>
 
-<!-- ── Workspace ────────────────────────────────────────────────────────── -->
 <div class="workspace">
-
-  <!-- Sidebar -->
+  <!-- ── Sidebar ── -->
   <aside class="sidebar">
-
-    <!-- Tabs -->
     <div class="tabs">
-      <button class="tab-btn active" data-tab="gameplay">Gameplay</button>
-      <button class="tab-btn" data-tab="visuals">Visuals</button>
+      <button class="tab on"  data-tab="gameplay">Gameplay</button>
+      <button class="tab"     data-tab="visuals">Visuals</button>
+      <button class="tab"     data-tab="sprites">Sprites</button>
     </div>
 
-    <!-- ── Gameplay tab ──────────────────────────────────────────────── -->
-    <div class="tab-panel active" id="tab-gameplay">
+    <!-- GAMEPLAY -->
+    <div class="panel on" id="tab-gameplay">
+      <div class="sec-title">Player</div>
+      <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
+      <div class="row"><label>Size<small>Scale multiplier</small></label><input type="number" id="cfg-playerSize" value="1" min="0.5" max="2" step="0.1"></div>
 
-      <div class="section">
-        <div class="section-title">Player</div>
+      <div class="sec-title">Speed</div>
+      <div class="row wide"><label>Game speed<small>Initial scroll (px/s)</small></label>
+        <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="setV('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div>
+      </div>
+      <div class="row wide"><label>Acceleration<small>Added speed per stage</small></label>
+        <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="setV('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div>
+      </div>
 
-        <div class="field">
-          <label>Lives <small>How many hits before lose</small></label>
-          <input type="number" id="cfg-lives" value="3" min="1" max="9" step="1">
-        </div>
+      <div class="sec-title">Obstacles</div>
+      <div class="row wide"><label>Push force<small>How hard player pushes</small></label>
+        <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="setV('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div>
+      </div>
 
-        <div class="field">
-          <label>Player size <small>Scale multiplier</small></label>
-          <input type="number" id="cfg-playerSize" value="1.0" min="0.5" max="2.0" step="0.1">
+      <div class="sec-title">UI / Timing</div>
+      <div class="row"><label>HP bar (ms)</label><input type="number" id="cfg-hpBarShowTime" value="2000" min="500" max="8000" step="100"></div>
+      <div class="row"><label>Tutorial (ms)</label><input type="number" id="cfg-tutorialTime" value="3500" min="500" max="10000" step="100"></div>
+    </div>
+
+    <!-- VISUALS -->
+    <div class="panel" id="tab-visuals">
+      <div class="sec-title">Player</div>
+      <div class="row"><label>Fill color</label><input type="color" id="cfg-playerColor" value="#f5e642"></div>
+      <div class="row"><label>Outline</label><input type="color" id="cfg-playerOutline" value="#ffffff"></div>
+
+      <div class="sec-title">Obstacles</div>
+      <div class="row"><label>Color A</label><input type="color" id="cfg-obstacleColor" value="#e05252"></div>
+      <div class="row"><label>Color B</label><input type="color" id="cfg-obstacleColorAlt" value="#5282e0"></div>
+
+      <div class="sec-title">Environment</div>
+      <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
+      <div class="row"><label>Grid lines</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
+      <div class="row"><label>Particles</label><input type="color" id="cfg-particleColor" value="#f5e642"></div>
+
+      <div class="sec-title">Stage accent colors</div>
+      <div class="cgrid">
+        <div class="cc"><input type="color" id="cfg-stage0" value="#e05252"><label>S1</label></div>
+        <div class="cc"><input type="color" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
+        <div class="cc"><input type="color" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
+        <div class="cc"><input type="color" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
+        <div class="cc"><input type="color" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
+      </div>
+    </div>
+
+    <!-- SPRITES -->
+    <div class="panel" id="tab-sprites">
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:4px;">
+        Загрузи свои PNG-спрайты. Они заменят цветные фигуры в игре.
+      </p>
+
+      <div class="sec-title">Player</div>
+      <div class="sprite-row">
+        <label>Balloon / Player sprite</label>
+        <div class="sprite-upload">
+          <div class="sprite-thumb" id="thumb-player">🎈</div>
+          <label class="btn-upload">
+            Загрузить PNG
+            <input type="file" accept="image/png,image/webp,image/jpeg" style="display:none" onchange="loadSprite('player',this)">
+          </label>
+          <button class="btn-sec btn" style="padding:5px 8px;font-size:11px;" onclick="clearSprite('player')">✕</button>
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-title">Speed</div>
-
-        <div class="field field-wide">
-          <label>Game speed <small>Initial scroll speed (px/s)</small></label>
-          <div class="range-row">
-            <input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="10" step="0.1"
-              oninput="document.getElementById('cfg-gameSpeed-val').textContent=parseFloat(this.value).toFixed(1)">
-            <span id="cfg-gameSpeed-val">3.2</span>
-          </div>
-        </div>
-
-        <div class="field field-wide">
-          <label>Acceleration <small>Added per stage completed</small></label>
-          <div class="range-row">
-            <input type="range" id="cfg-acceleration" value="0.4" min="0" max="2" step="0.05"
-              oninput="document.getElementById('cfg-acc-val').textContent=parseFloat(this.value).toFixed(2)">
-            <span id="cfg-acc-val">0.40</span>
-          </div>
+      <div class="sec-title">Obstacles</div>
+      <div class="sprite-row">
+        <label>Default obstacle sprite <small style="color:var(--dim)">(применяется ко всем)</small></label>
+        <div class="sprite-upload">
+          <div class="sprite-thumb" id="thumb-obstacle">⬛</div>
+          <label class="btn-upload">
+            Загрузить PNG
+            <input type="file" accept="image/png,image/webp,image/jpeg" style="display:none" onchange="loadSprite('obstacle',this)">
+          </label>
+          <button class="btn-sec btn" style="padding:5px 8px;font-size:11px;" onclick="clearSprite('obstacle')">✕</button>
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-title">Obstacles</div>
-
-        <div class="field field-wide">
-          <label>Push force <small>How hard player pushes obstacles</small></label>
-          <div class="range-row">
-            <input type="range" id="cfg-pushForce" value="6" min="1" max="20" step="0.5"
-              oninput="document.getElementById('cfg-push-val').textContent=parseFloat(this.value).toFixed(1)">
-            <span id="cfg-push-val">6.0</span>
-          </div>
-        </div>
-
-        <div class="field field-wide">
-          <label>Move duration <small>Obstacle side-to-side time (ms)</small></label>
-          <div class="range-row">
-            <input type="range" id="cfg-moveDuration" value="1800" min="400" max="4000" step="100"
-              oninput="document.getElementById('cfg-move-val').textContent=this.value">
-            <span id="cfg-move-val">1800</span>
-          </div>
-        </div>
+      <div class="sec-title">Custom per-stage obstacles</div>
+      <p style="font-size:11px;color:var(--dim);line-height:1.5;">Можно задать отдельный спрайт для каждого стейджа:</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+        <div id="stage-sprites"></div>
       </div>
+    </div>
 
-      <div class="section">
-        <div class="section-title">UI / Timing</div>
-
-        <div class="field">
-          <label>HP bar time <small>ms shown after respawn</small></label>
-          <input type="number" id="cfg-hpBarShowTime" value="2000" min="500" max="8000" step="100">
-        </div>
-
-        <div class="field">
-          <label>Tutorial time <small>ms before auto-dismiss</small></label>
-          <input type="number" id="cfg-tutorialTime" value="3000" min="500" max="10000" step="100">
-        </div>
-      </div>
-
-    </div><!-- /gameplay -->
-
-    <!-- ── Visuals tab ───────────────────────────────────────────────── -->
-    <div class="tab-panel" id="tab-visuals">
-
-      <div class="section">
-        <div class="section-title">Player (Balloon)</div>
-        <div class="field">
-          <label>Fill color</label>
-          <input type="color" id="cfg-playerColor" value="#f5e642">
-        </div>
-        <div class="field">
-          <label>Outline / string</label>
-          <input type="color" id="cfg-playerOutline" value="#ffffff">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Obstacles</div>
-        <div class="field">
-          <label>Primary color</label>
-          <input type="color" id="cfg-obstacleColor" value="#e05252">
-        </div>
-        <div class="field">
-          <label>Alternate color</label>
-          <input type="color" id="cfg-obstacleColorAlt" value="#5282e0">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Environment</div>
-        <div class="field">
-          <label>Background</label>
-          <input type="color" id="cfg-bgColor" value="#1a1a2e">
-        </div>
-        <div class="field">
-          <label>Ground lines</label>
-          <input type="color" id="cfg-groundColor" value="#2a2a40">
-        </div>
-        <div class="field">
-          <label>Particles</label>
-          <input type="color" id="cfg-particleColor" value="#f5e642">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Stage palette</div>
-        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">
-          One accent color per stage (progress dots + glow)
-        </p>
-        <div class="color-grid">
-          <div class="color-cell">
-            <input type="color" id="cfg-stage0" value="#e05252">
-            <label>Stage 1</label>
-          </div>
-          <div class="color-cell">
-            <input type="color" id="cfg-stage1" value="#52a0e0">
-            <label>Stage 2</label>
-          </div>
-          <div class="color-cell">
-            <input type="color" id="cfg-stage2" value="#52e08a">
-            <label>Stage 3</label>
-          </div>
-          <div class="color-cell">
-            <input type="color" id="cfg-stage3" value="#e07d52">
-            <label>Stage 4</label>
-          </div>
-          <div class="color-cell">
-            <input type="color" id="cfg-stage4" value="#c052e0">
-            <label>Stage 5</label>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /visuals -->
-
-    <!-- ── Build bar ─────────────────────────────────────────────────── -->
+    <!-- Build bar -->
     <div class="build-bar">
-      <div class="progress-wrap" id="progress-wrap">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progress-fill"></div>
-        </div>
-        <div class="progress-msg" id="progress-msg">Building…</div>
-      </div>
-      <div class="error-msg" id="error-msg"></div>
+      <div class="prog" id="prog"><div class="prog-bg"><div class="prog-fill" id="prog-fill"></div></div><div class="prog-msg" id="prog-msg"></div></div>
+      <div class="err" id="err-msg"></div>
       <div class="size-badge" id="size-badge"></div>
-      <button class="btn btn-download" id="btn-download">
-        ⬇ Download Playable HTML
-      </button>
+      <button class="btn btn-dl" id="btn-dl">⬇ Download Playable HTML</button>
     </div>
-
   </aside>
 
-  <!-- ── Preview panel ─────────────────────────────────────────────────── -->
-  <main class="preview-panel">
-    <div class="preview-actions">
-      <button class="btn btn-secondary" id="btn-preview">▶ Update Preview</button>
-      <button class="btn btn-secondary" id="btn-interact" title="Enable/disable interaction in preview">
-        🖱 Interact
-      </button>
+  <!-- ── Right panel: tabs between Preview and Level Editor ── -->
+  <main style="display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;border-bottom:1px solid var(--brd);padding:0 20px;gap:2px;flex-shrink:0;background:var(--bg);">
+      <button class="tab on" data-rtab="preview" style="padding:12px 14px 10px;">Preview</button>
+      <button class="tab"    data-rtab="levels"  style="padding:12px 14px 10px;">Level Editor</button>
     </div>
 
-    <div class="preview-frame-wrap" id="preview-wrap">
-      <iframe id="preview-iframe" title="Playable preview"></iframe>
+    <!-- PREVIEW -->
+    <div id="rtab-preview" class="preview-panel" style="flex:1;">
+      <div class="pactions">
+        <button class="btn btn-sec" id="btn-preview">▶ Update Preview</button>
+        <button class="btn btn-sec" id="btn-interact">🖱 Interact</button>
+      </div>
+      <div class="phone" id="phone">
+        <iframe id="preview-iframe" title="preview"></iframe>
+      </div>
+      <p class="preview-label">390 × 844 · нажми Update Preview после изменений</p>
     </div>
 
-    <p class="preview-label">
-      390 × 844 px preview — click "Update Preview" after changing settings
-    </p>
+    <!-- LEVEL EDITOR -->
+    <div id="rtab-levels" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div id="level-editor">
+        <div class="stage-tabs" id="stage-tabs"></div>
+        <div class="editor-canvas-wrap">
+          <canvas id="editor-canvas"></canvas>
+        </div>
+        <div class="editor-toolbar">
+          <span style="font-size:11px;color:var(--dim);font-weight:600;">ADD:</span>
+          <button class="tool-btn on" data-shape="rect">▬ Rect</button>
+          <button class="tool-btn" data-shape="circle">● Circle</button>
+          <button class="tool-btn" data-shape="triangle">▲ Triangle</button>
+          <div class="editor-sep"></div>
+          <button class="tool-btn" id="tool-select">✥ Select</button>
+          <button class="tool-btn" id="tool-delete">🗑 Delete</button>
+          <div class="editor-sep"></div>
+          <div class="obs-prop">W:<input type="number" id="obs-w" value="60" min="20" max="200"></div>
+          <div class="obs-prop">H:<input type="number" id="obs-h" value="60" min="20" max="200"></div>
+          <div class="obs-prop">Color:<input type="color" id="obs-color" value="#e05252"></div>
+          <div class="obs-prop">Move px:<input type="number" id="obs-movex" value="0" min="0" max="180"></div>
+          <div class="editor-sep"></div>
+          <button class="tool-btn" id="tool-clear" style="color:#e05252;">✕ Clear stage</button>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
 
-</div><!-- /workspace -->
-
-<!-- ── Scripts ──────────────────────────────────────────────────────────── -->
 <script src="src/playable-template.js"></script>
 <script src="src/builder.js"></script>
 <script>
-(function () {
-  'use strict';
+// ── helpers ───────────────────────────────────────────────────────────────
+function setV(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function $(id){return document.getElementById(id);}
 
-  // ── Tabs ───────────────────────────────────────────────────────────────
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + tab).classList.add('active');
-    });
+// ── Tabs left ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab[data-tab]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('on');
   });
+});
 
-  // ── Progress helpers ──────────────────────────────────────────────────
-  function setProgress(p, msg) {
-    const wrap = document.getElementById('progress-wrap');
-    const fill = document.getElementById('progress-fill');
-    const msgEl = document.getElementById('progress-msg');
-    wrap.classList.add('visible');
-    fill.style.width = (p * 100) + '%';
-    msgEl.textContent = msg || '';
-  }
-  function hideProgress() {
-    document.getElementById('progress-wrap').classList.remove('visible');
-  }
-  function showError(msg) {
-    const el = document.getElementById('error-msg');
-    el.textContent = '⚠ ' + msg;
-    el.classList.add('visible');
-    setTimeout(() => el.classList.remove('visible'), 6000);
-  }
-  function showSize(kb) {
-    const el = document.getElementById('size-badge');
-    const icon = kb < 5120 ? '✅' : '⚠';
-    el.textContent = `${icon} ${kb} KB  (limit: 5 MB)`;
-    el.classList.add('visible');
-  }
-
-  // ── Download button ───────────────────────────────────────────────────
-  const btnDl = document.getElementById('btn-download');
-  btnDl.addEventListener('click', async () => {
-    btnDl.disabled = true;
-    document.getElementById('size-badge').classList.remove('visible');
-    document.getElementById('error-msg').classList.remove('visible');
-
-    await RiseBuilder.buildAndDownload({
-      assetsBase: 'Assets',
-      onProgress: (p, msg) => setProgress(p, msg),
-      onDone: (kb) => {
-        hideProgress();
-        showSize(kb);
-        btnDl.disabled = false;
-      },
-      onError: (msg) => {
-        hideProgress();
-        showError(msg);
-        btnDl.disabled = false;
-      },
-    });
+// ── Tabs right ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab[data-rtab]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab[data-rtab]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    $('rtab-preview').style.display  = b.dataset.rtab==='preview' ? '' : 'none';
+    $('rtab-levels').style.display   = b.dataset.rtab==='levels'  ? 'flex' : 'none';
+    if(b.dataset.rtab==='levels') LevelEditor.resize();
   });
+});
 
-  // ── Preview button ────────────────────────────────────────────────────
-  let interactMode = false;
-  const iframe = document.getElementById('preview-iframe');
-  const wrap = document.getElementById('preview-wrap');
-
-  document.getElementById('btn-preview').addEventListener('click', async () => {
-    const btn = document.getElementById('btn-preview');
-    btn.disabled = true;
-    btn.textContent = '⏳ Building…';
-    await RiseBuilder.buildPreview(iframe, {
-      assetsBase: 'Assets',
-      onProgress: (p, msg) => setProgress(p, msg),
-      onError: (msg) => { showError(msg); },
-    });
-    hideProgress();
-    btn.disabled = false;
-    btn.textContent = '▶ Update Preview';
-  });
-
-  document.getElementById('btn-interact').addEventListener('click', () => {
-    interactMode = !interactMode;
-    wrap.classList.toggle('interactive', interactMode);
-    document.getElementById('btn-interact').textContent =
-      interactMode ? '🔒 Lock' : '🖱 Interact';
-  });
-
-  // ── Reset ─────────────────────────────────────────────────────────────
-  const DEFAULTS = {
-    'cfg-lives': 3, 'cfg-playerSize': 1.0,
-    'cfg-gameSpeed': 3.2, 'cfg-acceleration': 0.4,
-    'cfg-pushForce': 6, 'cfg-moveDuration': 1800,
-    'cfg-hpBarShowTime': 2000, 'cfg-tutorialTime': 3000,
-    'cfg-playerColor': '#f5e642', 'cfg-playerOutline': '#ffffff',
-    'cfg-obstacleColor': '#e05252', 'cfg-obstacleColorAlt': '#5282e0',
-    'cfg-bgColor': '#1a1a2e', 'cfg-groundColor': '#2a2a40',
-    'cfg-particleColor': '#f5e642',
-    'cfg-stage0': '#e05252', 'cfg-stage1': '#52a0e0',
-    'cfg-stage2': '#52e08a', 'cfg-stage3': '#e07d52', 'cfg-stage4': '#c052e0',
+// ── Sprite loading ────────────────────────────────────────────────────────
+function loadSprite(key, input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result;
+    RiseBuilder.setCustomSprite(key, b64);
+    const thumb=document.getElementById('thumb-'+key);
+    if(thumb) { thumb.innerHTML=`<img src="${b64}" style="width:100%;height:100%;object-fit:contain;">`; }
   };
+  reader.readAsDataURL(file);
+}
+function clearSprite(key) {
+  RiseBuilder.setCustomSprite(key, null);
+  const thumb=document.getElementById('thumb-'+key);
+  if(thumb) thumb.innerHTML = key==='player'?'🎈':'⬛';
+}
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    Object.entries(DEFAULTS).forEach(([id, val]) => {
-      const el = document.getElementById(id);
-      if (el) { el.value = val; el.dispatchEvent(new Event('input')); }
+// Per-stage sprite rows
+(function(){
+  const wrap=document.getElementById('stage-sprites');
+  for(let i=0;i<5;i++){
+    const k='obstacle_stage'+i;
+    wrap.innerHTML+=`
+    <div class="sprite-upload" style="align-items:center;gap:8px;">
+      <span style="font-size:12px;color:var(--dim);min-width:52px;">Stage ${i+1}</span>
+      <div class="sprite-thumb" id="thumb-${k}" style="width:32px;height:32px;">⬛</div>
+      <label class="btn-upload" style="font-size:11px;">
+        PNG <input type="file" accept="image/*" style="display:none" onchange="loadSprite('${k}',this)">
+      </label>
+      <button class="btn-sec btn" style="padding:4px 7px;font-size:11px;" onclick="clearSprite('${k}')">✕</button>
+    </div>`;
+  }
+})();
+
+// ── Progress helpers ──────────────────────────────────────────────────────
+function setProgress(p,msg){
+  const pw=$('prog'),fill=$('prog-fill'),pm=$('prog-msg');
+  pw.classList.add('on'); fill.style.width=(p*100)+'%'; pm.textContent=msg||'';
+}
+function hideProgress(){ $('prog').classList.remove('on'); }
+function showError(msg){ const e=$('err-msg'); e.textContent='⚠ '+msg; e.classList.add('on'); setTimeout(()=>e.classList.remove('on'),6000); }
+
+// ── Download ──────────────────────────────────────────────────────────────
+$('btn-dl').addEventListener('click',async()=>{
+  const btn=$('btn-dl'); btn.disabled=true;
+  $('size-badge').classList.remove('on'); $('err-msg').classList.remove('on');
+  await RiseBuilder.buildAndDownload({
+    assetsBase:'Assets',
+    onProgress:setProgress,
+    onDone:kb=>{ hideProgress(); const sb=$('size-badge'); sb.textContent=(kb<5120?'✅':'⚠')+' '+kb+' KB'; sb.classList.add('on'); btn.disabled=false; },
+    onError:msg=>{ hideProgress(); showError(msg); btn.disabled=false; }
+  });
+});
+
+// ── Preview ───────────────────────────────────────────────────────────────
+let interact=false;
+$('btn-preview').addEventListener('click',async()=>{
+  const b=$('btn-preview'); b.disabled=true; b.textContent='⏳…';
+  await RiseBuilder.buildPreview($('preview-iframe'),{
+    assetsBase:'Assets', onProgress:setProgress, onError:showError
+  });
+  hideProgress(); b.disabled=false; b.textContent='▶ Update Preview';
+});
+$('btn-interact').addEventListener('click',()=>{
+  interact=!interact;
+  $('phone').classList.toggle('interact',interact);
+  $('btn-interact').textContent=interact?'🔒 Lock':'🖱 Interact';
+});
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+const DEFS={'cfg-lives':3,'cfg-playerSize':1,'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,
+  'cfg-pushForce':7,'cfg-hpBarShowTime':2000,'cfg-tutorialTime':3500,
+  'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff',
+  'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0',
+  'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642',
+  'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
+  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0'};
+$('btn-reset').addEventListener('click',()=>{
+  Object.entries(DEFS).forEach(([id,v])=>{const el=$(id);if(el){el.value=v;el.dispatchEvent(new Event('input'));}});
+});
+
+// placeholder iframe
+$('preview-iframe').srcdoc=`<!DOCTYPE html><html><head><style>
+*{margin:0;padding:0}html,body{width:100%;height:100%;background:#0d0d14;display:flex;
+align-items:center;justify-content:center;flex-direction:column;gap:12px;
+font-family:system-ui;color:rgba(232,232,240,.4);font-size:13px}
+</style></head><body><div style="font-size:44px">🎈</div>
+<div style="font-weight:600;color:rgba(232,232,240,.65)">Rise Playable</div>
+<div>Нажми ▶ Update Preview</div></body></html>`;
+
+// ── Level Editor ──────────────────────────────────────────────────────────
+const LevelEditor = (function(){
+  const STAGES = 5;
+  const STAGE_H = 850;
+  const CW = 390;
+
+  let currentStage = 0;
+  let levels = [];  // levels[stageIdx] = array of obs config objects
+  let selected = null;
+  let placing = null; // shape being placed
+  let dragging = false;
+  let dragOff = {x:0,y:0};
+  let mode = 'add'; // 'add' | 'select'
+  let activeShape = 'rect';
+
+  const canvas = document.getElementById('editor-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Init stages
+  for(let i=0;i<STAGES;i++) levels.push([]);
+
+  // Build stage tab buttons
+  const stageTabsEl = document.getElementById('stage-tabs');
+  for(let i=0;i<STAGES;i++){
+    const b=document.createElement('button');
+    b.className='stab'+(i===0?' on':'');
+    b.textContent='Stage '+(i+1);
+    b.dataset.stage=i;
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      currentStage=i; selected=null; draw();
+    });
+    stageTabsEl.appendChild(b);
+  }
+
+  // Toolbar
+  document.querySelectorAll('.tool-btn[data-shape]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('.tool-btn[data-shape]').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      activeShape=b.dataset.shape; mode='add';
+      document.getElementById('tool-select').classList.remove('on');
+    });
+  });
+  document.getElementById('tool-select').addEventListener('click',()=>{
+    mode='select';
+    document.getElementById('tool-select').classList.add('on');
+    document.querySelectorAll('.tool-btn[data-shape]').forEach(x=>x.classList.remove('on'));
+  });
+  document.getElementById('tool-delete').addEventListener('click',()=>{
+    if(selected===null) return;
+    levels[currentStage].splice(selected,1); selected=null; draw();
+  });
+  document.getElementById('tool-clear').addEventListener('click',()=>{
+    if(!confirm('Clear all obstacles on this stage?')) return;
+    levels[currentStage]=[]; selected=null; draw();
+  });
+
+  function resize(){
+    const wrap=canvas.parentElement;
+    canvas.width=wrap.clientWidth;
+    canvas.height=wrap.clientHeight;
+    draw();
+  }
+
+  // scale: canvas → game coords (game is CW×STAGE_H)
+  function toGame(cx,cy){
+    const sx=CW/canvas.width, sy=STAGE_H/canvas.height;
+    return {x:cx*sx, y:cy*sy};
+  }
+  function toCanvas(gx,gy){
+    const sx=canvas.width/CW, sy=canvas.height/STAGE_H;
+    return {x:gx*sx, y:gy*sy};
+  }
+
+  function obsAt(gx,gy){
+    const obs=levels[currentStage];
+    for(let i=obs.length-1;i>=0;i--){
+      const o=obs[i];
+      if(Math.abs(gx-o.x)<o.w/2+6 && Math.abs(gy-o.y)<o.h/2+6) return i;
+    }
+    return -1;
+  }
+
+  canvas.addEventListener('pointerdown',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+    const g=toGame(cx,cy);
+
+    if(mode==='select'){
+      const idx=obsAt(g.x,g.y);
+      selected=idx>=0?idx:null;
+      if(idx>=0){
+        dragging=true;
+        dragOff={x:g.x-levels[currentStage][idx].x, y:g.y-levels[currentStage][idx].y};
+        updatePropPanel(levels[currentStage][idx]);
+      }
+      draw(); return;
+    }
+
+    // add mode — place obstacle
+    const w=parseInt(document.getElementById('obs-w').value)||60;
+    const h=parseInt(document.getElementById('obs-h').value)||60;
+    const color=document.getElementById('obs-color').value;
+    const moveX=parseInt(document.getElementById('obs-movex').value)||0;
+    levels[currentStage].push({
+      x:Math.round(g.x), y:Math.round(g.y),
+      w, h, shape:activeShape, color, moveX, moveSpeed:1800
+    });
+    selected=levels[currentStage].length-1;
+    draw();
+  });
+
+  canvas.addEventListener('pointermove',e=>{
+    if(!dragging||selected===null) return;
+    const rect=canvas.getBoundingClientRect();
+    const g=toGame(e.clientX-rect.left, e.clientY-rect.top);
+    levels[currentStage][selected].x=Math.round(g.x-dragOff.x);
+    levels[currentStage][selected].y=Math.round(g.y-dragOff.y);
+    draw();
+  });
+  canvas.addEventListener('pointerup',()=>{ dragging=false; });
+
+  function updatePropPanel(o){
+    if(!o) return;
+    document.getElementById('obs-w').value=o.w;
+    document.getElementById('obs-h').value=o.h;
+    document.getElementById('obs-color').value=o.color||'#e05252';
+    document.getElementById('obs-movex').value=o.moveX||0;
+  }
+  // live-update selected obs from props
+  ['obs-w','obs-h','obs-color','obs-movex'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',()=>{
+      if(selected===null) return;
+      const o=levels[currentStage][selected];
+      o.w=parseInt(document.getElementById('obs-w').value)||60;
+      o.h=parseInt(document.getElementById('obs-h').value)||60;
+      o.color=document.getElementById('obs-color').value;
+      o.moveX=parseInt(document.getElementById('obs-movex').value)||0;
+      draw();
     });
   });
 
-  // ── Auto-init preview on load ─────────────────────────────────────────
-  // Lightweight: just show the game running in-panel without assets
-  // (no asset fetch — just uses template directly)
-  (function initInlinePreview() {
-    const root = document.createElement('div');
-    root.style.cssText = 'width:390px;height:844px;position:absolute;top:0;left:0;overflow:hidden;';
-    // We show a "click Update Preview" placeholder instead
-    const placeholder = document.createElement('div');
-    placeholder.style.cssText = `
-      width:100%;height:100%;
-      display:flex;flex-direction:column;
-      align-items:center;justify-content:center;
-      gap:14px;
-      color:rgba(232,232,240,0.35);
-      font-size:14px;
-      background:#0d0d14;
-    `;
-    placeholder.innerHTML = `
-      <div style="font-size:48px">🎈</div>
-      <div style="font-weight:600;color:rgba(232,232,240,0.6)">Rise Playable</div>
-      <div>Click <strong style="color:#7c6cf5">▶ Update Preview</strong> to see the game</div>
-    `;
-    // Use srcdoc for a clean placeholder
-    iframe.srcdoc = `<!DOCTYPE html><html><head>
-      <style>*{margin:0;padding:0;box-sizing:border-box}
-      html,body{width:100%;height:100%;background:#0d0d14;
-        display:flex;align-items:center;justify-content:center;
-        flex-direction:column;gap:14px;
-        font-family:system-ui;color:rgba(232,232,240,0.4);font-size:14px}
-      </style></head><body>
-      <div style="font-size:48px">🎈</div>
-      <div style="font-weight:600;font-size:16px;color:rgba(232,232,240,0.65)">Rise Playable</div>
-      <div>Click ▶ Update Preview to see the game</div>
-      </body></html>`;
-  })();
+  function draw(){
+    if(!canvas.width) return;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
+    // bg
+    ctx.fillStyle='#0d0d14'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // grid
+    const gsx=canvas.width/6, gsy=canvas.height/8;
+    ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
+    for(let x=0;x<canvas.width;x+=gsx){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+    for(let y=0;y<canvas.height;y+=gsy){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+
+    // stage color hint
+    const sc=(['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'])[currentStage];
+    ctx.fillStyle='rgba('+hexToRgbStr(sc)+',0.04)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // obstacles
+    const obs=levels[currentStage];
+    obs.forEach((o,i)=>{
+      const cp=toCanvas(o.x,o.y);
+      const sw=o.w*(canvas.width/CW), sh=o.h*(canvas.height/STAGE_H);
+      ctx.save();
+      ctx.fillStyle=o.color||'#e05252';
+      ctx.strokeStyle= i===selected ? '#fff' : 'rgba(255,255,255,.2)';
+      ctx.lineWidth= i===selected ? 2.5 : 1.5;
+      if(o.shape==='circle'){
+        ctx.beginPath(); ctx.arc(cp.x,cp.y,sw/2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      } else if(o.shape==='triangle'){
+        ctx.beginPath(); ctx.moveTo(cp.x,cp.y-sh/2); ctx.lineTo(cp.x+sw/2,cp.y+sh/2); ctx.lineTo(cp.x-sw/2,cp.y+sh/2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.rect(cp.x-sw/2,cp.y-sh/2,sw,sh); ctx.fill(); ctx.stroke();
+      }
+      // move indicator
+      if(o.moveX>0){
+        const mx=o.moveX*(canvas.width/CW);
+        ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(cp.x-mx,cp.y); ctx.lineTo(cp.x+mx,cp.y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+    });
+
+    // label
+    ctx.fillStyle='rgba(255,255,255,.2)'; ctx.font='11px monospace'; ctx.textAlign='left';
+    ctx.fillText('Stage '+(currentStage+1)+' · '+obs.length+' obstacle'+(obs.length!==1?'s':''),8,16);
+    if(obs.length===0){
+      ctx.fillStyle='rgba(255,255,255,.18)'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Click to place obstacles',canvas.width/2,canvas.height/2);
+    }
+  }
+
+  function hexToRgbStr(hex){
+    const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'255,255,255';
+  }
+
+  // Public API
+  function getLevelData(){
+    const result=levels.map(s=>s.length>0?s:null);
+    const allEmpty=result.every(x=>!x);
+    return allEmpty?null:levels;
+  }
+
+  window.addEventListener('resize', ()=>{ if($('rtab-levels').style.display!=='none') resize(); });
+
+  return {resize, getLevelData, draw};
 })();
+
+window.RiseLevelEditor=LevelEditor;
 </script>
 </body>
 </html>
