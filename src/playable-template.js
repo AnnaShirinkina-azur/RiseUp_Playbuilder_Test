@@ -151,7 +151,7 @@ class Ball{
     if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
-    if(this.flying){this.travel+=this.speed*dt; this.y=this.ty;}
+    if(this.flying){this.travel+=this.speed*dt;}
   }
   draw(ctx){
     if(this.dead){
@@ -306,12 +306,20 @@ class Game{
     this._raf=requestAnimationFrame(t=>this._loop(t));
   }
 
-  _sst(i){return this.stages[i].worldY-this.camY;}
+  _sst(i){return this.camY-this.stages[i].worldY;}
+
+  _updateCamera(){
+    const targetScreenY=CH*.38;
+    const followDistance=this.ball.ty-targetScreenY;
+    const targetCamY=Math.max(0,this.ball.travel-followDistance);
+    this.camY=lerp(this.camY,targetCamY,.12);
+    this.ball.y=this.ball.ty-(this.ball.travel-this.camY);
+  }
 
   _recycleStages(){
     const H=this.stages[0].H;
     for(const st of this.stages){
-      if(st.worldY+H<this.camY-CH*.35){
+      if(this._sst(this.stages.indexOf(st))>CH+CH*.35){
         this.spawnTop+=H;
         st.resetAt(this.spawnTop);
         this.completedStages++;
@@ -326,7 +334,9 @@ class Game{
     this.shield.update(dt);
     this.ball.update(dt);
     if(st==='playing'||st==='respawning'){
-      this.camY=this.ball.travel;
+      this._updateCamera();
+    } else {
+      this.ball.y=this.ball.ty-(this.ball.travel-this.camY);
     }
     this.fx.update();
 
