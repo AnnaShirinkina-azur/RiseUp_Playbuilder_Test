@@ -16,7 +16,7 @@ function readConfig(){
   }
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),
-    obstaclePushForce:g('cfg-pushForce'),hpBarShowTime:g('cfg-hpBarShowTime'),
+    obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime'),
     tutorialDisplayTime:g('cfg-tutorialTime'),
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),
