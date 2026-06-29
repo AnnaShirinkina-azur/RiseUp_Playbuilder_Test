@@ -531,11 +531,24 @@ class Game{
     return true;
   }
 
+  _nearestReadyBackground(idx){
+    const common=this._spr('background');
+    const exact=this._spr('background_stage'+idx);
+    if(exact)return exact;
+    for(let d=1;d<=this.stages.length;d++){
+      const prev=this._spr('background_stage'+(idx-d));
+      if(prev)return prev;
+      const next=this._spr('background_stage'+(idx+d));
+      if(next)return next;
+    }
+    return common;
+  }
+
   _drawBackground(ctx){
     ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
     const mode=this.cfg.backgroundMode||'perStage';
     if(mode==='common'){
-      const bg=this._spr('background');
+      const bg=this._spr('background')||this._nearestReadyBackground(0);
       if(imgOk(bg)){
         const minY=Math.min(...this.stages.map(s=>s.worldY));
         const maxY=Math.max(...this.stages.map(s=>s.worldY+s.H));
@@ -548,7 +561,7 @@ class Game{
     }
     const fade=Math.max(60,Math.min(150,CH*.18));
     for(const st of this.stages){
-      const bg=this._spr('background_stage'+st.idx)||this._spr('background');
+      const bg=this._nearestReadyBackground(st.idx);
       if(imgOk(bg))this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade);
     }
   }

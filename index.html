@@ -330,8 +330,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=10"></script>
-<script src="src/builder.js?v=10"></script>
+<script src="src/playable-template.js?v=20"></script>
+<script src="src/builder.js?v=20"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -663,24 +663,44 @@ const LE=(function(){
     ctx.drawImage(off,x,y);
     return true;
   }
+  function readyBgForStage(sm,si){
+    const exact=sm['background_stage'+si];
+    let im=getEditorImage(exact);
+    if(exact&&imageReady(im))return im;
+    const common=sm.background;
+    im=getEditorImage(common);
+    if(common&&imageReady(im))return im;
+    for(let d=1;d<=NS;d++){
+      const prev=sm['background_stage'+(si-d)];
+      im=getEditorImage(prev);
+      if(prev&&imageReady(im))return im;
+      const next=sm['background_stage'+(si+d)];
+      im=getEditorImage(next);
+      if(next&&imageReady(im))return im;
+    }
+    return null;
+  }
   function drawBackgroundForStage(si,top,w,h,totalH){
     const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
     const sm=sprMap();
     if(mode==='common'){
       const src=sm.background;
       const im=getEditorImage(src);
-      if(src&&imageReady(im)){
-        const sc=Math.max(w/im.naturalWidth,totalH/im.naturalHeight);
-        const dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;
-        ctx.drawImage(im,(w-dw)/2,(totalH-dh)/2,dw,dh);
+      const fallback=readyBgForStage(sm,si);
+      const bg=imageReady(im)?im:fallback;
+      if(bg){
+        const sc=Math.max(w/bg.naturalWidth,totalH/bg.naturalHeight);
+        const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
+        ctx.drawImage(bg,(w-dw)/2,(totalH-dh)/2,dw,dh);
         return true;
       }
       return false;
     }
     const src=sm['background_stage'+si];
     const im=getEditorImage(src);
+    const bg=imageReady(im)?im:readyBgForStage(sm,si);
     const fade=Math.max(24,Math.min(110*zoom,h*.22));
-    return src?drawCoverImageFade(im,0,top-fade,w,h+fade*2,fade):false;
+    return bg?drawCoverImageFade(bg,0,top-fade,w,h+fade*2,fade):false;
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawObstacle(o,si,i){

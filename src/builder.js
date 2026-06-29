@@ -77,8 +77,11 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
 <style>
 ${ff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
-#gr{width:var(--gw);height:var(--gh);max-width:100vw;max-height:100vh;position:relative;overflow:hidden}
+html,body{width:100%;height:100%;background:${JSON.stringify(cfg.bgColor||'#0d0d14')};display:flex;align-items:center;justify-content:center;overflow:hidden}
+#gr{width:var(--gw);height:var(--gh);max-width:100vw;max-height:100vh;position:relative;overflow:hidden;background:${JSON.stringify(cfg.bgColor||'#0d0d14')}}
+#loader{position:absolute;inset:0;background:${JSON.stringify(cfg.bgColor||'#0d0d14')};display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.72);font:600 14px system-ui,sans-serif;z-index:5;overflow:hidden}
+#loader::before{content:'';position:absolute;inset:0;background-image:var(--loader-bg);background-size:cover;background-position:center;opacity:.96;transform:scale(1.02)}
+#loader::after{content:'Loading...';position:relative;padding:8px 12px;border-radius:999px;background:rgba(0,0,0,.22);backdrop-filter:blur(4px)}
 #gr.portrait{--gw:390px;--gh:844px}
 #gr.landscape{--gw:844px;--gh:390px}
 @media(max-aspect-ratio:390/844){#gr.portrait{width:100vw;height:calc(100vw*844/390)}}
@@ -88,7 +91,7 @@ html,body{width:100%;height:100%;background:#000;display:flex;align-items:center
 </style>
 </head>
 <body>
-<div id="gr"></div>
+<div id="gr"><div id="loader"></div></div>
 <script>
 ${gameSrc}
 var a={};${aLines}
@@ -97,22 +100,37 @@ var cfg=${JSON.stringify(cfg)};
 (function(){
   var root=document.getElementById('gr');
   root.className=(cfg.orientation==='landscape')?'landscape':'portrait';
+  var loader=document.getElementById('loader');
+  var firstBg=sp.background;
+  if(!firstBg){
+    var bgKeys=Object.keys(sp).filter(function(k){return /^background_stage\d+$/.test(k);}).sort(function(a,b){return parseInt(a.replace('background_stage',''),10)-parseInt(b.replace('background_stage',''),10);});
+    if(bgKeys.length)firstBg=sp[bgKeys[0]];
+  }
+  if(firstBg)root.style.setProperty('--loader-bg','url('+JSON.stringify(firstBg)+')');
+  else root.style.setProperty('--loader-bg','none');
   var imgs={};
   var keys=Object.keys(sp);
-  var left=keys.length;
   function boot(){
+    if(loader)loader.style.display='none';
     RisePlayable.init(root,cfg,imgs,{
       onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
       onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
       onLose:function(){},onStageChange:function(){}
     });
   }
-  if(left===0){boot();return;}
-  keys.forEach(function(k){
-    var img=new Image();
-    img.onload=img.onerror=function(){imgs[k]=img;if(--left<=0)boot();};
-    img.src=sp[k];
-  });
+  function loadImage(k){
+    return new Promise(function(resolve){
+      var img=new Image();
+      img.onload=function(){
+        var done=function(){imgs[k]=img;resolve();};
+        if(img.decode)img.decode().then(done).catch(done);else done();
+      };
+      img.onerror=function(){resolve();};
+      img.src=sp[k];
+    });
+  }
+  if(!keys.length){boot();return;}
+  Promise.all(keys.map(loadImage)).then(boot);
 })();
 </script>
 </body>
