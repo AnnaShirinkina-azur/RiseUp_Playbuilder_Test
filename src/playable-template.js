@@ -62,8 +62,9 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=850;}
+  constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=850;this.worldY=idx*this.H;}
   reset(){this.obs.forEach(o=>o.reset());}
+  resetAt(worldY){this.worldY=worldY;this.reset();}
   update(dt){this.obs.forEach(o=>o.update(dt));}
   draw(ctx,top){
     const g=ctx.createLinearGradient(0,top,0,top+this.H);
@@ -141,7 +142,7 @@ class Ball{
     this.spr=null;
   }
   get r(){return 20*this.cfg.playerSize;}
-  get worldY(){return this.ty-this.travel;}
+  get worldY(){return this.travel;}
   die(){this.dead=true;this.da=0;}
   respawn(){this.dead=false;this.x=CW/2;this.y=CH*.72;this.ty=this.y;this.da=0;this.ra=0;this.flash=0;this.flying=false;this.fy=0;this.travel=0;this.speed=0;}
   start(speed,travel=0){this.flying=true;this.speed=speed;this.travel=travel;}
@@ -150,10 +151,7 @@ class Ball{
     if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
-    if(this.flying){this.travel+=this.speed*dt;}
-    // Camera follows the ball, so the ball stays at the same screen anchor
-    // while its world Y changes at a constant speed.
-    this.y=this.ty;
+    if(this.flying){this.travel+=this.speed*dt; this.y=this.ty;}
   }
   draw(ctx){
     if(this.dead){
@@ -248,7 +246,9 @@ class Game{
     this.ball=new Ball(this.cfg);
     this.shield.spr=this._spr('shield');
     this.ball.spr=this._spr('player');
-    this.stages.forEach(s=>s.reset());
+    this.stages.forEach((s,i)=>s.resetAt(i*s.H));
+    this.spawnTop=(this.stages.length-1)*this.stages[0].H;
+    this.completedStages=0;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
     this._raf=requestAnimationFrame(t=>this._loop(t));
@@ -306,7 +306,20 @@ class Game{
     this._raf=requestAnimationFrame(t=>this._loop(t));
   }
 
-  _sst(i){return i*this.stages[0].H-this.camY;}
+  _sst(i){return this.stages[i].worldY-this.camY;}
+
+  _recycleStages(){
+    const H=this.stages[0].H;
+    for(const st of this.stages){
+      if(st.worldY+H<this.camY-CH*.35){
+        this.spawnTop+=H;
+        st.resetAt(this.spawnTop);
+        this.completedStages++;
+        this.si=this.completedStages%this.stages.length;
+        this.cb.onStageChange&&this.cb.onStageChange(this.si);
+      }
+    }
+  }
 
   _update(dt){
     const st=this.state;
@@ -338,8 +351,8 @@ class Game{
       }
     }
 
-    // stage advance
-    if(st==='playing'&&this._sst(this.si)<-this.stages[0].H*.4)this._advance();
+    // keep obstacles spawning above the camera as the ball rises
+    if(st==='playing')this._recycleStages();
 
     // death sequence
     if(st==='dying'){this.dtimer+=dt;if(this.dtimer>900)this._afterDeath();}
@@ -376,8 +389,9 @@ class Game{
   _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
   _onFadeIn(){
     const H=this.stages[0].H;
-    this.camY=this.si*H;
-    this.stages[this.si].reset();
+    this.camY=Math.max(0,this.camY-H*.25);
+    this.spawnTop=this.camY-H;
+    this.stages.forEach((s,i)=>{this.spawnTop+=H;s.resetAt(this.spawnTop);});
     this.shield.respawn();this.ball.respawn();
     this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
     setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
@@ -415,7 +429,7 @@ class Game{
   _drawDots(ctx){
     const n=this.stages.length,r=5,gap=12,sc=this.cfg.stageColors||['#e05252'];
     let x=(CW-n*(r*2)-(n-1)*gap)/2,y=CH-22;
-    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(x+r,y,r,0,Math.PI*2);ctx.fillStyle=i<=this.si?sc[i%sc.length]:rgba('#fff',.2);ctx.fill();x+=r*2+gap;}
+    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(x+r,y,r,0,Math.PI*2);ctx.fillStyle=i===this.si?sc[i%sc.length]:rgba('#fff',.2);ctx.fill();x+=r*2+gap;}
   }
 
   _drawTut(ctx){
