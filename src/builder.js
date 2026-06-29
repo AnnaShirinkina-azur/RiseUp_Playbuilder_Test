@@ -15,7 +15,7 @@ function readConfig(){
     if(ld)levelData=ld;
   }
   return{
-    lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),
+    lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||5,
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime'),
     tutorialDisplayTime:g('cfg-tutorialTime'),
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),
@@ -24,6 +24,7 @@ function readConfig(){
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     orientation:g('cfg-orientation')||'portrait',
+    backgroundMode:g('cfg-bgMode')||'perStage',
     levelData,
   };
 }

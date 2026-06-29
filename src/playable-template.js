@@ -240,10 +240,12 @@ class Game{
     const sc=c.stageColors||['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     const sh=['rect','circle','triangle'];
     this.stages=[];
-    // levelData: array[5] of obs-config arrays from level editor
+    const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
+    // levelData: array[stageCount] of obs-config arrays from level editor
     const ld=c.levelData;
     const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
-    for(let si=0;si<5;si++){
+    const stageCount=hasLD?Math.max(requestedCount,ld.length):requestedCount;
+    for(let si=0;si<stageCount;si++){
       let obs=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         obs=ld[si].map(o=>{
@@ -479,7 +481,7 @@ class Game{
 
   _drawBackground(ctx){
     ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
-    const bg=this._spr('background_stage'+this.si)||this._spr('background');
+    const bg=(this.cfg.backgroundMode==='common'?null:this._spr('background_stage'+this.si))||this._spr('background');
     if(imgOk(bg)){
       const sc=Math.max(CW/bg.naturalWidth,CH/bg.naturalHeight);
       const w=bg.naturalWidth*sc,h=bg.naturalHeight*sc;
@@ -573,7 +575,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],orientation:'portrait',
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageCount:5,orientation:'portrait',backgroundMode:'perStage',
   levelData:null,
 };
 
