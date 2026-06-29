@@ -129,28 +129,31 @@ class Shield{
   }
 }
 
-//── Ball — главный шар-ГГ. Стоит на месте на экране (камера несёт его вверх). ─
-//── Не управляется игроком. Только здесь живут жизни. ────────────────────────
+//── Ball — движется только по Y ───────────────────────────────────────────────
 class Ball{
   constructor(cfg){
     this.cfg=cfg;
-    this.x=CW/2;this.y=CH*.72;       // фиксированная позиция на экране
+    this.x=CW/2;this.y=CH*.72;
+    this.ty=this.y;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
     this.flying=false;this.fy=0;
+    this.travel=0;this.speed=0;
     this.spr=null;
   }
   get r(){return 20*this.cfg.playerSize;}
-  // moveY оставлен как no-op для обратной совместимости — игрок шаром-ГГ не управляет
-  moveY(_y){}
+  get worldY(){return this.ty-this.travel;}
   die(){this.dead=true;this.da=0;}
-  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.72;this.da=0;this.ra=0;this.flash=0;}
+  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.72;this.ty=this.y;this.da=0;this.ra=0;this.flash=0;this.flying=false;this.fy=0;this.travel=0;this.speed=0;}
+  start(speed,travel=0){this.flying=true;this.speed=speed;this.travel=travel;}
   flyAway(){this.flying=true;this.fy=0;}
   update(dt){
     if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
-    if(this.flying){this.fy=Math.min(1,this.fy+dt/600);this.y-=5*this.fy;return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
-    // Y не меняется — шар стоит на месте, мир скроллится мимо него (camY)
+    if(this.flying){this.travel+=this.speed*dt;}
+    // Camera follows the ball, so the ball stays at the same screen anchor
+    // while its world Y changes at a constant speed.
+    this.y=this.ty;
   }
   draw(ctx){
     if(this.dead){
@@ -232,7 +235,7 @@ class Game{
   }
 
   _reset(){
-    this.camY=0;this.spd=0;this.tspd=0;
+    this.camY=0;
     this.state='start';
     this.lives=this.cfg.lives;
     this.si=0;
@@ -293,15 +296,8 @@ class Game{
     cv.addEventListener('mouseup',()=>up());
   }
 
-  // Базовая скорость подъёма шара (px/мс). Шар-ГГ стоит на экране, мир скроллится с этой скоростью.
-  // Приоритет: cfg.ballSpeed → cfg.gameSpeed (для обратной совместимости с UI builder'а).
-  _baseSpd(stageIdx){
-    const s=(this.cfg.ballSpeed!=null?this.cfg.ballSpeed:this.cfg.gameSpeed)||0;
-    const acc=this.cfg.acceleration||0;
-    return(s+acc*(stageIdx||0))/1000;
-  }
-
-  _start(){this.state='playing';this.tspd=this._baseSpd();}
+  _ballSpeed(){return this.cfg.gameSpeed/16.6667;}
+  _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);}
 
   _loop(ts){
     if(!this._last)this._last=ts;
@@ -314,12 +310,11 @@ class Game{
 
   _update(dt){
     const st=this.state;
-    if(st==='playing'||st==='respawning'){
-      this.spd=lerp(this.spd,this.tspd,dt*.005);
-      this.camY+=this.spd*dt;
-    }
     this.shield.update(dt);
     this.ball.update(dt);
+    if(st==='playing'||st==='respawning'){
+      this.camY=this.ball.travel;
+    }
     this.fx.update();
 
     // tutorial
@@ -332,18 +327,14 @@ class Game{
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
-    // Столкновения:
-    //  • Шар-защитник отбивает препятствия — без потери жизни, без смерти.
-    //  • Шар-ГГ получает урон при касании — теряется жизнь.
-    if(st==='playing'){
-      for(let i=0;i<this.stages.length;i++){
+    // collisions: shield blocks obstacles; if shield misses, ball also checks
+    if(st==='playing'&&!this.shield.dead){
+      outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
-        // Шит блокирует — толкаем препятствие, продолжаем проверку (шар может задеть другое).
         const sh=this.stages[i].hit(this.shield.x,this.shield.y,this.shield.r,top);
-        if(sh)this._block(sh,top);
-        // Касание шаром-ГГ = потеря жизни.
+        if(sh){this._hit(sh,top,'shield');break outer;}
         const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top);
-        if(bh){this._hit(bh,top);break;}
+        if(bh){this._hit(bh,top,'ball');break outer;}
       }
     }
 
@@ -362,44 +353,39 @@ class Game{
     if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
   }
 
-  // Шит отбил препятствие — толчок, вспышка, никакой смерти и потери жизни.
-  _block(obs,top){
-    const dx=obs.x-this.shield.x,dy=(obs.y+top)-this.shield.y;
+  _hit(obs,top,who){
+    const hx=who==='shield'?this.shield.x:this.ball.x;
+    const hy=who==='shield'?this.shield.y:this.ball.y;
+    const dx=obs.x-hx,dy=(obs.y+top)-hy;
     const len=Math.sqrt(dx*dx+dy*dy)||1;
     const f=this.cfg.obstaclePushForce;
-    obs.push(dx/len*f,dy/len*f-2);
+    if(who==='shield'){
+      // The protector survives and knocks the obstacle down.
+      obs.push(dx/len*f,Math.max(f,Math.abs(dy/len*f))+2);
+      this.shield.flash=400;
+    } else {
+      obs.push(dx/len*f,dy/len*f-2);
+      this.ball.flash=400;
+      this._die();
+    }
     this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
-    this.shield.flash=400;
     this.tutDone=true;
   }
 
-  // Шар-ГГ задел препятствие — теряется жизнь, запускается смерть.
-  _hit(obs,top){
-    const dx=obs.x-this.ball.x,dy=(obs.y+top)-this.ball.y;
-    const len=Math.sqrt(dx*dx+dy*dy)||1;
-    const f=this.cfg.obstaclePushForce;
-    obs.push(dx/len*f,dy/len*f-2);
-    this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
-    this.ball.flash=400;
-    this.tutDone=true;
-    this._die();
-  }
-
-  // Жизни привязаны к шару-ГГ. Шит не умирает — только мигает на смерти ГГ для визуала респауна.
-  _die(){if(this.state!=='playing')return;this.state='dying';this.ball.die();this.dtimer=0;this.spd=0;this.tspd=0;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;}
   _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
   _onFadeIn(){
     const H=this.stages[0].H;
     this.camY=this.si*H;
     this.stages[this.si].reset();
     this.shield.respawn();this.ball.respawn();
-    this.state='respawning';this.tspd=this._baseSpd();
+    this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
     setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
   }
   _advance(){
     const n=this.si+1;
     if(n>=this.stages.length){this._win();return;}
-    this.si=n;this.tspd=this._baseSpd(n);
+    this.si=n;
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
   _win(){this.state='won';this.isWin=true;this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
@@ -485,11 +471,7 @@ class Game{
 }
 
 const DEF={
-  lives:3,
-  // Скорость подъёма шара-ГГ (px/s). Камера следует за шаром.
-  // ballSpeed имеет приоритет; gameSpeed оставлен для совместимости с UI builder'а.
-  ballSpeed:null, gameSpeed:3.2, acceleration:0.4,
-  obstaclePushForce:7,
+  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,
   shieldColor:'#4fc3f7',shieldSize:1.0,
