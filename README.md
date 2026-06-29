@@ -92,3 +92,14 @@ npx serve .
 | `Level.cs` | класс `RiseGame` (state machine) |
 | `DeathTrigger.cs` | `RiseGame._checkDeathZone()` |
 | `LunaColorSettings.cs` | config object → `DEFAULT_CONFIG` |
+
+
+## Important when updating logic
+
+The editor page loads `src/playable-template.js` and `src/builder.js`. The downloaded playable HTML contains the game code inline, so after changing `playable-template.js` you must open/reload the editor and click **Update Preview** or **Download Playable HTML** again. Replacing only `playable-template.js` will not change an already-exported playable HTML file.
+
+For the latest changes, keep these files together:
+
+- `index.html` — contains the UI controls for Gravity modifier and per-level background uploads.
+- `src/builder.js` — reads those UI values and embeds selected images into the exported playable.
+- `src/playable-template.js` — uses `gravityModifier`, `background`, and `background_stage0...background_stage4`.

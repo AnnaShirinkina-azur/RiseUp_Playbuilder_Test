@@ -23,6 +23,7 @@ function readConfig(){
     obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
+    orientation:g('cfg-orientation')||'portrait',
     levelData,
   };
 }
@@ -76,9 +77,13 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
 ${ff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
-#gr{width:390px;height:844px;max-width:100vw;max-height:100vh;position:relative;overflow:hidden}
-@media(max-aspect-ratio:390/844){#gr{width:100vw;height:calc(100vw*844/390)}}
-@media(min-aspect-ratio:390/844){#gr{height:100vh;width:calc(100vh*390/844)}}
+#gr{width:var(--gw);height:var(--gh);max-width:100vw;max-height:100vh;position:relative;overflow:hidden}
+#gr.portrait{--gw:390px;--gh:844px}
+#gr.landscape{--gw:844px;--gh:390px}
+@media(max-aspect-ratio:390/844){#gr.portrait{width:100vw;height:calc(100vw*844/390)}}
+@media(min-aspect-ratio:390/844){#gr.portrait{height:100vh;width:calc(100vh*390/844)}}
+@media(max-aspect-ratio:844/390){#gr.landscape{width:100vw;height:calc(100vw*390/844)}}
+@media(min-aspect-ratio:844/390){#gr.landscape{height:100vh;width:calc(100vh*844/390)}}
 </style>
 </head>
 <body>
@@ -90,6 +95,7 @@ var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
 (function(){
   var root=document.getElementById('gr');
+  root.className=(cfg.orientation==='landscape')?'landscape':'portrait';
   var imgs={};
   var keys=Object.keys(sp);
   var left=keys.length;

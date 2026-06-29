@@ -1,10 +1,14 @@
 (function(W){'use strict';
-const CW=390,CH=844;
+let CW=390,CH=844;
+function setView(orientation){if(orientation==='landscape'){CW=844;CH=390;}else{CW=390;CH=844;}}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
+function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
+function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
+function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 
 //── Particles ────────────────────────────────────────────────────────────────
 class FX{
@@ -25,6 +29,7 @@ class Obs{
     this.x=o.x??195;this.y=o.y??200;
     this.w=o.w||60;this.h=o.h||60;
     this.shape=o.shape||'rect';
+    this.points=(o.points||null);
     this.color=o.color||'#e05252';
     this.spr=o.sprite||null;
     this.moveX=o.moveX||0;
@@ -50,6 +55,7 @@ class Obs{
   hits(cx,cy,cr){
     if(!this.kin||!this.live)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
+    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>({x:this.x+p.x*this.w,y:this.y+p.y*this.h}));return circlePolyHit(cx,cy,cr,pts);}
     const nx=clamp(cx,this.x-this.w/2,this.x+this.w/2),ny=clamp(cy,this.y-this.h/2,this.y+this.h/2);
     return(cx-nx)**2+(cy-ny)**2<cr*cr;
   }
@@ -64,6 +70,7 @@ class Obs{
       ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
       else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(0,-hh);ctx.lineTo(hw,hh);ctx.lineTo(-hw,hh);ctx.closePath();ctx.fill();ctx.stroke();}
+      else if(this.shape==='custom'&&this.points&&this.points.length>=3){ctx.beginPath();this.points.forEach((p,i)=>{const px=p.x*this.w,py=p.y*this.h;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.fill();ctx.stroke();}
       else{ctx.beginPath();ctx.rect(-this.w/2,-this.h/2,this.w,this.h);ctx.fill();ctx.stroke();}
     }
     ctx.restore();
@@ -72,7 +79,7 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=850;this.worldY=idx*this.H;}
+  constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=CH+6;this.worldY=idx*this.H;}
   reset(){this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.worldY=worldY;this.reset();}
   update(dt,fallSpeed=0,gravityModifier=1){
@@ -203,6 +210,7 @@ class Ball{
 class Game{
   constructor(el,cfg,assets,cb){
     this.cfg=Object.assign({},DEF,cfg);
+    setView(this.cfg.orientation);
     this.assets=assets||{};
     this.cb=cb||{};
     // canvas
@@ -557,7 +565,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],orientation:'portrait',
   levelData:null,
 };
 
