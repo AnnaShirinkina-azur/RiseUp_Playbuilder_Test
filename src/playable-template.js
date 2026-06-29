@@ -258,18 +258,39 @@ class Game{
 
   _bindInput(){
     const cv=this.cv;
+    const down=(x,y)=>{
+      if(this.state==='start'){this._start();return;}
+      if(this.state==='playing'){this.shield.down(x,y);this.ball.moveY(y);}
+      if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
+    };
+    const move=(x,y)=>{
+      if(this.state==='playing'){this.shield.move(x,y);this.ball.moveY(y);}
+    };
+    const up=()=>this.shield.up();
+
+    // Pointer events (mouse + most touch)
     cv.addEventListener('pointerdown',e=>{
       e.preventDefault();
-      if(this.state==='start'){this._start();return;}
-      if(this.state==='playing'){const p=this._cxy(e);this.shield.down(p.x,p.y);this.ball.moveY(p.y);}
-      if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
+      try{cv.setPointerCapture(e.pointerId);}catch(_){}
+      const p=this._cxy(e);down(p.x,p.y);
     },{passive:false});
     cv.addEventListener('pointermove',e=>{
       e.preventDefault();
-      if(this.state==='playing'){const p=this._cxy(e);this.shield.move(p.x,p.y);this.ball.moveY(p.y);}
+      const p=this._cxy(e);move(p.x,p.y);
     },{passive:false});
-    cv.addEventListener('pointerup',  e=>{e.preventDefault();this.shield.up();},{passive:false});
-    cv.addEventListener('pointercancel',()=>this.shield.up());
+    cv.addEventListener('pointerup',e=>{e.preventDefault();up();},{passive:false});
+    cv.addEventListener('pointercancel',()=>up());
+
+    // Touch fallback (older mobile webviews where pointer events misbehave)
+    const tcxy=t=>{const rc=cv.getBoundingClientRect();return{x:(t.clientX-rc.left)*(CW/rc.width),y:(t.clientY-rc.top)*(CH/rc.height)};};
+    cv.addEventListener('touchstart',e=>{e.preventDefault();const p=tcxy(e.touches[0]);down(p.x,p.y);},{passive:false});
+    cv.addEventListener('touchmove',e=>{e.preventDefault();const p=tcxy(e.touches[0]);move(p.x,p.y);},{passive:false});
+    cv.addEventListener('touchend',e=>{e.preventDefault();up();},{passive:false});
+
+    // Mouse fallback (desktop webviews without pointer events)
+    cv.addEventListener('mousedown',e=>{const p=this._cxy(e);down(p.x,p.y);});
+    cv.addEventListener('mousemove',e=>{if(this.state==='playing'){const p=this._cxy(e);move(p.x,p.y);}});
+    cv.addEventListener('mouseup',()=>up());
   }
 
   _start(){this.state='playing';this.tspd=this.cfg.gameSpeed/1000;}
