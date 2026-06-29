@@ -500,13 +500,56 @@ class Game{
   _win(){this.state='won';this.isWin=true;this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
   _lose(){this.state='endcard';this.isWin=false;this.cb.onLose&&this.cb.onLose();}
 
+  _drawCover(ctx,bg,x,y,w,h){
+    if(!imgOk(bg))return false;
+    const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
+    const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
+    ctx.drawImage(bg,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+    return true;
+  }
+
+  _drawCoverFade(ctx,bg,x,y,w,h,fade){
+    if(!imgOk(bg))return false;
+    const off=document.createElement('canvas');
+    off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
+    const oc=off.getContext('2d');
+    const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
+    const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
+    oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
+    if(fade>0){
+      const f=Math.min(fade,h/2);
+      const g=oc.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,'rgba(0,0,0,0)');
+      g.addColorStop(f/h,'rgba(0,0,0,1)');
+      g.addColorStop(1-f/h,'rgba(0,0,0,1)');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      oc.globalCompositeOperation='destination-in';
+      oc.fillStyle=g;oc.fillRect(0,0,w,h);
+      oc.globalCompositeOperation='source-over';
+    }
+    ctx.drawImage(off,x,y);
+    return true;
+  }
+
   _drawBackground(ctx){
     ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
-    const bg=(this.cfg.backgroundMode==='common'?null:this._spr('background_stage'+this.si))||this._spr('background');
-    if(imgOk(bg)){
-      const sc=Math.max(CW/bg.naturalWidth,CH/bg.naturalHeight);
-      const w=bg.naturalWidth*sc,h=bg.naturalHeight*sc;
-      ctx.drawImage(bg,(CW-w)/2,(CH-h)/2,w,h);
+    const mode=this.cfg.backgroundMode||'perStage';
+    if(mode==='common'){
+      const bg=this._spr('background');
+      if(imgOk(bg)){
+        const minY=Math.min(...this.stages.map(s=>s.worldY));
+        const maxY=Math.max(...this.stages.map(s=>s.worldY+s.H));
+        const totalH=Math.max(CH,maxY-minY);
+        const sc=Math.max(CW/bg.naturalWidth,totalH/bg.naturalHeight);
+        const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
+        ctx.drawImage(bg,(CW-dw)/2,minY+(totalH-dh)/2,dw,dh);
+      }
+      return;
+    }
+    const fade=Math.max(60,Math.min(150,CH*.18));
+    for(const st of this.stages){
+      const bg=this._spr('background_stage'+st.idx)||this._spr('background');
+      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade);
     }
   }
 

@@ -306,6 +306,28 @@ const LE=(function(){
     ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
     return true;
   }
+  function drawCoverImageFade(im,x,y,w,h,fade){
+    if(!imageReady(im))return false;
+    const off=document.createElement('canvas');
+    off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
+    const oc=off.getContext('2d');
+    const sc=Math.max(w/im.naturalWidth,h/im.naturalHeight);
+    const dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;
+    oc.drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);
+    if(fade>0){
+      const f=Math.min(fade,h/2);
+      const g=oc.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,'rgba(0,0,0,0)');
+      g.addColorStop(f/h,'rgba(0,0,0,1)');
+      g.addColorStop(1-f/h,'rgba(0,0,0,1)');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      oc.globalCompositeOperation='destination-in';
+      oc.fillStyle=g;oc.fillRect(0,0,w,h);
+      oc.globalCompositeOperation='source-over';
+    }
+    ctx.drawImage(off,x,y);
+    return true;
+  }
   function drawBackgroundForStage(si,top,w,h,totalH){
     const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
     const sm=sprMap();
@@ -322,7 +344,8 @@ const LE=(function(){
     }
     const src=sm['background_stage'+si];
     const im=getEditorImage(src);
-    return src?drawCoverImage(im,0,top,w,h):false;
+    const fade=Math.max(24,Math.min(110*zoom,h*.22));
+    return src?drawCoverImageFade(im,0,top-fade,w,h+fade*2,fade):false;
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawObstacle(o,si,i){
