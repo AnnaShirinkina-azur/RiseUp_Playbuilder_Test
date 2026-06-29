@@ -283,25 +283,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
 <div class="shape-modal" id="shape-modal">
   <div class="shape-card">
-    <h3>Custom geometric shape / ручной коллайдер</h3>
-    <p style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:8px;">Введите точки полигона относительно центра формы. Диапазон: -0.5…0.5. Одна точка на строку: <b>x,y</b>. Коллайдер будет построен по этим точкам.</p>
+    <h3>Custom SVG shape / автоматический коллайдер</h3>
+    <p style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:8px;">Загрузите SVG. Редактор сам возьмёт координаты из polygon/polyline/path/rect/circle/ellipse и построит по ним коллайдер.</p>
     <input id="custom-shape-name" value="custom_star" placeholder="shape name">
     <div style="display:flex;gap:8px;align-items:center;margin:8px 0;">
-      <div class="thumb" id="custom-shape-image-preview" style="width:42px;height:42px;font-size:18px;">SVG/PNG</div>
-      <label class="ul-btn">+ SVG / PNG<input id="custom-shape-image" type="file" accept="image/svg+xml,image/png,image/*" style="display:none"></label>
+      <div class="thumb" id="custom-shape-image-preview" style="width:42px;height:42px;font-size:18px;">SVG</div>
+      <label class="ul-btn">+ SVG<input id="custom-shape-image" type="file" accept="image/svg+xml,.svg" style="display:none"></label>
       <button class="x-btn" id="custom-shape-image-clear" type="button">✕</button>
     </div>
-    <p style="font-size:11px;color:var(--dim);line-height:1.4;margin:-2px 0 8px;">Картинка будет отображением формы. Коллайдер всё равно задаётся точками ниже.</p>
-    <textarea id="custom-shape-points">0,-0.5
-0.16,-0.16
-0.5,-0.12
-0.24,0.08
-0.3,0.5
-0,0.26
--0.3,0.5
--0.24,0.08
--0.5,-0.12
--0.16,-0.16</textarea>
+    <p style="font-size:11px;color:var(--dim);line-height:1.4;margin:-2px 0 8px;">SVG будет отображением формы. Коллайдер автоматически строится из координат SVG.</p>
+    <textarea id="custom-shape-points" style="display:none"></textarea><p id="custom-shape-points-info" style="font-size:11px;color:var(--dim);line-height:1.4;margin:6px 0 0;">Коллайдер не создан: загрузите SVG.</p>
     <div class="shape-actions">
       <button class="btn btn-s" id="shape-cancel">Cancel</button>
       <button class="btn btn-s" id="shape-save">Save shape</button>
@@ -447,6 +438,7 @@ const LE=(function(){
   const lvls=Array.from({length:NS},()=>[]);
   let sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0};
   let customShapeImageSrc=null;
+  let customShapeSvgPoints=null;
   const customShapes=[];
   const imageCache=new Map();
   const cv=$('ec'),ctx=cv.getContext('2d');
@@ -460,6 +452,59 @@ const LE=(function(){
     return img;
   }
   function imageReady(img){return img&&img.complete&&img.naturalWidth>0;}
+
+  function decodeSvgDataUrl(src){
+    if(!src)return '';
+    const comma=src.indexOf(',');
+    if(src.startsWith('data:image/svg+xml')&&comma>=0){
+      const meta=src.slice(0,comma),body=src.slice(comma+1);
+      try{return meta.includes(';base64')?atob(body):decodeURIComponent(body);}catch(e){try{return decodeURIComponent(body);}catch(_){return body;}}
+    }
+    return src;
+  }
+  function nums(str){return (str||'').match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi)?.map(Number)||[];}
+  function parseSvgPoints(svgText){
+    const txt=decodeSvgDataUrl(svgText);
+    const doc=new DOMParser().parseFromString(txt,'image/svg+xml');
+    if(doc.querySelector('parsererror'))throw new Error('SVG parse error');
+    let pts=[];
+    const add=(x,y)=>{if(Number.isFinite(x)&&Number.isFinite(y))pts.push({x,y});};
+    doc.querySelectorAll('polygon,polyline').forEach(el=>{
+      const a=nums(el.getAttribute('points'));
+      for(let i=0;i<a.length-1;i+=2)add(a[i],a[i+1]);
+    });
+    doc.querySelectorAll('path').forEach(el=>{
+      const d=el.getAttribute('d')||'';
+      const tokens=d.match(/[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g)||[];
+      let i=0,cmd='',x=0,y=0,sx0=0,sy0=0;
+      const isCmd=t=>/^[a-zA-Z]$/.test(t);
+      while(i<tokens.length){
+        if(isCmd(tokens[i]))cmd=tokens[i++];
+        const rel=cmd===cmd.toLowerCase();
+        const C=cmd.toUpperCase();
+        if(C==='M'||C==='L'||C==='T'){
+          while(i+1<tokens.length&&!isCmd(tokens[i])){let nx=parseFloat(tokens[i++]),ny=parseFloat(tokens[i++]);if(rel){nx+=x;ny+=y;}x=nx;y=ny;add(x,y);if(C==='M'){sx0=x;sy0=y;cmd=rel?'l':'L';}}
+        }else if(C==='H'){
+          while(i<tokens.length&&!isCmd(tokens[i])){let nx=parseFloat(tokens[i++]);if(rel)nx+=x;x=nx;add(x,y);}
+        }else if(C==='V'){
+          while(i<tokens.length&&!isCmd(tokens[i])){let ny=parseFloat(tokens[i++]);if(rel)ny+=y;y=ny;add(x,y);}
+        }else if(C==='C'){
+          while(i+5<tokens.length&&!isCmd(tokens[i])){let x1=parseFloat(tokens[i++]),y1=parseFloat(tokens[i++]),x2=parseFloat(tokens[i++]),y2=parseFloat(tokens[i++]),x3=parseFloat(tokens[i++]),y3=parseFloat(tokens[i++]);if(rel){x1+=x;y1+=y;x2+=x;y2+=y;x3+=x;y3+=y;}for(let t=.25;t<=1;t+=.25){const mt=1-t;add(mt*mt*mt*x+3*mt*mt*t*x1+3*mt*t*t*x2+t*t*t*x3,mt*mt*mt*y+3*mt*mt*t*y1+3*mt*t*t*y2+t*t*t*y3);}x=x3;y=y3;}
+        }else if(C==='Q'){
+          while(i+3<tokens.length&&!isCmd(tokens[i])){let x1=parseFloat(tokens[i++]),y1=parseFloat(tokens[i++]),x2=parseFloat(tokens[i++]),y2=parseFloat(tokens[i++]);if(rel){x1+=x;y1+=y;x2+=x;y2+=y;}for(let t=.25;t<=1;t+=.25){const mt=1-t;add(mt*mt*x+2*mt*t*x1+t*t*x2,mt*mt*y+2*mt*t*y1+t*t*y2);}x=x2;y=y2;}
+        }else if(C==='Z'){add(sx0,sy0);}else{i++;}
+      }
+    });
+    doc.querySelectorAll('rect').forEach(el=>{const x=+el.getAttribute('x')||0,y=+el.getAttribute('y')||0,w=+el.getAttribute('width')||0,h=+el.getAttribute('height')||0;if(w&&h){add(x,y);add(x+w,y);add(x+w,y+h);add(x,y+h);}});
+    doc.querySelectorAll('circle,ellipse').forEach(el=>{const cx=+el.getAttribute('cx')||0,cy=+el.getAttribute('cy')||0,rx=+(el.getAttribute('r')||el.getAttribute('rx')||0),ry=+(el.getAttribute('r')||el.getAttribute('ry')||rx);if(rx&&ry){for(let k=0;k<24;k++){const a=Math.PI*2*k/24;add(cx+Math.cos(a)*rx,cy+Math.sin(a)*ry);}}});
+    if(pts.length<3)throw new Error('Не нашла координаты polygon/path/rect/circle в SVG');
+    // remove near duplicate consecutive points
+    pts=pts.filter((p,i,a)=>i===0||Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y)>0.001);
+    const minX=Math.min(...pts.map(p=>p.x)),maxX=Math.max(...pts.map(p=>p.x)),minY=Math.min(...pts.map(p=>p.y)),maxY=Math.max(...pts.map(p=>p.y));
+    const w=maxX-minX||1,h=maxY-minY||1,cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+    return pts.map(p=>({x:(p.x-cx)/w,y:(p.y-cy)/h}));
+  }
+
 
   // stage tabs
   const stabsEl=$('stabs');
@@ -487,25 +532,39 @@ const LE=(function(){
   $('custom-shape-image').addEventListener('change',e=>{
     const f=e.target.files&&e.target.files[0];
     if(!f)return;
-    if(!/^image\//.test(f.type)){alert('Можно загрузить только SVG/PNG/image файл');return;}
-    const r=new FileReader();
-    r.onload=ev=>{
-      customShapeImageSrc=ev.target.result;
-      getEditorImage(customShapeImageSrc);
-      $('custom-shape-image-preview').innerHTML=`<img src="${customShapeImageSrc}">`;
+    const isSvg=f.type==='image/svg+xml'||/\.svg$/i.test(f.name);
+    if(!isSvg){alert('Можно загрузить только SVG. PNG отключен, потому что коллайдер строится из SVG-координат.');e.target.value='';return;}
+    const textReader=new FileReader();
+    textReader.onload=ev=>{
+      try{
+        const svgText=String(ev.target.result||'');
+        customShapeSvgPoints=parseSvgPoints(svgText);
+        customShapeImageSrc='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgText);
+        getEditorImage(customShapeImageSrc);
+        $('custom-shape-image-preview').innerHTML=`<img src="${customShapeImageSrc}">`;
+        $('custom-shape-points').value=customShapeSvgPoints.map(p=>p.x.toFixed(4)+','+p.y.toFixed(4)).join('\n');
+        const info=$('custom-shape-points-info'); if(info)info.textContent='Коллайдер создан из SVG: '+customShapeSvgPoints.length+' точек.';
+      }catch(err){
+        customShapeSvgPoints=null;customShapeImageSrc=null;
+        $('custom-shape-image-preview').textContent='SVG';
+        const info=$('custom-shape-points-info'); if(info)info.textContent='Не удалось создать коллайдер: '+err.message;
+        alert('Не удалось прочитать SVG: '+err.message);
+      }
     };
-    r.readAsDataURL(f);
+    textReader.readAsText(f);
   });
   $('custom-shape-image-clear').addEventListener('click',()=>{
-    customShapeImageSrc=null;
+    customShapeImageSrc=null;customShapeSvgPoints=null;
     $('custom-shape-image').value='';
-    $('custom-shape-image-preview').textContent='SVG/PNG';
+    $('custom-shape-image-preview').textContent='SVG';
+    $('custom-shape-points').value='';
+    const info=$('custom-shape-points-info'); if(info)info.textContent='Коллайдер не создан: загрузите SVG.';
   });
   $('shape-cancel').addEventListener('click',()=>$('shape-modal').classList.remove('on'));
   $('shape-save').addEventListener('click',()=>{
-    const name=($('custom-shape-name').value||'custom_poly').trim();
-    const pts=($('custom-shape-points').value||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const a=l.split(/[ ,;]+/).map(Number);return{x:a[0],y:a[1]};}).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
-    if(pts.length<3){alert('Need at least 3 points');return;}
+    const name=($('custom-shape-name').value||'custom_svg').trim();
+    const pts=customShapeSvgPoints||[];
+    if(!customShapeImageSrc||pts.length<3){alert('Загрузите SVG с координатами polygon/polyline/path/rect/circle.');return;}
     customShape={name,points:pts,imageSrc:customShapeImageSrc};customShapes.push(customShape);shape='custom';mode='add';
     document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
     $('et-custom').classList.add('on');$('et-sel').classList.remove('on');$('shape-modal').classList.remove('on');
