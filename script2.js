@@ -38,13 +38,13 @@ function loadSpr(key,inp){
   const r=new FileReader();
   r.onload=e=>{
     RiseBuilder.setSprite(key,e.target.result);
-    document.querySelectorAll(`[id="th-${key}"]`).forEach(th=>th.innerHTML=`<img src="${e.target.result}">`);
+    document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>th.innerHTML=`<img src="${e.target.result}">`);
   };
   r.readAsDataURL(f);
 }
 function clearSpr(key){
   RiseBuilder.setSprite(key,null);
-  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"]`).forEach(th=>{th.innerHTML=key==='player'?'🎈':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
+  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'🎈':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
 }
 function getStageCount(){
   const e=$('cfg-stageCount');
@@ -53,14 +53,14 @@ function getStageCount(){
 
 function renderStageAssetRows(){
   const n=getStageCount();
-  const bgTargets=[$('bg-sprs'),$('bg-sprs-visuals')].filter(Boolean);
+  const bgTargets=[$('bg-sprs'),$('bg-sprs-visuals'),$('le-bg-stage-list')].filter(Boolean);
   if(bgTargets.length){
     let h='';
     for(let i=0;i<n;i++){
       const k='background_stage'+i;
       h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
         <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">🖼️</div>
-        <span style="font-size:12px;color:var(--dim);min-width:48px;">Stage ${i+1}</span>
+        <span style="font-size:12px;color:var(--dim);min-width:48px;">Mini ${i+1}</span>
         <label class="ul-btn" style="font-size:11px;">+ Img<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
         <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
       </div></div>`;
@@ -74,7 +74,7 @@ function renderStageAssetRows(){
       const k='obstacle_stage'+i;
       h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
         <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">⬛</div>
-        <span style="font-size:12px;color:var(--dim);min-width:48px;">Stage ${i+1}</span>
+        <span style="font-size:12px;color:var(--dim);min-width:48px;">Mini ${i+1}</span>
         <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
         <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
       </div></div>`;
@@ -83,6 +83,16 @@ function renderStageAssetRows(){
   }
 }
 renderStageAssetRows();
+function updateBackgroundModeUI(){
+  const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
+  const showCommon=mode==='common';
+  const commonIds=['le-bg-common'];
+  const perIds=['le-bg-per'];
+  commonIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'flex':'none';});
+  perIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'none':'flex';});
+}
+$('cfg-bgMode')?.addEventListener('change',()=>{updateBackgroundModeUI(); if(window.RiseLevelEditor)RiseLevelEditor.draw();});
+updateBackgroundModeUI();
 
 // progress
 function setP(p,msg){$('prog').classList.add('on');$('pf').style.width=(p*100)+'%';$('pm').textContent=msg||'';}
@@ -160,6 +170,7 @@ const LE=(function(){
     if(lvls.length>n)lvls.length=n;
     if(cur>=n)cur=n-1;
     renderStageAssetRows();
+    updateBackgroundModeUI();
     sel=null;resize(true);
   }
 
@@ -287,6 +298,32 @@ const LE=(function(){
   });
   cv.addEventListener('pointerup',()=>drag=false);cv.addEventListener('pointercancel',()=>drag=false);
 
+  function sprMap(){return (window.RiseBuilder&&RiseBuilder.getSprites&&RiseBuilder.getSprites())||{};}
+  function drawCoverImage(im,x,y,w,h){
+    if(!imageReady(im))return false;
+    const sc=Math.max(w/im.naturalWidth,h/im.naturalHeight);
+    const dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;
+    ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+    return true;
+  }
+  function drawBackgroundForStage(si,top,w,h,totalH){
+    const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
+    const sm=sprMap();
+    if(mode==='common'){
+      const src=sm.background;
+      const im=getEditorImage(src);
+      if(src&&imageReady(im)){
+        const sc=Math.max(w/im.naturalWidth,totalH/im.naturalHeight);
+        const dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;
+        ctx.drawImage(im,(w-dw)/2,(totalH-dh)/2,dw,dh);
+        return true;
+      }
+      return false;
+    }
+    const src=sm['background_stage'+si];
+    const im=getEditorImage(src);
+    return src?drawCoverImage(im,0,top,w,h):false;
+  }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawObstacle(o,si,i){
     const c=toC(si,o.x,o.y),sw=o.w*zoom,sh=o.h*zoom;
@@ -303,7 +340,9 @@ const LE=(function(){
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     for(let si=0;si<NS;si++){
       const top=si*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
-      const sc=palette[si%palette.length];ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);
+      const sc=palette[si%palette.length];
+      ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);
+      drawBackgroundForStage(si,top,w,h,cv.height);
       ctx.strokeStyle=si===cur?'rgba(255,255,255,.55)':'rgba(255,255,255,.22)';ctx.lineWidth=si===cur?2:1;ctx.strokeRect(.5,top+.5,w-1,h-1);
       ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;
       for(let x=0;x<=GW;x+=65){ctx.beginPath();ctx.moveTo(x*zoom,top);ctx.lineTo(x*zoom,top+h);ctx.stroke();}
