@@ -169,24 +169,42 @@ class Shield{
 class Ball{
   constructor(cfg){
     this.cfg=cfg;
-    this.x=CW/2;this.y=CH*.72;
-    this.ty=this.y;
+    this.x=CW/2;
+    this.ty=CH*.72;              // fixed gameplay line after the first tap
+    this.idleY=Math.min(CH-this.r-8,this.ty+80); // before tap: 50-100px lower
+    this.y=this.idleY;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
-    this.flying=false;this.fy=0;
+    this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;
     this.travel=0;this.speed=0;
     this.spr=null;
   }
   get r(){return 20*this.cfg.playerSize;}
   get worldY(){return this.travel;}
   die(){this.dead=true;this.da=0;}
-  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.72;this.ty=this.y;this.da=0;this.ra=0;this.flash=0;this.flying=false;this.fy=0;this.travel=0;this.speed=0;}
-  start(speed,travel=0){this.flying=true;this.speed=speed;this.travel=travel;}
-  flyAway(){this.flying=true;this.fy=0;}
+  respawn(){
+    this.dead=false;this.x=CW/2;this.ty=CH*.72;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
+    this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;
+  }
+  start(speed,travel=0){this.flying=true;this.finalFly=false;this.speed=speed;this.travel=travel;this.introT=0;}
+  flyAway(){this.flying=true;this.finalFly=true;this.fy=0;}
   update(dt){
     if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
-    if(this.flying){this.travel+=this.speed*dt;}
+    if(this.finalFly){
+      this.y-=Math.max(.75,this.speed*1.15)*dt;
+      this.travel+=this.speed*dt;
+      return;
+    }
+    if(this.flying){
+      this.travel+=this.speed*dt;
+      this.introT=Math.min(1,this.introT+dt/520);
+      const t=1-Math.pow(1-this.introT,3);
+      this.y=lerp(this.idleY,this.ty,t);
+      if(this.introT>=1)this.y=this.ty;
+    }else{
+      this.y=this.idleY;
+    }
   }
   draw(ctx){
     if(this.dead){
@@ -357,11 +375,10 @@ class Game{
   _sst(i){return this.stages[i].worldY;}
 
   _updateCamera(){
-    const targetScreenY=CH*.38;
-    const followDistance=this.ball.ty-targetScreenY;
-    const targetCamY=Math.max(0,this.ball.travel-followDistance);
-    this.camY=lerp(this.camY,targetCamY,.12);
-    this.ball.y=this.ball.ty-(this.ball.travel-this.camY);
+    // Obstacles move toward the player, so the camera no longer lifts the ball
+    // above its gameplay line. The ball only rises once from idleY to ty after
+    // the first tap; on the last stage _win() switches it to finalFly.
+    this.camY=0;
   }
 
   _recycleStages(){
@@ -373,9 +390,15 @@ class Game{
       // old level chunks upward with the camera.
       if(st.worldY>CH+CH*.35){
         highest-=H;
-        st.resetAt(highest);
         this.completedStages++;
-        this.si=this.completedStages%this.stages.length;
+        if(this.completedStages>=this.stages.length){
+          this.si=this.stages.length-1;
+          this.cb.onStageChange&&this.cb.onStageChange(this.si);
+          this._win();
+          return;
+        }
+        st.resetAt(highest);
+        this.si=this.completedStages;
         this.cb.onStageChange&&this.cb.onStageChange(this.si);
       }
     }
@@ -388,8 +411,6 @@ class Game{
     this.ball.update(dt);
     if(st==='playing'||st==='respawning'){
       this._updateCamera();
-    } else {
-      this.ball.y=this.ball.ty-(this.ball.travel-this.camY);
     }
     if(st==='playing'||st==='respawning'){
       const fall=this._obstacleFallSpeed();
