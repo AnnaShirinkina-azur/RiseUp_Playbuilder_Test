@@ -6,9 +6,12 @@ function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
+function makeImg(src){if(!src)return null;const im=new Image();im.src=src;return im;}
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
+function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
+function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
 
 //── Particles ────────────────────────────────────────────────────────────────
 class FX{
@@ -26,12 +29,16 @@ class FX{
 //── Obstacle ─────────────────────────────────────────────────────────────────
 class Obs{
   constructor(o){
-    this.x=o.x??195;this.y=o.y??200;
+    this.coordMode=o.coordMode||'screen';
+    this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
+    this.x=layoutX(o);this.y=layoutY(o);
     this.w=o.w||60;this.h=o.h||60;
     this.shape=o.shape||'rect';
     this.points=(o.points||null);
     this.color=o.color||'#e05252';
     this.spr=o.sprite||null;
+    this.imageSrc=o.imageSrc||null;
+    this.customImg=makeImg(this.imageSrc);
     this.moveX=o.moveX||0;
     this.moveSpeed=o.moveSpeed||1800;
     this.t=o.phaseOffset||0;
@@ -65,7 +72,8 @@ class Obs{
     ctx.save();
     ctx.translate(dx,dy);
     if(!this.kin)ctx.rotate(this.rot);
-    if(imgOk(this.spr)){ctx.drawImage(this.spr,-this.w/2,-this.h/2,this.w,this.h);}
+    const im=imgOk(this.customImg)?this.customImg:this.spr;
+    if(imgOk(im)){ctx.drawImage(im,-this.w/2,-this.h/2,this.w,this.h);}
     else{
       ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
@@ -247,7 +255,7 @@ class Game{
         const n=2+si;
         for(let oi=0;oi<n;oi++){
           const ob=new Obs({
-            x:80+(oi%2)*230,y:160+Math.floor(oi/2)*200+si*15,
+            coordMode:'center',x:-115+(oi%2)*230,y:-CH/2+160+Math.floor(oi/2)*200+si*15,
             w:55+si*5,h:55+si*5,shape:sh[(oi+si)%3],
             color:oi%2===0?c.obstacleColor:c.obstacleColorAlt,
             moveX:si>1&&oi%2===0?80:0,moveSpeed:1800-si*120,phaseOffset:oi*600,

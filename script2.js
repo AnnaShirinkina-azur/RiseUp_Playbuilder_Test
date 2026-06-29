@@ -133,8 +133,20 @@ const LE=(function(){
   let cur=0;
   const lvls=Array.from({length:NS},()=>[]);
   let sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0};
+  let customShapeImageSrc=null;
   const customShapes=[];
+  const imageCache=new Map();
   const cv=$('ec'),ctx=cv.getContext('2d');
+  function getEditorImage(src){
+    if(!src)return null;
+    if(imageCache.has(src))return imageCache.get(src);
+    const img=new Image();
+    img.onload=()=>draw();
+    img.src=src;
+    imageCache.set(src,img);
+    return img;
+  }
+  function imageReady(img){return img&&img.complete&&img.naturalWidth>0;}
 
   // stage tabs
   const stabsEl=$('stabs');
@@ -159,12 +171,29 @@ const LE=(function(){
   });
   $('et-custom').addEventListener('click',()=>{ $('shape-modal').classList.add('on'); });
   $('et-shape-editor').addEventListener('click',()=>{ $('shape-modal').classList.add('on'); });
+  $('custom-shape-image').addEventListener('change',e=>{
+    const f=e.target.files&&e.target.files[0];
+    if(!f)return;
+    if(!/^image\//.test(f.type)){alert('Можно загрузить только SVG/PNG/image файл');return;}
+    const r=new FileReader();
+    r.onload=ev=>{
+      customShapeImageSrc=ev.target.result;
+      getEditorImage(customShapeImageSrc);
+      $('custom-shape-image-preview').innerHTML=`<img src="${customShapeImageSrc}">`;
+    };
+    r.readAsDataURL(f);
+  });
+  $('custom-shape-image-clear').addEventListener('click',()=>{
+    customShapeImageSrc=null;
+    $('custom-shape-image').value='';
+    $('custom-shape-image-preview').textContent='SVG/PNG';
+  });
   $('shape-cancel').addEventListener('click',()=>$('shape-modal').classList.remove('on'));
   $('shape-save').addEventListener('click',()=>{
     const name=($('custom-shape-name').value||'custom_poly').trim();
     const pts=($('custom-shape-points').value||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const a=l.split(/[ ,;]+/).map(Number);return{x:a[0],y:a[1]};}).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
     if(pts.length<3){alert('Need at least 3 points');return;}
-    customShape={name,points:pts};customShapes.push(customShape);shape='custom';mode='add';
+    customShape={name,points:pts,imageSrc:customShapeImageSrc};customShapes.push(customShape);shape='custom';mode='add';
     document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
     $('et-custom').classList.add('on');$('et-sel').classList.remove('on');$('shape-modal').classList.remove('on');
   });
@@ -187,10 +216,17 @@ const LE=(function(){
   });
 
   function resize(){
-    GW=currentOrientation==='landscape'?844:390;GH=currentOrientation==='landscape'?390:844;const w=$('ec-wrap');cv.width=w.clientWidth;cv.height=w.clientHeight;draw();
+    GW=currentOrientation==='landscape'?844:390;
+    GH=currentOrientation==='landscape'?390:844;
+    const w=$('ec-wrap');
+    cv.width=w.clientWidth;
+    cv.height=w.clientHeight;
+    draw();
   }
-  function toG(cx,cy){return{x:cx*(GW/cv.width),y:cy*(GH/cv.height)};}
-  function toC(gx,gy){return{x:gx*(cv.width/GW),y:gy*(cv.height/GH)};}
+  function sx(){return cv.width/GW;}
+  function sy(){return cv.height/GH;}
+  function toG(cx,cy){return{x:(cx-cv.width/2)/sx(),y:(cy-cv.height/2)/sy()};}
+  function toC(gx,gy){return{x:cv.width/2+gx*sx(),y:cv.height/2+gy*sy()};}
   function obsAt(gx,gy){
     const obs=lvls[cur];
     for(let i=obs.length-1;i>=0;i--){const o=obs[i];if(Math.abs(gx-o.x)<=o.w/2+8&&Math.abs(gy-o.y)<=o.h/2+8)return i;}
@@ -205,7 +241,7 @@ const LE=(function(){
       if(idx>=0){drag=true;doff={x:g.x-lvls[cur][idx].x,y:g.y-lvls[cur][idx].y};const o=lvls[cur][idx];$('ow').value=o.w;$('oh').value=o.h;$('oc').value=o.color||'#e05252';$('om').value=o.moveX||0;}
       draw();return;
     }
-    const o={x:Math.round(g.x),y:Math.round(g.y),w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800}; if(shape==='custom'&&customShape){o.customName=customShape.name;o.points=customShape.points.map(p=>({x:p.x,y:p.y}));}
+    const o={x:Math.round(g.x),y:Math.round(g.y),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800}; if(shape==='custom'&&customShape){o.customName=customShape.name;o.points=customShape.points.map(p=>({x:p.x,y:p.y}));if(customShape.imageSrc)o.imageSrc=customShape.imageSrc;}
     lvls[cur].push(o);sel=lvls[cur].length-1;draw();
   });
   cv.addEventListener('pointermove',e=>{
@@ -224,21 +260,32 @@ const LE=(function(){
     ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=1;
     for(let x=0;x<cv.width;x+=cv.width/6){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke();}
     for(let y=0;y<cv.height;y+=cv.height/8){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke();}
+    ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(cv.width/2,0);ctx.lineTo(cv.width/2,cv.height);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,cv.height/2);ctx.lineTo(cv.width,cv.height/2);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='10px monospace';ctx.textAlign='left';ctx.fillText('0;0',cv.width/2+5,cv.height/2-5);
     const sc=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'][cur];
     ctx.fillStyle='rgba('+hr(sc)+',.05)';ctx.fillRect(0,0,cv.width,cv.height);
     lvls[cur].forEach((o,i)=>{
-      const c=toC(o.x,o.y);const sw=o.w*(cv.width/GW),sh=o.h*(cv.height/GH);
+      const c=toC(o.x,o.y);const sw=o.w*sx(),sh=o.h*sy();
       ctx.save();ctx.fillStyle=o.color||'#e05252';
       ctx.strokeStyle=i===sel?'#fff':'rgba(255,255,255,.2)';ctx.lineWidth=i===sel?2.5:1.5;
       if(o.shape==='circle'){ctx.beginPath();ctx.arc(c.x,c.y,sw/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
       else if(o.shape==='triangle'){ctx.beginPath();ctx.moveTo(c.x,c.y-sh/2);ctx.lineTo(c.x+sw/2,c.y+sh/2);ctx.lineTo(c.x-sw/2,c.y+sh/2);ctx.closePath();ctx.fill();ctx.stroke();}
-      else if(o.shape==='custom'&&o.points&&o.points.length>=3){ctx.beginPath();o.points.forEach((p,pi)=>{const px=c.x+p.x*sw,py=c.y+p.y*sh;if(pi===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.fill();ctx.stroke();}
+      else if(o.shape==='custom'&&o.points&&o.points.length>=3){
+        const im=getEditorImage(o.imageSrc);
+        if(imageReady(im))ctx.drawImage(im,c.x-sw/2,c.y-sh/2,sw,sh);
+        else ctx.fill();
+        ctx.beginPath();o.points.forEach((p,pi)=>{const px=c.x+p.x*sw,py=c.y+p.y*sh;if(pi===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();
+        if(!imageReady(im))ctx.fill();
+        ctx.stroke();
+      }
       else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
-      if(o.moveX>0){const mx=o.moveX*(cv.width/GW);ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}
+      if(o.moveX>0){const mx=o.moveX*sx();ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}
       ctx.restore();
     });
     ctx.fillStyle='rgba(255,255,255,.18)';ctx.font='11px monospace';ctx.textAlign='left';
-    ctx.fillText('Stage '+(cur+1)+' · '+lvls[cur].length+' obs',8,16);
+    ctx.fillText('Stage '+(cur+1)+' · '+lvls[cur].length+' obs · center origin',8,16);
     if(lvls[cur].length===0){ctx.fillStyle='rgba(255,255,255,.15)';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('Click to place obstacles',cv.width/2,cv.height/2);}
     if(mode==='select'&&sel!==null&&lvls[cur][sel]){
       const o=lvls[cur][sel];ctx.fillStyle='rgba(255,255,255,.08)';ctx.font='11px monospace';ctx.textAlign='right';
@@ -250,7 +297,7 @@ const LE=(function(){
   function getLevelData(){
     const hasAny=lvls.some(s=>s.length>0);
     if(!hasAny)return null;
-    return lvls.map(s=>s.map(o=>({...o})));
+    return lvls.map(s=>s.map(o=>({...o,coordMode:'center'}))); 
   }
 
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize();});
