@@ -65,7 +65,12 @@ class Stage{
   constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=850;this.worldY=idx*this.H;}
   reset(){this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.worldY=worldY;this.reset();}
-  update(dt){this.obs.forEach(o=>o.update(dt));}
+  update(dt,fallSpeed=0){
+    // Stages are now falling waves: obstacles keep their local layout,
+    // while the whole wave moves from the top of the screen downward.
+    this.worldY+=fallSpeed*dt;
+    this.obs.forEach(o=>o.update(dt));
+  }
   draw(ctx,top){
     const g=ctx.createLinearGradient(0,top,0,top+this.H);
     g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
@@ -246,8 +251,7 @@ class Game{
     this.ball=new Ball(this.cfg);
     this.shield.spr=this._spr('shield');
     this.ball.spr=this._spr('player');
-    this.stages.forEach((s,i)=>s.resetAt(i*s.H));
-    this.spawnTop=(this.stages.length-1)*this.stages[0].H;
+    this._resetFallingStages();
     this.completedStages=0;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
@@ -297,6 +301,17 @@ class Game{
   }
 
   _ballSpeed(){return this.cfg.gameSpeed/16.6667;}
+  _obstacleFallSpeed(){return this.cfg.gameSpeed/16.6667;}
+  _resetFallingStages(){
+    // First wave starts just above the visible area; each following wave is
+    // placed farther upward. They later fall down into the screen.
+    const H=this.stages[0].H;
+    const firstTop=-160;
+    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H));
+    this.spawnTop=firstTop-(this.stages.length-1)*H;
+    this.completedStages=0;
+    this.si=0;
+  }
   _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);}
 
   _loop(ts){
@@ -306,7 +321,7 @@ class Game{
     this._raf=requestAnimationFrame(t=>this._loop(t));
   }
 
-  _sst(i){return this.camY-this.stages[i].worldY;}
+  _sst(i){return this.stages[i].worldY;}
 
   _updateCamera(){
     const targetScreenY=CH*.38;
@@ -318,15 +333,20 @@ class Game{
 
   _recycleStages(){
     const H=this.stages[0].H;
+    let highest=Math.min(...this.stages.map(s=>s.worldY));
     for(const st of this.stages){
-      if(this._sst(this.stages.indexOf(st))>CH+CH*.35){
-        this.spawnTop+=H;
-        st.resetAt(this.spawnTop);
+      // When a wave has fallen below the screen, move it back above every
+      // other wave. This creates new obstacles at the top instead of moving
+      // old level chunks upward with the camera.
+      if(st.worldY>CH+CH*.35){
+        highest-=H;
+        st.resetAt(highest);
         this.completedStages++;
         this.si=this.completedStages%this.stages.length;
         this.cb.onStageChange&&this.cb.onStageChange(this.si);
       }
     }
+    this.spawnTop=highest;
   }
 
   _update(dt){
@@ -337,6 +357,10 @@ class Game{
       this._updateCamera();
     } else {
       this.ball.y=this.ball.ty-(this.ball.travel-this.camY);
+    }
+    if(st==='playing'||st==='respawning'){
+      const fall=this._obstacleFallSpeed();
+      this.stages.forEach(s=>s.update(dt,fall));
     }
     this.fx.update();
 
@@ -361,7 +385,7 @@ class Game{
       }
     }
 
-    // keep obstacles spawning above the camera as the ball rises
+    // keep falling obstacle waves spawning above the screen
     if(st==='playing')this._recycleStages();
 
     // death sequence
@@ -398,10 +422,8 @@ class Game{
   _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;}
   _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
   _onFadeIn(){
-    const H=this.stages[0].H;
-    this.camY=Math.max(0,this.camY-H*.25);
-    this.spawnTop=this.camY-H;
-    this.stages.forEach((s,i)=>{this.spawnTop+=H;s.resetAt(this.spawnTop);});
+    this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
+    this._resetFallingStages();
     this.shield.respawn();this.ball.respawn();
     this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
     setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
