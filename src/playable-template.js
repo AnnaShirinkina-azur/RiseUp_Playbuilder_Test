@@ -35,12 +35,12 @@ class Obs{
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
   push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
-  update(dt){
+  update(dt,gravityModifier=1){
     if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
     if(!this.kin){
       // Free-body motion after the protector hits the obstacle.
       // X keeps inertia with damping, Y is pulled down by gravity.
-      this.vy+=.38;
+      this.vy+=.38*gravityModifier;
       this.x+=this.vx;this.y+=this.vy;
       this.vx*=.985;this.vy*=.995;
       this.rot+=this.av;this.av*=.985;
@@ -75,11 +75,11 @@ class Stage{
   constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=850;this.worldY=idx*this.H;}
   reset(){this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.worldY=worldY;this.reset();}
-  update(dt,fallSpeed=0){
+  update(dt,fallSpeed=0,gravityModifier=1){
     // Stages are now falling waves: obstacles keep their local layout,
     // while the whole wave moves from the top of the screen downward.
     this.worldY+=fallSpeed*dt;
-    this.obs.forEach(o=>o.update(dt));
+    this.obs.forEach(o=>o.update(dt,gravityModifier));
   }
   draw(ctx,top){
     const g=ctx.createLinearGradient(0,top,0,top+this.H);
@@ -375,7 +375,7 @@ class Game{
     }
     if(st==='playing'||st==='respawning'){
       const fall=this._obstacleFallSpeed();
-      this.stages.forEach(s=>s.update(dt,fall));
+      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
     }
     this.fx.update();
 
@@ -461,9 +461,19 @@ class Game{
   _win(){this.state='won';this.isWin=true;this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
   _lose(){this.state='endcard';this.isWin=false;this.cb.onLose&&this.cb.onLose();}
 
+  _drawBackground(ctx){
+    ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
+    const bg=this._spr('background_stage'+this.si)||this._spr('background');
+    if(imgOk(bg)){
+      const sc=Math.max(CW/bg.naturalWidth,CH/bg.naturalHeight);
+      const w=bg.naturalWidth*sc,h=bg.naturalHeight*sc;
+      ctx.drawImage(bg,(CW-w)/2,(CH-h)/2,w,h);
+    }
+  }
+
   _draw(){
     const ctx=this.ctx;
-    ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
+    this._drawBackground(ctx);
     // grid
     const sp=90,off=this.camY*.25%sp;
     ctx.strokeStyle=rgba(this.cfg.groundColor,.38);ctx.lineWidth=1;
@@ -541,7 +551,7 @@ class Game{
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,
+  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,
   shieldColor:'#4fc3f7',shieldSize:1.0,
