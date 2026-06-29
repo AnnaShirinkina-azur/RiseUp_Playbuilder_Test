@@ -1,50 +1,38 @@
-(function(global){
-'use strict';
+(function(W){'use strict';
 
-// ── Read config from UI ────────────────────────────────────────────────────
+// ── Читаем все настройки из UI ────────────────────────────────────────────
 function readConfig(){
-  function val(id){
-    const el=document.getElementById(id);if(!el)return undefined;
-    if(el.type==='checkbox')return el.checked;
-    if(el.type==='number'||el.type==='range')return parseFloat(el.value);
-    return el.value;
+  function g(id){
+    const e=document.getElementById(id);if(!e)return undefined;
+    if(e.type==='checkbox')return e.checked;
+    if(e.type==='number'||e.type==='range')return parseFloat(e.value);
+    return e.value;
   }
-  // Get level data from editor if it exists and has content
+  // levelData берём из редактора в момент сборки
   let levelData=null;
-  if(global.RiseLevelEditor){
-    const ld=global.RiseLevelEditor.getLevelData();
+  if(W.RiseLevelEditor){
+    const ld=W.RiseLevelEditor.getLevelData();
     if(ld)levelData=ld;
   }
   return{
-    lives:val('cfg-lives'),
-    gameSpeed:val('cfg-gameSpeed'),
-    acceleration:val('cfg-acceleration'),
-    obstaclePushForce:val('cfg-pushForce'),
-    hpBarShowTime:val('cfg-hpBarShowTime'),
-    tutorialDisplayTime:val('cfg-tutorialTime'),
-    playerColor:val('cfg-playerColor'),
-    playerOutlineColor:val('cfg-playerOutline'),
-    playerSize:val('cfg-playerSize'),
-    obstacleColor:val('cfg-obstacleColor'),
-    obstacleColorAlt:val('cfg-obstacleColorAlt'),
-    bgColor:val('cfg-bgColor'),
-    groundColor:val('cfg-groundColor'),
-    particleColor:val('cfg-particleColor'),
-    stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(val),
-    levelData:levelData,
+    lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),
+    obstaclePushForce:g('cfg-pushForce'),hpBarShowTime:g('cfg-hpBarShowTime'),
+    tutorialDisplayTime:g('cfg-tutorialTime'),
+    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),
+    shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),
+    obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),
+    bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
+    stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
+    levelData,
   };
 }
 
-// ── Fetch as base64 ────────────────────────────────────────────────────────
-function toB64(blob){
-  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});
-}
-function fetchB64(url){
-  return fetch(url).then(r=>{if(!r.ok)throw new Error(r.status);return r.blob();}).then(toB64);
-}
+// ── fetch → base64 dataURL ─────────────────────────────────────────────────
+function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});}
+function fetchB64(url){return fetch(url).then(r=>{if(!r.ok)throw new Error(r.status+' '+url);return r.blob();}).then(toB64);}
 
-// ── Bundled assets list ────────────────────────────────────────────────────
-const BUNDLED=[
+// ── Бандл ассетов ─────────────────────────────────────────────────────────
+const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
   'textures/hand.png','textures/obj_brush.png','textures/obj_brush_mask.png',
@@ -52,33 +40,30 @@ const BUNDLED=[
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
 ];
-
-async function loadBundled(base,onProg){
-  const map={};let done=0;
-  await Promise.allSettled(BUNDLED.map(async p=>{
-    try{map[p]=await fetchB64(`${base}/${p}`);}catch(e){map[p]=null;}
-    onProg&&onProg(++done/BUNDLED.length);
+async function loadBundle(base,onP){
+  const m={};let done=0;
+  await Promise.allSettled(BUNDLE.map(async p=>{
+    try{m[p]=await fetchB64(`${base}/${p}`);}catch(e){m[p]=null;}
+    onP&&onP(++done/BUNDLE.length);
   }));
-  return map;
+  return m;
 }
 
-// ── Custom sprites (user-uploaded) ─────────────────────────────────────────
-const sprites={};
-function setSprite(key,b64){if(b64===null){delete sprites[key];}else{sprites[key]=b64;}}
-function getSprites(){return Object.assign({},sprites);}
+// ── Пользовательские спрайты ──────────────────────────────────────────────
+const SPRS={};
+function setSprite(key,b64){if(b64==null)delete SPRS[key];else SPRS[key]=b64;}
+function getSprites(){return Object.assign({},SPRS);}
 
-// ── Build self-contained HTML ──────────────────────────────────────────────
-function buildHTML(cfg,assetMap,spriteMap,gameSrc){
-  const fontFace=[
+// ── Собираем итоговый HTML ────────────────────────────────────────────────
+function buildHTML(cfg,assetMap,sprMap,gameSrc){
+  const ff=[
     assetMap['fonts/Baloo2-Bold.ttf']?`@font-face{font-family:'Baloo2';font-weight:700;src:url('${assetMap['fonts/Baloo2-Bold.ttf']}')}`:'',
     assetMap['fonts/Kameron-SemiBold.ttf']?`@font-face{font-family:'Kameron';font-weight:600;src:url('${assetMap['fonts/Kameron-SemiBold.ttf']}')}`:'',
   ].filter(Boolean).join('\n');
 
-  // Only include non-null assets
-  const assetLines=Object.entries(assetMap).filter(([,v])=>v)
+  const aLines=Object.entries(assetMap).filter(([,v])=>v)
     .map(([k,v])=>`a[${JSON.stringify(k)}]=${JSON.stringify(v)};`).join('\n');
-
-  const spriteLines=Object.entries(spriteMap).filter(([,v])=>v)
+  const sLines=Object.entries(sprMap).filter(([,v])=>v)
     .map(([k,v])=>`sp[${JSON.stringify(k)}]=${JSON.stringify(v)};`).join('\n');
 
   return`<!DOCTYPE html>
@@ -88,7 +73,7 @@ function buildHTML(cfg,assetMap,spriteMap,gameSrc){
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Rise – Playable</title>
 <style>
-${fontFace}
+${ff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #gr{width:390px;height:844px;max-width:100vw;max-height:100vh;position:relative;overflow:hidden}
@@ -100,8 +85,8 @@ html,body{width:100%;height:100%;background:#000;display:flex;align-items:center
 <div id="gr"></div>
 <script>
 ${gameSrc}
-var a={};${assetLines}
-var sp={};${spriteLines}
+var a={};${aLines}
+var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
 (function(){
   var root=document.getElementById('gr');
@@ -127,7 +112,7 @@ var cfg=${JSON.stringify(cfg)};
 </html>`;
 }
 
-function download(html,name){
+function dlHTML(html,name){
   const b=new Blob([html],{type:'text/html'});
   const u=URL.createObjectURL(b);
   const a=document.createElement('a');
@@ -143,11 +128,11 @@ async function buildAndDownload(opts){
     onProgress&&onProgress(.05,'Loading engine…');
     const src=await fetch('src/playable-template.js').then(r=>r.text());
     onProgress&&onProgress(.1,'Loading assets…');
-    const map=await loadBundled(assetsBase,p=>onProgress&&onProgress(.1+p*.8,`Assets ${Math.round(p*100)}%…`));
+    const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(.1+p*.8,`Assets ${Math.round(p*100)}%…`));
     onProgress&&onProgress(.92,'Building HTML…');
     const html=buildHTML(cfg,map,getSprites(),src);
     const kb=Math.round(html.length/1024);
-    download(html,`rise_playable_${Date.now()}.html`);
+    dlHTML(html,`rise_playable_${Date.now()}.html`);
     onProgress&&onProgress(1,`Done — ${kb} KB`);
     onDone&&onDone(kb);
   }catch(e){console.error(e);onError&&onError(e.message);}
@@ -159,12 +144,12 @@ async function buildPreview(iframe,opts){
     onProgress&&onProgress(0,'Building preview…');
     const cfg=readConfig();
     const src=await fetch('src/playable-template.js').then(r=>r.text());
-    const map=await loadBundled(assetsBase,p=>onProgress&&onProgress(p*.9,`${Math.round(p*100)}%…`));
+    const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(p*.9,`${Math.round(p*100)}%…`));
     const html=buildHTML(cfg,map,getSprites(),src);
     iframe.srcdoc=html;
     onProgress&&onProgress(1,'Ready');
   }catch(e){console.error(e);onError&&onError(e.message);}
 }
 
-global.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites};
+W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites};
 })(window);
