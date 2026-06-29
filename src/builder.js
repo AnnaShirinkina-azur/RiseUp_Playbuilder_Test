@@ -126,7 +126,7 @@ async function buildAndDownload(opts){
     onProgress&&onProgress(0,'Reading config…');
     const cfg=readConfig();
     onProgress&&onProgress(.05,'Loading engine…');
-    const src=await fetch('src/playable-template.js').then(r=>r.text());
+    const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>r.text());
     onProgress&&onProgress(.1,'Loading assets…');
     const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(.1+p*.8,`Assets ${Math.round(p*100)}%…`));
     onProgress&&onProgress(.92,'Building HTML…');
@@ -143,7 +143,7 @@ async function buildPreview(iframe,opts){
   try{
     onProgress&&onProgress(0,'Building preview…');
     const cfg=readConfig();
-    const src=await fetch('src/playable-template.js').then(r=>r.text());
+    const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>r.text());
     const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(p*.9,`${Math.round(p*100)}%…`));
     const html=buildHTML(cfg,map,getSprites(),src);
     iframe.srcdoc=html;
