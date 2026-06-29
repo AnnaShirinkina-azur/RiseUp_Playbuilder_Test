@@ -31,13 +31,21 @@ class Obs{
     this.moveSpeed=o.moveSpeed||1800;
     this.t=o.phaseOffset||0;
     this.ix=this.x;this.iy=this.y;
-    this.vx=0;this.vy=0;this.live=true;this.kin=true;
+    this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
   }
-  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.live=true;this.kin=true;}
-  push(fx,fy){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;}
+  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
+  push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt){
     if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
-    if(!this.kin){this.vy+=.55;this.x+=this.vx;this.y+=this.vy;this.vx*=.97;if(this.y>3000)this.live=false;}
+    if(!this.kin){
+      // Free-body motion after the protector hits the obstacle.
+      // X keeps inertia with damping, Y is pulled down by gravity.
+      this.vy+=.38;
+      this.x+=this.vx;this.y+=this.vy;
+      this.vx*=.985;this.vy*=.995;
+      this.rot+=this.av;this.av*=.985;
+      if(this.y>3000)this.live=false;
+    }
   }
   hits(cx,cy,cr){
     if(!this.kin||!this.live)return false;
@@ -49,12 +57,14 @@ class Obs{
     if(!this.live)return;
     const dx=this.x,dy=this.y+sy;
     ctx.save();
-    if(imgOk(this.spr)){ctx.drawImage(this.spr,dx-this.w/2,dy-this.h/2,this.w,this.h);}
+    ctx.translate(dx,dy);
+    if(!this.kin)ctx.rotate(this.rot);
+    if(imgOk(this.spr)){ctx.drawImage(this.spr,-this.w/2,-this.h/2,this.w,this.h);}
     else{
       ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
-      if(this.shape==='circle'){ctx.beginPath();ctx.arc(dx,dy,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
-      else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(dx,dy-hh);ctx.lineTo(dx+hw,dy+hh);ctx.lineTo(dx-hw,dy+hh);ctx.closePath();ctx.fill();ctx.stroke();}
-      else{ctx.beginPath();ctx.rect(dx-this.w/2,dy-this.h/2,this.w,this.h);ctx.fill();ctx.stroke();}
+      if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
+      else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(0,-hh);ctx.lineTo(hw,hh);ctx.lineTo(-hw,hh);ctx.closePath();ctx.fill();ctx.stroke();}
+      else{ctx.beginPath();ctx.rect(-this.w/2,-this.h/2,this.w,this.h);ctx.fill();ctx.stroke();}
     }
     ctx.restore();
   }
@@ -86,6 +96,7 @@ class Shield{
     this.cfg=cfg;
     this.x=CW/2;this.y=CH*.5;
     this.tx=this.x;this.ty=this.y;
+    this.vx=0;this.vy=0;this._px=this.x;this._py=this.y;
     this.dragging=false;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
     this.spr=null;
@@ -95,9 +106,10 @@ class Shield{
   move(x,y){if(this.dragging&&!this.dead){this.tx=x;this.ty=y;}}
   up(){this.dragging=false;}
   die(){this.dead=true;this.dragging=false;this.da=0;}
-  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.5;this.tx=this.x;this.ty=this.y;this.da=0;this.ra=0;this.flash=0;}
+  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.5;this.tx=this.x;this.ty=this.y;this.vx=0;this.vy=0;this._px=this.x;this._py=this.y;this.da=0;this.ra=0;this.flash=0;}
   update(dt){
-    if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
+    const ox=this.x,oy=this.y;
+    if(this.dead){this.da=Math.min(1,this.da+dt/500);this.vx=0;this.vy=0;return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
     if(this.dragging){
@@ -107,6 +119,9 @@ class Shield{
     const r=this.r;
     this.x=clamp(this.x,r,CW-r);
     this.y=clamp(this.y,r,CH*.8);
+    const k=16.6667/Math.max(1,dt);
+    this.vx=(this.x-ox)*k;
+    this.vy=(this.y-oy)*k;
   }
   draw(ctx){
     if(this.dead){
@@ -407,11 +422,20 @@ class Game{
     const len=Math.sqrt(dx*dx+dy*dy)||1;
     const f=this.cfg.obstaclePushForce;
     if(who==='shield'){
-      // The protector survives and knocks the obstacle down.
-      obs.push(dx/len*f,Math.max(f,Math.abs(dy/len*f))+2);
+      // Protector collision: impulse goes away from the shield, with a bit of
+      // the shield's current swipe velocity. After that gravity pulls it down.
+      const svx=this.shield.vx||0,svy=this.shield.vy||0;
+      const awayX=dx/len,awayY=dy/len;
+      const impulse=f*1.25;
+      let vx=awayX*impulse+svx*.55;
+      let vy=awayY*impulse+svy*.55;
+      // Even if the hit comes from below/side, the obstacle should then fall.
+      vy=Math.max(vy,2.2);
+      const spin=clamp((svx*.018)+(awayX*.08),-.22,.22);
+      obs.push(vx,vy,spin);
       this.shield.flash=400;
     } else {
-      obs.push(dx/len*f,dy/len*f-2);
+      obs.push(dx/len*f,dy/len*f-2,clamp(dx*.01,-.18,.18));
       this.ball.flash=400;
       this._die();
     }
