@@ -149,6 +149,10 @@ const LE=(function(){
   let GW=390,GH=844;
   let zoom=parseFloat($('le-zoom')?.value)||0.55;
   let cur=0,sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0};
+  let showZones=true;
+  // Active zone = central square the level should fit into; passive zone = screen
+  // extension around it (vertical in portrait, horizontal in landscape). Visual only.
+  const ACTIVE_W=1020,ACTIVE_H=1020;
   let customShapeImageSrc=null,customShapeSvgPoints=null;
   const lvls=Array.from({length:NS},()=>[]);
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
@@ -243,6 +247,7 @@ const LE=(function(){
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
   $('le-stage-count')?.addEventListener('input',e=>setStageCount(e.target.value));
   $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
+  $('le-zones')?.addEventListener('click',()=>{showZones=!showZones;$('le-zones').classList.toggle('on',showZones);draw();});
   $('le-zoom')?.addEventListener('input',e=>{
     const oldZoom=zoom;
     const cx=(wrap.scrollLeft+wrap.clientWidth/2)/Math.max(.0001,oldZoom);
@@ -377,6 +382,42 @@ const LE=(function(){
     else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
     if(o.moveX>0){const mx=o.moveX*zoom;ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}ctx.restore();
   }
+  function zoneRect(top,w,h,midX,midY){
+    const sq=Math.min(GW,GH)*zoom;
+    const x0=midX-sq/2,y0=midY-sq/2;
+    return {sq,x0,y0,x1:x0+sq,y1:y0+sq,top,bottom:top+h,w};
+  }
+  function drawPassiveZone(top,w,h,midX,midY){
+    if(!showZones)return;
+    const z=zoneRect(top,w,h,midX,midY);
+    ctx.save();
+    ctx.fillStyle='rgba(6,6,12,.5)';
+    if(z.y0>z.top+0.5)ctx.fillRect(0,z.top,w,z.y0-z.top);
+    if(z.y1<z.bottom-0.5)ctx.fillRect(0,z.y1,w,z.bottom-z.y1);
+    const sy0=Math.max(z.top,z.y0),sy1=Math.min(z.bottom,z.y1);
+    if(z.x0>0.5)ctx.fillRect(0,sy0,z.x0,sy1-sy0);
+    if(z.x1<w-0.5)ctx.fillRect(z.x1,sy0,w-z.x1,sy1-sy0);
+    ctx.restore();
+  }
+  function drawActiveZone(top,w,h,midX,midY){
+    if(!showZones)return;
+    const z=zoneRect(top,w,h,midX,midY);
+    ctx.save();
+    ctx.setLineDash([]);ctx.strokeStyle='#52e08a';ctx.lineWidth=2;
+    ctx.strokeRect(z.x0,z.y0,z.sq,z.sq);
+    ctx.lineWidth=3;const cl=Math.min(22,z.sq*0.18);
+    [[z.x0,z.y0,1,1],[z.x1,z.y0,-1,1],[z.x0,z.y1,1,-1],[z.x1,z.y1,-1,-1]].forEach(([cx,cy,dx,dy])=>{
+      ctx.beginPath();ctx.moveTo(cx+dx*cl,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*cl);ctx.stroke();
+    });
+    if(z.sq>70){
+      ctx.fillStyle='#52e08a';ctx.font='600 '+Math.max(10,Math.min(13,11*zoom))+'px system-ui,sans-serif';ctx.textAlign='left';
+      ctx.fillText('ACTIVE '+ACTIVE_W+'\u00d7'+ACTIVE_H,z.x0+6,z.y0+15);
+    }
+    ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';
+    if(z.y0>z.top+14){ctx.textAlign='center';ctx.fillText('PASSIVE',w/2,z.top+13);}
+    else if(z.x0>40){ctx.textAlign='left';ctx.fillText('PASSIVE',4,top+13);}
+    ctx.restore();
+  }
   function draw(){
     if(!cv.width||!cv.height)return;
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
@@ -391,8 +432,10 @@ const LE=(function(){
       for(let x=0;x<=GW;x+=65){ctx.beginPath();ctx.moveTo(x*zoom,top);ctx.lineTo(x*zoom,top+h);ctx.stroke();}
       for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
       ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
+      drawPassiveZone(top,w,h,midX,midY);
       ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>drawObstacle(o,si,i));
+      drawActiveZone(top,w,h,midX,midY);
     }
     const total=lvls.reduce((a,s)=>a+s.length,0);ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText(NS+' mini-levels · '+total+' obstacles · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
