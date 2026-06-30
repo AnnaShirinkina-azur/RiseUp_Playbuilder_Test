@@ -607,22 +607,29 @@ const LE=(function(){
     cv.height=Math.max(1,Math.round(GH*NS*zoom));
     cv.style.width=cv.width+'px';cv.style.height=cv.height+'px';
     draw();
-    if(!keepScroll){wrap.scrollTop=Math.max(0,cur*GH*zoom-40);wrap.scrollLeft=Math.max(0,(cv.width-wrap.clientWidth)/2);}else{wrap.scrollTop=oldTop;wrap.scrollLeft=oldLeft;}
+    if(!keepScroll){wrap.scrollTop=Math.max(0,rowOf(cur)*GH*zoom-40);wrap.scrollLeft=Math.max(0,(cv.width-wrap.clientWidth)/2);}else{wrap.scrollTop=oldTop;wrap.scrollLeft=oldLeft;}
   }
   function toG(cx,cy){return{x:cx/zoom-GW/2,globalY:cy/zoom};}
-  function stageFromGlobalY(globalY){return Math.max(0,Math.min(NS-1,Math.floor(globalY/GH)));}
-  function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(stageIndex*GH+GH/2+localY)*zoom};}
+  // Strip is flipped so the STARTING stage (index 0) sits at the BOTTOM and later
+  // stages stack upward (matches Rise: you start low and climb). rowOf maps a
+  // stage index to its visual row (0 = top of the strip). Data order, exported
+  // levelData and background_stage{i} keys are unchanged — this is layout only.
+  function rowOf(si){return NS-1-si;}
+  function stageOf(row){return NS-1-row;}
+  function rowFromGlobalY(globalY){return Math.max(0,Math.min(NS-1,Math.floor(globalY/GH)));}
+  function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
+  function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
   function obsAt(stageIndex,gx,gyLocal){
     const obs=lvls[stageIndex]||[];
     for(let i=obs.length-1;i>=0;i--){const o=obs[i];if(Math.abs(gx-o.x)<=o.w/2+8&&Math.abs(gyLocal-o.y)<=o.h/2+8)return i;}
     return -1;
   }
-  function updateCurrentFromScroll(){cur=Math.max(0,Math.min(NS-1,Math.floor((wrap.scrollTop/zoom+GH*.45)/GH)));}
+  function updateCurrentFromScroll(){const row=Math.max(0,Math.min(NS-1,Math.floor((wrap.scrollTop/zoom+GH*.45)/GH)));cur=stageOf(row);}
   wrap.addEventListener('scroll',()=>{const old=cur;updateCurrentFromScroll();if(old!==cur){sel=null;draw();}});
 
   cv.addEventListener('pointerdown',e=>{
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
-    const si=stageFromGlobalY(g.globalY),localY=g.globalY-si*GH-GH/2;cur=si;
+    const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;cur=si;
     if(mode==='select'){
       const idx=obsAt(si,g.x,localY);sel=idx>=0?idx:null;
       if(idx>=0){drag=true;doff={x:g.x-lvls[si][idx].x,y:localY-lvls[si][idx].y};const o=lvls[si][idx];$('ow').value=o.w;$('oh').value=o.h;$('oc').value=o.color||'#e05252';$('om').value=o.moveX||0;}
@@ -635,7 +642,7 @@ const LE=(function(){
   cv.addEventListener('pointermove',e=>{
     if(!drag||sel===null)return;
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
-    const si=stageFromGlobalY(g.globalY),localY=g.globalY-si*GH-GH/2;
+    const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;
     if(si!==cur)return;
     lvls[cur][sel].x=Math.round(g.x-doff.x);lvls[cur][sel].y=Math.round(localY-doff.y);draw();
   });
@@ -760,9 +767,9 @@ const LE=(function(){
       ctx.fillText('ACTIVE '+ACTIVE_W+'×'+ACTIVE_H,z.x0+6,z.y0+15);
     }
     // passive label (only where a band actually exists)
-    ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';
-    if(z.y0>z.top+14){ctx.textAlign='center';ctx.fillText('PASSIVE',w/2,z.top+13);}
-    else if(z.x0>40){ctx.textAlign='left';ctx.fillText('PASSIVE',4,top+13);}
+    ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';ctx.textAlign='center';
+    if(z.y0>z.top+22){ctx.fillText('PASSIVE',w/2,z.top+(z.y0-z.top)/2+3);}
+    else if(z.x0>34){ctx.fillText('PASSIVE',z.x0/2,top+h/2+3);}
     ctx.restore();
   }
   function draw(){
@@ -770,7 +777,7 @@ const LE=(function(){
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     for(let si=0;si<NS;si++){
-      const top=si*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
+      const top=rowOf(si)*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
       const sc=palette[si%palette.length];
       ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);
       drawBackgroundForStage(si,top,w,h,cv.height);
@@ -780,7 +787,7 @@ const LE=(function(){
       for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
       ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
       drawPassiveZone(top,w,h,midX,midY);
-      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+'   0;0',8,top+18);
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+(si===0?'  ▼ START':'')+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>drawObstacle(o,si,i));
       drawActiveZone(top,w,h,midX,midY);
     }
