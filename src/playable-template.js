@@ -27,7 +27,8 @@ var FONT_CSS={
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
-  var size=L.size||40,weight=L.weight||700,align=L.align||'center';
+  var size=L.size||40,weight=L.weight||700;
+  var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
     col=segs[s].color||'#ffffff';parts=String(segs[s].t==null?'':segs[s].t).split('\n');
@@ -37,7 +38,7 @@ function drawTextLabel(ctx,L,cx,cy){
   ctx.save();
   ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
   try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
-  var totalH=lh*lines.length,ascent=size*0.80,firstBase=cy-totalH/2+ascent,li,r,runs,by,lineW,sx,xx;
+  var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
   for(li=0;li<lines.length;li++){
     runs=lines[li];by=firstBase+li*lh;lineW=0;
     for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;

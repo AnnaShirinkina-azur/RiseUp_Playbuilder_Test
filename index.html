@@ -149,7 +149,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 </head>
 <body>
 <header>
-  <div class="logo"><div class="logo-icon">🎈</div>Rise Playable Builder<span class="badge">v20 level text</span></div>
+  <div class="logo"><div class="logo-icon">🎈</div>Rise Playable Builder<span class="badge">v21 text paint + anchor</span></div>
   <button class="btn btn-s" id="btn-reset">↺ Reset</button>
 </header>
 
@@ -332,7 +332,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
       </div>
       <div class="lblbar" id="txtbar" style="display:none">
-        <div class="lp">Parts <span class="color-list" id="tx-parts"></span></div>
+        <div class="lp">Text <input type="text" id="tx-text" placeholder="TAP TO PLAY" style="width:150px"></div>
+        <div class="lp">Base <input type="color" id="tx-base" value="#ffffff"></div>
+        <div class="lp">Accent <input type="color" id="tx-accent" value="#52e08a"></div>
+        <div class="lp"><button class="et" id="tx-paint-acc" title="Покрасить выделенный текст в акцент">Paint accent</button><button class="et" id="tx-paint-base" title="Покрасить выделенный текст в базовый">Base</button></div>
+        <div class="esep"></div>
         <div class="lp">Font <select id="tx-font">
           <option value="Baloo2">Baloo 2</option>
           <option value="Kameron">Kameron</option>
@@ -343,7 +347,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         </select></div>
         <div class="lp">Size <input type="number" id="tx-size" value="64" min="6" max="400" step="1"></div>
         <div class="lp">Weight <select id="tx-weight"><option value="400">400</option><option value="600">600</option><option value="700">700</option><option value="800" selected>800</option></select></div>
-        <div class="lp">Align <select id="tx-align"><option value="left">Left</option><option value="center" selected>Center</option><option value="right">Right</option></select></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="tx-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
         <div class="lp">Stroke <input type="color" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
         <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
       </div>
@@ -659,13 +669,13 @@ const LE=(function(){
   function rowFromGlobalY(globalY){return Math.max(0,Math.min(NS-1,Math.floor(globalY/GH)));}
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
+  function txBox(anchor,cx,cy,w,h){const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return{x:ah==='l'?cx:(ah==='r'?cx-w:cx-w/2),y:av==='t'?cy:(av==='b'?cy-h:cy-h/2)};}
   function obsAt(stageIndex,gx,gyLocal){
     const arr=lvls[stageIndex]||[];
     for(let i=arr.length-1;i>=0;i--){const o=arr[i];
       if(o.kind==='text'){
-        const sz=textLabelSize(ctx,o),al=o.align||'center';let bx0,bx1;
-        if(al==='left'){bx0=o.x;bx1=o.x+sz.w;}else if(al==='right'){bx0=o.x-sz.w;bx1=o.x;}else{bx0=o.x-sz.w/2;bx1=o.x+sz.w/2;}
-        if(gx>=bx0-8&&gx<=bx1+8&&Math.abs(gyLocal-o.y)<=sz.h/2+8)return i;
+        const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,o.x,o.y,sz.w,sz.h);
+        if(gx>=bp.x-8&&gx<=bp.x+sz.w+8&&gyLocal>=bp.y-8&&gyLocal<=bp.y+sz.h+8)return i;
       } else {
         if(Math.abs(gx-o.x)<=o.w/2+8&&Math.abs(gyLocal-o.y)<=o.h/2+8)return i;
       }
@@ -776,10 +786,9 @@ const LE=(function(){
     ctx.setTransform(zoom,0,0,zoom,0,0);
     drawTextLabel(ctx,o,baseX,baseY);
     if(si===cur&&i===sel){
-      const sz=textLabelSize(ctx,o),al=o.align||'center';
-      const boxX=al==='left'?baseX:(al==='right'?baseX-sz.w:baseX-sz.w/2),boxY=baseY-sz.h/2;
+      const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,baseX,baseY,sz.w,sz.h);
       ctx.strokeStyle='#fff';ctx.lineWidth=1.5/zoom;ctx.setLineDash([5/zoom,4/zoom]);
-      ctx.strokeRect(boxX-6,boxY-6,sz.w+12,sz.h+12);ctx.setLineDash([]);
+      ctx.strokeRect(bp.x-6,bp.y-6,sz.w+12,sz.h+12);ctx.setLineDash([]);
     }
     ctx.restore();
   }
@@ -861,41 +870,60 @@ const LE=(function(){
   function getLevelData(){return lvls.map(s=>s.map(o=>({...o,coordMode:'center'})));}
 
   // ── Level text labels ─────────────────────────────────────────────────────
+  let txColors=[],txBase='#ffffff',txAccent='#52e08a';
   function newTextLabel(x,y){
     return {kind:'text',coordMode:'center',x:x,y:y,
       segments:[{t:'TAP TO ',color:'#ffffff'},{t:'PLAY',color:'#52e08a'}],
-      font:'Baloo2',size:64,weight:800,align:'center',stroke:'#000000',strokeW:0,shadow:true,letterSpacing:0};
+      baseColor:'#ffffff',accentColor:'#52e08a',
+      font:'Baloo2',size:64,weight:800,anchor:'cc',stroke:'#000000',strokeW:0,shadow:true,letterSpacing:0};
   }
   function selItem(){return (cur>=0&&sel!==null&&lvls[cur])?lvls[cur][sel]:null;}
+  function labelText(o){return o.segments.map(s=>String(s.t||'')).join('');}
+  function expandColors(o){const a=[];o.segments.forEach(s=>{const t=String(s.t||'');for(let i=0;i<t.length;i++)a.push(s.color||txBase);});return a;}
+  function rebuildSegments(o){
+    const text=$('tx-text').value,segs=[];
+    for(let i=0;i<text.length;i++){const c=txColors[i]||txBase;if(segs.length&&segs[segs.length-1].color===c)segs[segs.length-1].t+=text[i];else segs.push({t:text[i],color:c});}
+    if(!segs.length)segs.push({t:'',color:txBase});
+    o.segments=segs;o.baseColor=txBase;o.accentColor=txAccent;
+  }
   function syncProps(){
     const o=selItem(),isText=!!(o&&o.kind==='text');
     $('txtbar').style.display=isText?'':'none';
     $('obs-props').style.display=isText?'none':'flex';
     if(isText){
       $('tx-font').value=o.font||'Baloo2';$('tx-size').value=o.size||64;$('tx-weight').value=String(o.weight||800);
-      $('tx-align').value=o.align||'center';$('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;
-      renderParts();
+      $('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;
+      txBase=o.baseColor||(o.segments[0]&&o.segments[0].color)||'#ffffff';
+      txAccent=o.accentColor||o.segments.map(s=>s.color).find(c=>c&&c!==txBase)||'#52e08a';
+      $('tx-base').value=txBase;$('tx-accent').value=txAccent;
+      $('tx-text').value=labelText(o);txColors=expandColors(o);
+      document.querySelectorAll('#tx-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cc')));
     } else if(o){
       $('ow').value=o.w;$('oh').value=o.h;$('oc').value=o.color||'#e05252';$('om').value=o.moveX||0;
     }
   }
-  function renderParts(){
-    const host=$('tx-parts');host.innerHTML='';const o=selItem();if(!o||o.kind!=='text')return;
-    o.segments.forEach((seg,idx)=>{
-      const t=document.createElement('input');t.type='text';t.value=seg.t;t.placeholder='text';t.style.width='84px';
-      t.addEventListener('input',()=>{seg.t=t.value;draw();});host.appendChild(t);
-      const c=document.createElement('input');c.type='color';c.value=seg.color||'#ffffff';
-      c.addEventListener('input',()=>{seg.color=c.value;draw();});host.appendChild(c);
-      if(o.segments.length>1){const rm=document.createElement('button');rm.type='button';rm.className='cbtn';rm.textContent='−';rm.title='Remove part';rm.addEventListener('click',()=>{o.segments.splice(idx,1);renderParts();draw();});host.appendChild(rm);}
-    });
-    const add=document.createElement('button');add.type='button';add.className='cbtn';add.textContent='＋';add.title='Перекрасить часть текста: добавить цветной кусок';add.addEventListener('click',()=>{o.segments.push({t:' TEXT',color:'#ffd54a'});renderParts();draw();});host.appendChild(add);
+  function paintRange(color){
+    const o=selItem();if(!o||o.kind!=='text')return;const inp=$('tx-text');
+    let a=inp.selectionStart,b=inp.selectionEnd;if(a==null)a=0;if(b==null)b=inp.value.length;
+    if(a===b){a=0;b=inp.value.length;}                 // no selection → whole text
+    while(txColors.length<inp.value.length)txColors.push(txBase);
+    for(let i=a;i<b;i++)txColors[i]=color;
+    rebuildSegments(o);draw();inp.focus();try{inp.setSelectionRange(a,b);}catch(e){}
   }
   $('et-text').addEventListener('click',()=>{mode='text';$('et-text').classList.add('on');$('et-sel').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
+  $('tx-text').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;rebuildSegments(o);txColors=expandColors(o);draw();});
+  $('tx-base').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;const old=txBase,nw=$('tx-base').value;for(let i=0;i<txColors.length;i++)if(txColors[i]===old)txColors[i]=nw;txBase=nw;rebuildSegments(o);draw();});
+  $('tx-accent').addEventListener('input',()=>{txAccent=$('tx-accent').value;const o=selItem();if(o&&o.kind==='text')o.accentColor=txAccent;});
+  // keep the text selection when clicking the paint buttons
+  $('tx-paint-acc').addEventListener('mousedown',e=>e.preventDefault());
+  $('tx-paint-base').addEventListener('mousedown',e=>e.preventDefault());
+  $('tx-paint-acc').addEventListener('click',()=>paintRange($('tx-accent').value));
+  $('tx-paint-base').addEventListener('click',()=>paintRange($('tx-base').value));
+  document.querySelectorAll('#tx-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='text')return;o.anchor=b.dataset.a;document.querySelectorAll('#tx-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
   function bindTx(id,field,tf){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;o[field]=tf?tf(e.value):e.value;draw();});}
   bindTx('tx-font','font');
   bindTx('tx-size','size',v=>Math.max(1,parseFloat(v)||1));
   bindTx('tx-weight','weight',v=>parseInt(v,10));
-  bindTx('tx-align','align');
   bindTx('tx-stroke','stroke');
   bindTx('tx-strokeW','strokeW',v=>Math.max(0,parseFloat(v)||0));
   $('tx-shadow').addEventListener('change',()=>{const o=selItem();if(!o||o.kind!=='text')return;o.shadow=$('tx-shadow').checked;draw();});
@@ -920,7 +948,8 @@ const FONT_CSS={
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
-  var size=L.size||40,weight=L.weight||700,align=L.align||'center';
+  var size=L.size||40,weight=L.weight||700;
+  var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
     col=segs[s].color||'#ffffff';parts=String(segs[s].t==null?'':segs[s].t).split('\n');
@@ -930,7 +959,7 @@ function drawTextLabel(ctx,L,cx,cy){
   ctx.save();
   ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
   try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
-  var totalH=lh*lines.length,ascent=size*0.80,firstBase=cy-totalH/2+ascent,li,r,runs,by,lineW,sx,xx;
+  var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
   for(li=0;li<lines.length;li++){
     runs=lines[li];by=firstBase+li*lh;lineW=0;
     for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;
