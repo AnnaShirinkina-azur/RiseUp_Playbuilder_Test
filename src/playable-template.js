@@ -152,16 +152,19 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.H=CH+6;this.worldY=idx*this.H;}
-  reset(){this.obs.forEach(o=>o.reset());}
-  resetAt(worldY){this.worldY=worldY;this.reset();}
+  constructor(idx,obs,color,labels){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
+  reset(){this.done=false;this.obs.forEach(o=>o.reset());}
+  resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
+  complete(){this.done=true;this.worldY=CH+this.H*4;}
   update(dt,fallSpeed=0,gravityModifier=1){
+    if(this.done)return;
     // Stages are now falling waves: obstacles keep their local layout,
     // while the whole wave moves from the top of the screen downward.
     this.worldY+=fallSpeed*dt;
     this.obs.forEach(o=>o.update(dt,gravityModifier));
   }
   draw(ctx,top){
+    if(this.done)return;
     if(this.color){
       const g=ctx.createLinearGradient(0,top,0,top+this.H);
       g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
@@ -170,7 +173,7 @@ class Stage{
     this.obs.forEach(o=>o.draw(ctx,top));
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
-  hit(px,py,pr,top){for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
+  hit(px,py,pr,top){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
 }
 
 //── Shield — двигается по X и Y за пальцем, защищает шарик ──────────────────
@@ -330,7 +333,7 @@ class Game{
     // levelData: array[stageCount] of obs-config arrays from level editor
     const ld=c.levelData;
     const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
-    const stageCount=hasLD?Math.max(requestedCount,ld.length):requestedCount;
+    const stageCount=requestedCount;
     for(let si=0;si<stageCount;si++){
       let obs=[],labels=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
@@ -466,7 +469,9 @@ class Game{
           this._win();
           return;
         }
-        st.resetAt(highest);
+        // Do not recycle completed mini-levels: playable flow is
+        // START stage -> exactly stageCount mini-levels -> FINISH stage.
+        st.complete();
         this.si=this.completedStages;
         this.cb.onStageChange&&this.cb.onStageChange(this.si);
       }
@@ -635,7 +640,8 @@ class Game{
     }
     const fade=Math.max(60,Math.min(150,CH*.18));
     for(const st of this.stages){
-      const bg=this._nearestReadyBackground(st.idx);
+      if(st.done)continue;
+      const bg=this._spr('background_stage'+st.idx);
       if(imgOk(bg)){const t=(this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[st.idx])||this.cfg.backgroundSpriteColor;this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,t);}
     }
   }
@@ -648,7 +654,7 @@ class Game{
     ctx.strokeStyle=rgba(this.cfg.groundColor,.38);ctx.lineWidth=1;
     for(let y=off%sp;y<CH;y+=sp){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
     // stages
-    for(let i=0;i<this.stages.length;i++)this.stages[i].draw(ctx,this._sst(i));
+    for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
     // ball below shield
     this.ball.draw(ctx);
@@ -690,6 +696,8 @@ class Game{
 
   _drawStart(ctx){
     ctx.save();
+    const startBg=this._spr('background_start');
+    if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundStartColor||this.cfg.backgroundSpriteColor);
     const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
     g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
     ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
@@ -699,6 +707,8 @@ class Game{
   }
 
   _drawEnd(ctx){
+    const finishBg=this._spr('background_finish');
+    if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundFinishColor||this.cfg.backgroundSpriteColor);
     ctx.save();ctx.globalAlpha=this.endA;
     ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(0,0,CW,CH);
     const cw=300,ch=360,cx=(CW-cw)/2,cy=(CH-ch)/2;
@@ -726,7 +736,7 @@ const DEF={
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',backgroundStageColors:[],
+  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',backgroundStageColors:[],backgroundStartColor:'#ffffff',backgroundFinishColor:'#ffffff',
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
   levelData:null,
 };

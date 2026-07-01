@@ -504,16 +504,18 @@ function renderStageAssetRows(){
   const bgTargets=[$('bg-sprs-visuals'),$('le-bg-stage-list')].filter(Boolean);
   if(bgTargets.length){
     let h='';
-    for(let i=0;i<n;i++){
-      const k='background_stage'+i;
-      h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
+    function bgRow(k,label,tintId){
+      return `<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
         <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">🖼️</div>
-        <span style="font-size:12px;color:var(--dim);min-width:48px;">Mini ${i+1}</span>
+        <span style="font-size:12px;color:var(--dim);min-width:72px;">${label}</span>
         <label class="ul-btn" style="font-size:11px;">+ Img<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
         <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
-        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="cfg-bgStageColor${i}" value="#ffffff" style="width:28px;height:24px;" oninput="window.RiseLevelEditor&&RiseLevelEditor.draw()" onchange="window.RiseLevelEditor&&RiseLevelEditor.draw()"></label>
+        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="${tintId}" value="#ffffff" style="width:28px;height:24px;" oninput="window.RiseLevelEditor&&RiseLevelEditor.draw()" onchange="window.RiseLevelEditor&&RiseLevelEditor.draw()"></label>
       </div></div>`;
     }
+    h+=bgRow('background_start','Start scene','cfg-bgStartColor');
+    for(let i=0;i<n;i++)h+=bgRow('background_stage'+i,'Mini '+(i+1),'cfg-bgStageColor'+i);
+    h+=bgRow('background_finish','Finish scene','cfg-bgFinishColor');
     bgTargets.forEach(el=>el.innerHTML=h);
   }
   const st=$('stg-sprs');
@@ -893,20 +895,8 @@ const LE=(function(){
   }
   function readyBgForStage(sm,si){
     const exact=sm['background_stage'+si];
-    let im=getEditorImage(exact);
-    if(exact&&imageReady(im))return im;
-    const common=sm.background;
-    im=getEditorImage(common);
-    if(common&&imageReady(im))return im;
-    for(let d=1;d<=NS;d++){
-      const prev=sm['background_stage'+(si-d)];
-      im=getEditorImage(prev);
-      if(prev&&imageReady(im))return im;
-      const next=sm['background_stage'+(si+d)];
-      im=getEditorImage(next);
-      if(next&&imageReady(im))return im;
-    }
-    return null;
+    const im=getEditorImage(exact);
+    return exact&&imageReady(im)?im:null;
   }
   function drawBackgroundForStage(si,top,w,h,totalH){
     const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
@@ -914,8 +904,7 @@ const LE=(function(){
     if(mode==='common'){
       const src=sm.background;
       const im=getEditorImage(src);
-      const fallback=readyBgForStage(sm,si);
-      const bg=imageReady(im)?im:fallback;
+      const bg=imageReady(im)?im:null;
       if(bg){
         const sc=Math.max(w/bg.naturalWidth,totalH/bg.naturalHeight);
         const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
@@ -1012,10 +1001,11 @@ const LE=(function(){
       for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
       ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
       drawPassiveZone(top,w,h,midX,midY);
-      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+(si===0?'  ▼ START':'')+'   0;0',8,top+18);
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>{if(o&&o.kind==='text')drawTextItem(o,si,i);else drawObstacle(o,si,i);});
       drawActiveZone(top,w,h,midX,midY);
     }
+    ctx.fillStyle='rgba(82,224,138,.75)';ctx.font='12px monospace';ctx.textAlign='left';ctx.fillText('START SCENE',8,18);ctx.fillText('FINISH SCENE',8,cv.height-24);
     let no=0,nt=0;lvls.forEach(s=>s.forEach(o=>{if(o&&o.kind==='text')nt++;else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText(NS+' mini-levels · '+no+' obstacles · '+nt+' text · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
   function getLevelData(){return lvls.map(s=>s.map(o=>({...o,coordMode:'center'})));}

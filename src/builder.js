@@ -29,6 +29,8 @@ function readConfig(){
     googleFontUrl:g('cfg-googleFontUrl')||'',
     googleFontFamily:g('cfg-googleFontFamily')||'',
     localFontFamily:g('cfg-localFontFamily')||'CustomFont',
+    backgroundStartColor:g('cfg-bgStartColor')||'#ffffff',
+    backgroundFinishColor:g('cfg-bgFinishColor')||'#ffffff',
     backgroundStageColors:Array.from({length:g('cfg-stageCount')||5},(_,i)=>g('cfg-bgStageColor'+i)||'#ffffff'),
     levelData,
   };
