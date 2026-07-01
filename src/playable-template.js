@@ -7,6 +7,7 @@ function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);retur
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
 function makeImg(src){if(!src)return null;const im=new Image();im.src=src;return im;}
+function drawTintedImage(ctx,img,x,y,w,h,color){ctx.drawImage(img,x,y,w,h);if(!color||color==='#ffffff')return;ctx.save();ctx.globalCompositeOperation='source-atop';ctx.fillStyle=color;ctx.globalAlpha=.95;ctx.fillRect(x,y,w,h);ctx.restore();}
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
@@ -23,7 +24,7 @@ function textLocal(L){
 }
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
-var FONT_CSS={
+var FONT_CSS=W.RiseFontCSS={
   'Baloo2':"'Baloo2',sans-serif",
   'Kameron':"'Kameron',serif",
   'LiberationSans':"'LiberationSans',Arial,sans-serif",
@@ -31,11 +32,12 @@ var FONT_CSS={
   'serif':'Georgia,"Times New Roman",serif',
   'mono':'ui-monospace,Menlo,Consolas,monospace'
 };
+function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'\"'+name.replace(/\"/g,'')+'\",sans-serif':name+',sans-serif';}
 // Draw a text label centered on (cx,cy). Text is a list of segments {t,color};
 // each segment keeps its own solid color. Newlines split lines.
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
-  var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
+  var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
   var size=L.size||40,weight=800;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
@@ -75,6 +77,7 @@ class FX{
 //── Obstacle ─────────────────────────────────────────────────────────────────
 class Obs{
   constructor(o){
+    this.cfg=o.cfg||{};
     this.coordMode=o.coordMode||'screen';
     this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
     this.x=layoutX(o);this.y=layoutY(o);
@@ -119,7 +122,7 @@ class Obs{
     ctx.translate(dx,dy);
     if(!this.kin)ctx.rotate(this.rot);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
-    if(imgOk(im)){ctx.drawImage(im,-this.w/2,-this.h/2,this.w,this.h);}
+    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.cfg&&this.cfg.obstacleSpriteColor);}
     else{
       ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
@@ -200,7 +203,7 @@ class Shield{
   }
   _paint(ctx,x,y){
     const r=this.r;
-    if(imgOk(this.spr)){ctx.drawImage(this.spr,x-r,y-r,r*2,r*2);return;}
+    if(imgOk(this.spr)){drawTintedImage(ctx,this.spr,x-r,y-r,r*2,r*2,this.cfg.shieldSpriteColor);return;}
     // glow ring
     ctx.strokeStyle=rgba(this.cfg.shieldColor,.55);ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.stroke();
@@ -268,7 +271,7 @@ class Ball{
   }
   _paint(ctx,x,y){
     const r=this.r;
-    if(imgOk(this.spr)){ctx.drawImage(this.spr,x-r,y-r,r*2,r*2);return;}
+    if(imgOk(this.spr)){drawTintedImage(ctx,this.spr,x-r,y-r,r*2,r*2,this.cfg.playerSpriteColor);return;}
     const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);
     g.addColorStop(0,this.cfg.playerColor);g.addColorStop(1,rgba(this.cfg.playerColor,.75));
     ctx.fillStyle=g;ctx.strokeStyle=this.cfg.playerOutlineColor;ctx.lineWidth=2.5;
@@ -317,7 +320,7 @@ class Game{
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
-          const ob=new Obs({...o,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
+          const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
           obs.push(ob);
         });
@@ -328,7 +331,7 @@ class Game{
             coordMode:'center',x:-115+(oi%2)*230,y:-CH/2+160+Math.floor(oi/2)*200+si*15,
             w:55+si*5,h:55+si*5,shape:sh[(oi+si)%3],
             color:oi%2===0?c.obstacleColor:c.obstacleColorAlt,
-            moveX:si>1&&oi%2===0?80:0,moveSpeed:1800-si*120,phaseOffset:oi*600,
+            moveX:si>1&&oi%2===0?80:0,moveSpeed:1800-si*120,phaseOffset:oi*600,cfg:c,
           });
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
           obs.push(ob);
@@ -699,9 +702,9 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,
-  shieldColor:'#4fc3f7',shieldSize:1.0,
-  obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',
+  playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
+  shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
+  obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
   levelData:null,

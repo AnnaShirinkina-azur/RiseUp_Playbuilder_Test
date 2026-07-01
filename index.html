@@ -23,6 +23,11 @@ header{padding:12px 20px;border-bottom:1px solid var(--brd);display:flex;align-i
 .tabs{display:flex;flex-direction:column;gap:8px;border-bottom:none;padding:0;flex-shrink:0;}
 .param-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:4px 4px 2px;}
 .param-group{display:flex;flex-direction:column;gap:5px;}
+.acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,.035);border:1px solid var(--brd);border-radius:12px;color:var(--txt);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+.acc-head::after{content:"▸";opacity:.55;transition:.15s;}
+.acc-head.on::after{transform:rotate(90deg);}
+.acc-body{display:none;flex-direction:column;gap:5px;padding:2px 0 6px 10px;}
+.acc-body.on{display:flex;}
 .tab{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:12px;color:var(--dim);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;text-align:left;}
 .tab::after{content:"›";opacity:.45;}
 .tab:hover{color:var(--txt);background:rgba(255,255,255,.035);}
@@ -163,65 +168,116 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <div class="ws">
   <aside class="sb">
     <div class="tabs">
-      <div class="param-title">Gameplay changes</div>
-      <div class="param-group">
-        <button class="tab on" data-tab="gameplay">Gameplay</button>
+      <button class="acc-head on" data-acc="gameplay">Gameplay changes</button>
+      <div class="acc-body on" id="acc-gameplay">
+        <button class="tab on" data-panel="player">Player</button>
+        <button class="tab" data-panel="speed">Speed</button>
+        <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
+        <button class="tab" data-panel="timing">Timing</button>
       </div>
-      <div class="param-title">Visual changes</div>
-      <div class="param-group">
-        <button class="tab" data-tab="visuals">Visuals</button>
-        <button class="tab" data-tab="sprites">Sprites</button>
+      <button class="acc-head on" data-acc="visuals">Visual changes</button>
+      <div class="acc-body on" id="acc-visuals">
+        <button class="tab" data-panel="main-ball">Main ball</button>
+        <button class="tab" data-panel="shield">Shield</button>
+        <button class="tab" data-panel="obstacles-visual">Obstacles</button>
+        <button class="tab" data-panel="environment">Environment</button>
+        <button class="tab" data-panel="background-image">Background image</button>
+        <button class="tab" data-panel="stage-accents">Stage accents</button>
+        <button class="tab" data-panel="text-fonts">Text / fonts</button>
       </div>
     </div>
 
-    <!-- GAMEPLAY -->
-    <div class="pnl on" id="tab-gameplay">
+    <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
       <div class="row"><label>Ball size<small>Scale ×</small></label><input type="number" id="cfg-playerSize" value="1" min="0.5" max="2" step="0.1"></div>
       <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
+    </div>
+
+    <div class="pnl" id="panel-speed" data-title="Speed">
       <div class="sec">Speed</div>
       <div class="row wide"><label>Game speed<small>Initial scroll px/s</small></label>
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
       <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="5" min="1" max="20" step="1"></div>
+    </div>
+
+    <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
       <div class="sec">Obstacles / Physics</div>
       <div class="row wide"><label>Push force<small>Strength of hit</small></label>
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
+    </div>
+
+    <div class="pnl" id="panel-timing" data-title="Timing">
       <div class="sec">Timing</div>
       <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
       <div class="row"><label>Tutorial (s)<small>Seconds</small></label><input type="number" id="cfg-tutorialTime" value="3.5" min="0.5" max="10" step="0.1"></div>
     </div>
 
-    <!-- VISUALS -->
-    <div class="pnl" id="tab-visuals">
+    <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
       <div class="row"><label>Fill</label><input type="color" id="cfg-playerColor" value="#f5e642"></div>
       <div class="row"><label>Outline</label><input type="color" id="cfg-playerOutline" value="#ffffff"></div>
+      <div class="sec">Custom sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-player">🎈</div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
+        <button class="x-btn" onclick="clearSpr('player')">✕</button>
+      </div></div>
+      <div class="row"><label>Custom sprite color<small>Tint / override color in playable</small></label><input type="color" id="cfg-playerSpriteColor" value="#ffffff"></div>
+    </div>
+
+    <div class="pnl" id="panel-shield" data-title="Shield">
       <div class="sec">Shield (защитник)</div>
       <div class="row"><label>Color</label><input type="color" id="cfg-shieldColor" value="#4fc3f7"></div>
+      <div class="sec">Custom sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-shield">🛡️</div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
+        <button class="x-btn" onclick="clearSpr('shield')">✕</button>
+      </div></div>
+      <div class="row"><label>Custom sprite color</label><input type="color" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+    </div>
+
+    <div class="pnl" id="panel-obstacles-visual" data-title="Obstacles">
       <div class="sec">Obstacles</div>
       <div class="row"><label>Color A</label><input type="color" id="cfg-obstacleColor" value="#e05252"></div>
       <div class="row"><label>Color B</label><input type="color" id="cfg-obstacleColorAlt" value="#5282e0"></div>
+      <div class="sec">Custom sprite (all stages)</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-obstacle">⬛</div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('obstacle',this)"></label>
+        <button class="x-btn" onclick="clearSpr('obstacle')">✕</button>
+      </div></div>
+      <div class="row"><label>Custom sprite color</label><input type="color" id="cfg-obstacleSpriteColor" value="#ffffff"></div>
+      <div class="sec">Obstacle per-stage</div>
+      <div id="stg-sprs"></div>
+    </div>
+
+    <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
       <div class="row wide"><label>Playable orientation<small>Preview and exported HTML</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
       <div class="sec">Environment</div>
       <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
-      <div class="sec">Background image</div>
-      <div class="sp-row">
-        <div class="sp-up">
-          <div class="thumb" id="th-background-visuals">🖼️</div>
-          <label class="ul-btn">+ Common image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
-          <button class="x-btn" onclick="clearSpr('background')">✕</button>
-        </div>
-      </div>
-      <div class="sec">Background per Stage/Level</div>
-      <div id="bg-sprs-visuals"></div>
       <div class="row"><label>Grid</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
       <div class="row"><label>Particles</label><input type="color" id="cfg-particleColor" value="#f5e642"></div>
+    </div>
+
+    <div class="pnl" id="panel-background-image" data-title="Background image">
+      <div class="sec">Background image</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-background-visuals">🖼️</div>
+        <label class="ul-btn">+ Common image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
+        <button class="x-btn" onclick="clearSpr('background')">✕</button>
+      </div></div>
+      <div class="sec">Background per Stage/Level</div>
+      <div id="bg-sprs-visuals"></div>
+    </div>
+
+    <div class="pnl" id="panel-stage-accents" data-title="Stage accents">
       <div class="sec">Stage accent colors · debug</div>
       <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
       <div class="cgrid">
@@ -233,45 +289,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       </div>
     </div>
 
-    <!-- SPRITES -->
-    <div class="pnl" id="tab-sprites">
-      <p style="font-size:12px;color:var(--dim);line-height:1.6;padding:2px 0 8px;">PNG-спрайты заменяют цветные фигуры в игре и в финальном HTML.</p>
-      <div class="sec">Main ball</div>
-      <div class="sp-row">
-        <div class="sp-up">
-          <div class="thumb" id="th-player">🎈</div>
-          <label class="ul-btn">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
-          <button class="x-btn" onclick="clearSpr('player')">✕</button>
-        </div>
-      </div>
-      <div class="sec">Shield (защитник)</div>
-      <div class="sp-row">
-        <div class="sp-up">
-          <div class="thumb" id="th-shield">🛡️</div>
-          <label class="ul-btn">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
-          <button class="x-btn" onclick="clearSpr('shield')">✕</button>
-        </div>
-      </div>
-      <div class="sec">Background image (fallback for all stages)</div>
-      <div class="sp-row">
-        <div class="sp-up">
-          <div class="thumb" id="th-background">🖼️</div>
-          <label class="ul-btn">+ Image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
-          <button class="x-btn" onclick="clearSpr('background')">✕</button>
-        </div>
-      </div>
-      <div class="sec">Background image per Stage/Level</div>
-      <div id="bg-sprs"></div>
-      <div class="sec">Obstacle (все стейджи)</div>
-      <div class="sp-row">
-        <div class="sp-up">
-          <div class="thumb" id="th-obstacle">⬛</div>
-          <label class="ul-btn">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('obstacle',this)"></label>
-          <button class="x-btn" onclick="clearSpr('obstacle')">✕</button>
-        </div>
-      </div>
-      <div class="sec">Obstacle per-stage</div>
-      <div id="stg-sprs"></div>
+
+    <div class="pnl" id="panel-text-fonts" data-title="Text / fonts">
+      <div class="sec">Google Fonts</div>
+      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
+      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
     </div>
 
     <div class="bbar">
@@ -420,18 +443,27 @@ document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'
   if(!ws||!sb)return;
   const inspector=document.createElement('aside');
   inspector.className='inspector';
-  inspector.innerHTML='<div class="inspector-head" id="inspector-title">Gameplay</div>';
-  ['tab-gameplay','tab-visuals','tab-sprites'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-background-image','panel-stage-accents','panel-text-fonts'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();
 
-// left tabs
-document.querySelectorAll('.tab[data-tab]').forEach(b=>{
+// left accordions and parameter navigation
+document.querySelectorAll('.acc-head[data-acc]').forEach(b=>{
   b.addEventListener('click',()=>{
-    document.querySelectorAll('.tab[data-tab]').forEach(x=>x.classList.remove('on'));
-    document.querySelectorAll('.pnl').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');$('tab-'+b.dataset.tab).classList.add('on'); const t=$('inspector-title'); if(t)t.textContent=b.textContent.trim();
+    b.classList.toggle('on');
+    const body=$('acc-'+b.dataset.acc); if(body) body.classList.toggle('on');
+  });
+});
+document.querySelectorAll('.tab[data-panel]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab[data-panel]').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.inspector .pnl').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    const panel=$('panel-'+b.dataset.panel);
+    if(panel) panel.classList.add('on');
+    const t=$('inspector-title'); if(t)t.textContent=(panel&&panel.dataset.title)||b.textContent.trim();
   });
 });
 
@@ -507,6 +539,54 @@ function updateBackgroundModeUI(){
 }
 $('cfg-bgMode')?.addEventListener('change',()=>{updateBackgroundModeUI(); if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+
+function googleFontFamilyFromUrl(url){
+  url=String(url||'').trim();
+  if(!url)return '';
+  try{
+    const u=new URL(url);
+    let fam=u.searchParams.get('family');
+    if(fam)return fam.split(':')[0].replace(/\+/g,' ').trim();
+    const parts=u.pathname.split('/').filter(Boolean);
+    const specimen=parts.indexOf('specimen');
+    if(specimen>=0&&parts[specimen+1])return decodeURIComponent(parts[specimen+1]).replace(/\+/g,' ').trim();
+  }catch(e){}
+  return '';
+}
+function googleFontCssUrl(url,family){
+  url=String(url||'').trim(); family=String(family||'').trim();
+  if(!url&&family)url='https://fonts.googleapis.com/css2?family='+encodeURIComponent(family).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap';
+  try{
+    const u=new URL(url);
+    if(u.hostname==='fonts.google.com'){
+      const fam=family||googleFontFamilyFromUrl(url);
+      return fam?'https://fonts.googleapis.com/css2?family='+encodeURIComponent(fam).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap':'';
+    }
+    if(u.hostname==='fonts.googleapis.com')return url;
+  }catch(e){}
+  return url;
+}
+function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'"'+name.replace(/"/g,'')+'",sans-serif':name+',sans-serif';}
+function syncGoogleFontOption(){
+  const urlEl=$('cfg-googleFontUrl'), famEl=$('cfg-googleFontFamily'), st=$('cfg-googleFontStatus'), sel=$('tx-font');
+  if(!urlEl||!famEl||!sel)return;
+  let fam=famEl.value.trim()||googleFontFamilyFromUrl(urlEl.value);
+  if(!fam){if(st)st.textContent='Не удалось определить family. Впишите название шрифта вручную.';return;}
+  famEl.value=fam;
+  const href=googleFontCssUrl(urlEl.value,fam);
+  let link=document.getElementById('google-font-link');
+  if(!link){link=document.createElement('link');link.id='google-font-link';link.rel='stylesheet';document.head.appendChild(link);}
+  if(href)link.href=href;
+  FONT_CSS[fam]=fontCssFamily(fam);
+  let opt=[...sel.options].find(o=>o.value===fam);
+  if(!opt){opt=document.createElement('option');opt.value=fam;opt.textContent=fam+' (Google)';sel.appendChild(opt);}
+  if(st)st.textContent='Loaded: '+fam;
+  if(document.fonts&&document.fonts.load)document.fonts.load('700 40px '+fontCssFamily(fam)).then(()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();}).catch(()=>{});
+}
+$('cfg-googleFontApply')?.addEventListener('click',syncGoogleFontOption);
+$('cfg-googleFontUrl')?.addEventListener('change',syncGoogleFontOption);
+$('cfg-googleFontFamily')?.addEventListener('change',syncGoogleFontOption);
+
 updateBackgroundModeUI();
 
 // progress
@@ -542,16 +622,17 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
-  'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff',
-  'cfg-shieldColor':'#4fc3f7',
-  'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0',
+  'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff',
+  'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
+  'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0','cfg-obstacleSpriteColor':'#ffffff',
   'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642',
   'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
-  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait'
+  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':''
 };
 $('btn-reset').addEventListener('click',()=>{
   Object.entries(DEFS).forEach(([id,v])=>{const e=$(id);if(!e)return;if(e.type==='checkbox'){e.checked=!!v;e.dispatchEvent(new Event('change'));}else{e.value=v;e.dispatchEvent(new Event('input'));}});
   setOrientation('portrait');
+  const l=document.getElementById('google-font-link'); if(l)l.remove();
 });
 
 setOrientation('portrait');
@@ -990,7 +1071,7 @@ const FONT_CSS={
 };
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
-  var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
+  var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
   var size=L.size||40,weight=800;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
@@ -1016,7 +1097,7 @@ function drawTextLabel(ctx,L,cx,cy){
 // measured size (base units) of a text label, for hit-testing / selection box
 function textLabelSize(ctx,L){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:'#fff'}];
-  var fam=(FONT_CSS[L.font]||L.font||'sans-serif'),size=L.size||40,weight=800;
+  var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif'),size=L.size||40,weight=800;
   var lineStrs=[''],s,p,parts;
   for(s=0;s<segs.length;s++){parts=String(segs[s].t==null?'':segs[s].t).split('\n');for(p=0;p<parts.length;p++){if(p>0)lineStrs.push('');lineStrs[lineStrs.length-1]+=parts[p];}}
   ctx.save();ctx.font=weight+' '+size+'px '+fam;try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}

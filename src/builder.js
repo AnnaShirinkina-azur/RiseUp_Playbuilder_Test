@@ -18,14 +18,16 @@ function readConfig(){
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||5,
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
-    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),
-    shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),
-    obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),
+    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),
+    shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
+    obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),obstacleSpriteColor:g('cfg-obstacleSpriteColor'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:g('cfg-bgMode')||'perStage',
+    googleFontUrl:g('cfg-googleFontUrl')||'',
+    googleFontFamily:g('cfg-googleFontFamily')||'',
     levelData,
   };
 }
@@ -33,6 +35,9 @@ function readConfig(){
 // ── fetch → base64 dataURL ─────────────────────────────────────────────────
 function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);});}
 function fetchB64(url){return fetch(url).then(r=>{if(!r.ok)throw new Error(r.status+' '+url);return r.blob();}).then(toB64);}
+function googleFontFamilyFromUrl(url){url=String(url||'').trim();if(!url)return '';try{const u=new URL(url);let fam=u.searchParams.get('family');if(fam)return fam.split(':')[0].replace(/\+/g,' ').trim();const parts=u.pathname.split('/').filter(Boolean),i=parts.indexOf('specimen');if(i>=0&&parts[i+1])return decodeURIComponent(parts[i+1]).replace(/\+/g,' ').trim();}catch(e){}return '';}
+function googleFontCssUrl(url,family){url=String(url||'').trim();family=String(family||'').trim();if(!url&&family)url='https://fonts.googleapis.com/css2?family='+encodeURIComponent(family).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap';try{const u=new URL(url);if(u.hostname==='fonts.google.com'){const fam=family||googleFontFamilyFromUrl(url);return fam?'https://fonts.googleapis.com/css2?family='+encodeURIComponent(fam).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap':'';}if(u.hostname==='fonts.googleapis.com')return url;}catch(e){}return url;}
+function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'\"'+name.replace(/\"/g,'')+'\",sans-serif':name+',sans-serif';}
 
 // ── Бандл ассетов ─────────────────────────────────────────────────────────
 const BUNDLE=[
@@ -59,6 +64,11 @@ function getSprites(){return Object.assign({},SPRS);}
 
 // ── Собираем итоговый HTML ────────────────────────────────────────────────
 function buildHTML(cfg,assetMap,sprMap,gameSrc){
+  const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
+  if(googleFamily)cfg.googleFontFamily=googleFamily;
+  const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);
+  const googleFontFamilyCss=googleFamily?fontCssFamily(googleFamily):'';
+  const googleFontJs=googleFamily?('RiseFontCSS['+JSON.stringify(googleFamily)+']='+JSON.stringify(googleFontFamilyCss)+';') : '';
   const ff=[
     assetMap['fonts/Baloo2-Bold.ttf']?`@font-face{font-family:'Baloo2';font-weight:700;src:url('${assetMap['fonts/Baloo2-Bold.ttf']}')}`:'',
     assetMap['fonts/Kameron-SemiBold.ttf']?`@font-face{font-family:'Kameron';font-weight:600;src:url('${assetMap['fonts/Kameron-SemiBold.ttf']}')}`:'',
@@ -77,6 +87,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Rise – Playable</title>
 <style>
+${googleHref?'@import url("'+googleHref.replace(/"/g,'')+'");':''}
 ${ff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:${JSON.stringify(cfg.bgColor||'#0d0d14')};display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -96,6 +107,7 @@ html,body{width:100%;height:100%;background:${JSON.stringify(cfg.bgColor||'#0d0d
 <div id="gr"><div id="loader"></div></div>
 <script>
 ${gameSrc}
+${googleFontJs}
 var a={};${aLines}
 var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
@@ -122,7 +134,7 @@ var cfg=${JSON.stringify(cfg)};
       });
     };
     if(document.fonts&&document.fonts.load){
-      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")]).then(go).catch(go);
+      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}]).then(go).catch(go);
     }else{go();}
   }
   function loadImage(k){
