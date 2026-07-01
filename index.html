@@ -354,6 +354,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
             <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
           </div>
         </div>
+        <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of active square side"></div>
+        <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of active square side"></div>
         <div class="lp">Stroke <input type="color" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
         <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
       </div>
@@ -381,8 +383,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=20"></script>
-<script src="src/builder.js?v=20"></script>
+<script src="src/playable-template.js?v=22"></script>
+<script src="src/builder.js?v=22"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -669,12 +671,22 @@ const LE=(function(){
   function rowFromGlobalY(globalY){return Math.max(0,Math.min(NS-1,Math.floor(globalY/GH)));}
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
+  function activeSq(){return Math.min(GW,GH);}
+  function anchorBaseLocal(anchor){
+    const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),sq=activeSq();
+    return {x:ah==='l'?-sq/2:(ah==='r'?sq/2:0),y:av==='t'?-sq/2:(av==='b'?sq/2:0)};
+  }
+  function textLocal(o){
+    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=anchorBaseLocal(o.anchor);const sq=activeSq();return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*sq/100};}
+    return {x:(o&&o.x)||0,y:(o&&o.y)||0};
+  }
+  function setTextLocalFromOffset(o){if(!o||o.kind!=='text')return;const l=textLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
   function txBox(anchor,cx,cy,w,h){const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return{x:ah==='l'?cx:(ah==='r'?cx-w:cx-w/2),y:av==='t'?cy:(av==='b'?cy-h:cy-h/2)};}
   function obsAt(stageIndex,gx,gyLocal){
     const arr=lvls[stageIndex]||[];
     for(let i=arr.length-1;i>=0;i--){const o=arr[i];
       if(o.kind==='text'){
-        const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,o.x,o.y,sz.w,sz.h);
+        const l=textLocal(o),sz=textLabelSize(ctx,o),bp=txBox(o.anchor,l.x,l.y,sz.w,sz.h);
         if(gx>=bp.x-8&&gx<=bp.x+sz.w+8&&gyLocal>=bp.y-8&&gyLocal<=bp.y+sz.h+8)return i;
       } else {
         if(Math.abs(gx-o.x)<=o.w/2+8&&Math.abs(gyLocal-o.y)<=o.h/2+8)return i;
@@ -694,7 +706,7 @@ const LE=(function(){
     }
     if(mode==='drag'){
       const idx=obsAt(si,g.x,localY);sel=idx>=0?idx:null;
-      if(idx>=0){drag=true;doff={x:g.x-lvls[si][idx].x,y:localY-lvls[si][idx].y};}
+      if(idx>=0){drag=true;const it=lvls[si][idx],l=it.kind==='text'?textLocal(it):it;doff={x:g.x-l.x,y:localY-l.y};}
       syncProps();draw();return;
     }
     const o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800};
@@ -706,7 +718,7 @@ const LE=(function(){
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;
     if(si!==cur)return;
-    lvls[cur][sel].x=Math.round(g.x-doff.x);lvls[cur][sel].y=Math.round(localY-doff.y);draw();
+    {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor),sq=activeSq();it.anchorOffsetX=Math.round(((nx-b.x)/sq)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/sq)*1000)/10;setTextLocalFromOffset(it);}else{it.x=nx;it.y=ny;}draw();}
   });
   cv.addEventListener('pointerup',()=>drag=false);cv.addEventListener('pointercancel',()=>drag=false);
 
@@ -781,7 +793,7 @@ const LE=(function(){
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){
-    const baseX=GW/2+o.x, baseY=rowOf(si)*GH+GH/2+o.y;
+    const l=textLocal(o),baseX=GW/2+l.x, baseY=rowOf(si)*GH+GH/2+l.y;
     ctx.save();
     ctx.setTransform(zoom,0,0,zoom,0,0);
     drawTextLabel(ctx,o,baseX,baseY);
@@ -872,7 +884,8 @@ const LE=(function(){
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';
   function newTextLabel(x,y){
-    return {kind:'text',coordMode:'center',x:x,y:y,
+    const sq=activeSq();
+    return {kind:'text',coordMode:'center',x:x,y:y,anchorOffsetX:Math.round((x/sq)*100),anchorOffsetY:Math.round((y/sq)*100),
       segments:[{t:'TAP TO ',color:'#ffffff'},{t:'PLAY',color:'#52e08a'}],
       baseColor:'#ffffff',accentColor:'#52e08a',
       font:'Baloo2',size:64,weight:800,anchor:'cc',stroke:'#000000',strokeW:0,shadow:true,letterSpacing:0};
@@ -893,6 +906,8 @@ const LE=(function(){
     if(isText){
       $('tx-font').value=o.font||'Baloo2';$('tx-size').value=o.size||64;$('tx-weight').value=String(o.weight||800);
       $('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;
+      if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=anchorBaseLocal(o.anchor),sq=activeSq();o.anchorOffsetX=Math.round(((l.x-b.x)/sq)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/sq)*1000)/10;}
+      $('tx-offx').value=o.anchorOffsetX||0;$('tx-offy').value=o.anchorOffsetY||0;
       txBase=o.baseColor||(o.segments[0]&&o.segments[0].color)||'#ffffff';
       txAccent=o.accentColor||o.segments.map(s=>s.color).find(c=>c&&c!==txBase)||'#52e08a';
       $('tx-base').value=txBase;$('tx-accent').value=txAccent;
@@ -919,7 +934,10 @@ const LE=(function(){
   $('tx-paint-base').addEventListener('mousedown',e=>e.preventDefault());
   $('tx-paint-acc').addEventListener('click',()=>paintRange($('tx-accent').value));
   $('tx-paint-base').addEventListener('click',()=>paintRange($('tx-base').value));
-  document.querySelectorAll('#tx-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='text')return;o.anchor=b.dataset.a;document.querySelectorAll('#tx-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
+  document.querySelectorAll('#tx-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='text')return;o.anchor=b.dataset.a;setTextLocalFromOffset(o);document.querySelectorAll('#tx-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
+  function bindTxOffset(id,field){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;o[field]=parseFloat(e.value)||0;setTextLocalFromOffset(o);draw();});}
+  bindTxOffset('tx-offx','anchorOffsetX');
+  bindTxOffset('tx-offy','anchorOffsetY');
   function bindTx(id,field,tf){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;o[field]=tf?tf(e.value):e.value;draw();});}
   bindTx('tx-font','font');
   bindTx('tx-size','size',v=>Math.max(1,parseFloat(v)||1));

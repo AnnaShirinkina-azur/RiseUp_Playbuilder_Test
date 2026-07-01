@@ -12,6 +12,15 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
+function activeSq(){return Math.min(CW,CH);}
+function anchorBaseLocal(anchor){
+  var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),sq=activeSq();
+  return {x:ah==='l'?-sq/2:(ah==='r'?sq/2:0),y:av==='t'?-sq/2:(av==='b'?sq/2:0)};
+}
+function textLocal(L){
+  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
+  return {x:(L&&L.x)||0,y:(L&&L.y)||0};
+}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS={
@@ -140,7 +149,7 @@ class Stage{
       ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
     }
     this.obs.forEach(o=>o.draw(ctx,top));
-    for(let i=0;i<this.labels.length;i++){const L=this.labels[i];drawTextLabel(ctx,L,CW/2+(L.x||0),top+CH/2+(L.y||0));}
+    for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
   hit(px,py,pr,top){for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
 }
