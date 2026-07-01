@@ -330,10 +330,10 @@ class Game{
     const sh=['rect','circle','triangle'];
     this.stages=[];
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
-    // levelData: array[stageCount] of obs-config arrays from level editor
+    // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
     const ld=c.levelData;
     const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
-    const stageCount=requestedCount;
+    const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
     for(let si=0;si<stageCount;si++){
       let obs=[],labels=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
@@ -344,7 +344,8 @@ class Game{
           obs.push(ob);
         });
       } else {
-        const n=2+si;
+        const isFixedEdge=(si===0||si===stageCount-1);
+        const n=isFixedEdge?0:2+Math.max(0,si-1);
         for(let oi=0;oi<n;oi++){
           const ob=new Obs({
             coordMode:'center',x:-115+(oi%2)*230,y:-CH/2+160+Math.floor(oi/2)*200+si*15,
@@ -642,7 +643,7 @@ class Game{
     for(const st of this.stages){
       if(st.done)continue;
       const bg=this._spr('background_stage'+st.idx);
-      if(imgOk(bg)){const t=(this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[st.idx])||this.cfg.backgroundSpriteColor;this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,t);}
+      if(imgOk(bg)){const t=st.idx===0?this.cfg.backgroundStartColor:(st.idx===this.stages.length-1?this.cfg.backgroundFinishColor:((this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[st.idx-1])||this.cfg.backgroundSpriteColor));this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,t);}
     }
   }
 

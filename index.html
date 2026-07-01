@@ -513,9 +513,9 @@ function renderStageAssetRows(){
         <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="${tintId}" value="#ffffff" style="width:28px;height:24px;" oninput="window.RiseLevelEditor&&RiseLevelEditor.draw()" onchange="window.RiseLevelEditor&&RiseLevelEditor.draw()"></label>
       </div></div>`;
     }
-    h+=bgRow('background_start','Start scene','cfg-bgStartColor');
-    for(let i=0;i<n;i++)h+=bgRow('background_stage'+i,'Mini '+(i+1),'cfg-bgStageColor'+i);
-    h+=bgRow('background_finish','Finish scene','cfg-bgFinishColor');
+    h+=bgRow('background_stage0','Start scene','cfg-bgStartColor');
+    for(let i=0;i<n;i++)h+=bgRow('background_stage'+(i+1),'Mini '+(i+1),'cfg-bgStageColor'+i);
+    h+=bgRow('background_stage'+(n+1),'Finish scene','cfg-bgFinishColor');
     bgTargets.forEach(el=>el.innerHTML=h);
   }
   const st=$('stg-sprs');
@@ -682,7 +682,7 @@ const LE=(function(){
   // horizontal bands in landscape. Purely a visual guide — placement is not restricted.
   const ACTIVE_W=1020,ACTIVE_H=1020;
   let customShapeImageSrc=null,customShapeSvgPoints=null;
-  const lvls=Array.from({length:NS},()=>[]);
+  const lvls=Array.from({length:NS+2},()=>[]);
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
 
   const imageCache=new Map();
@@ -698,9 +698,10 @@ const LE=(function(){
   function setStageCount(n){
     n=syncStageInputs(n);
     NS=n;
-    while(lvls.length<n)lvls.push([]);
-    if(lvls.length>n)lvls.length=n;
-    if(cur>=n)cur=n-1;
+    const total=n+2;
+    while(lvls.length<total)lvls.push([]);
+    if(lvls.length>total)lvls.length=total;
+    if(cur>=total)cur=total-1;
     renderStageAssetRows();
     updateBackgroundModeUI();
     sel=null;resize(true);
@@ -771,7 +772,7 @@ const LE=(function(){
   });
   $('et-sel').addEventListener('click',()=>{mode='drag';$('et-sel').classList.add('on');$('et-text').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-del').addEventListener('click',()=>{if(sel===null)return;const s=lvls[cur];s.splice(sel,1);sel=null;syncProps();draw();});
-  $('et-clr').addEventListener('click',()=>{if(!confirm('Clear mini-level '+(cur+1)+'?'))return;lvls[cur]=[];sel=null;syncProps();draw();});
+  $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=[];sel=null;syncProps();draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
   $('le-stage-count')?.addEventListener('input',e=>setStageCount(e.target.value));
   $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
@@ -794,7 +795,7 @@ const LE=(function(){
     GW=currentOrientation==='landscape'?844:390;
     GH=currentOrientation==='landscape'?390:844;
     cv.width=Math.max(1,Math.round(GW*zoom));
-    cv.height=Math.max(1,Math.round(GH*NS*zoom));
+    cv.height=Math.max(1,Math.round(GH*(NS+2)*zoom));
     cv.style.width=cv.width+'px';cv.style.height=cv.height+'px';
     draw();
     if(!keepScroll){wrap.scrollTop=Math.max(0,rowOf(cur)*GH*zoom-40);wrap.scrollLeft=Math.max(0,(cv.width-wrap.clientWidth)/2);}else{wrap.scrollTop=oldTop;wrap.scrollLeft=(cv.width>wrap.clientWidth)?oldLeft:0;}
@@ -804,10 +805,12 @@ const LE=(function(){
   // stages stack upward (matches Rise: you start low and climb). rowOf maps a
   // stage index to its visual row (0 = top of the strip). Data order, exported
   // levelData and background_stage{i} keys are unchanged — this is layout only.
-  function rowOf(si){return NS-1-si;}
-  function stageOf(row){return NS-1-row;}
-  function rowFromGlobalY(globalY){return Math.max(0,Math.min(NS-1,Math.floor(globalY/GH)));}
+  function totalStages(){return NS+2;}
+  function rowOf(si){return totalStages()-1-si;}
+  function stageOf(row){return totalStages()-1-row;}
+  function rowFromGlobalY(globalY){return Math.max(0,Math.min(totalStages()-1,Math.floor(globalY/GH)));}
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
+  function stageLabel(si){return si===0?'Start scene':(si===NS+1?'Finish scene':'Mini-level '+si);}
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
   function activeSq(){return Math.min(GW,GH);}
   function anchorBaseLocal(anchor){
@@ -832,7 +835,7 @@ const LE=(function(){
     }
     return -1;
   }
-  function updateCurrentFromScroll(){const row=Math.max(0,Math.min(NS-1,Math.floor((wrap.scrollTop/zoom+GH*.45)/GH)));cur=stageOf(row);}
+  function updateCurrentFromScroll(){const row=Math.max(0,Math.min(totalStages()-1,Math.floor((wrap.scrollTop/zoom+GH*.45)/GH)));cur=stageOf(row);}
   wrap.addEventListener('scroll',()=>{const old=cur;updateCurrentFromScroll();if(old!==cur){sel=null;syncProps();draw();}});
 
   cv.addEventListener('pointerdown',e=>{
@@ -917,7 +920,8 @@ const LE=(function(){
     const im=getEditorImage(src);
     const bg=imageReady(im)?im:readyBgForStage(sm,si);
     const fade=Math.max(24,Math.min(110*zoom,h*.22));
-    return bg?drawCoverImageFade(bg,0,top-fade,w,h+fade*2,fade,($('cfg-bgStageColor'+si)?$('cfg-bgStageColor'+si).value:($('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff'))):false;
+    const tintEl=si===0?$('cfg-bgStartColor'):(si===NS+1?$('cfg-bgFinishColor'):$('cfg-bgStageColor'+(si-1)));
+    return bg?drawCoverImageFade(bg,0,top-fade,w,h+fade*2,fade,(tintEl?tintEl.value:(($('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff')))):false;
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){
@@ -991,7 +995,7 @@ const LE=(function(){
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     const accentsOn=$('cfg-stageAccents')?$('cfg-stageAccents').checked:true;
-    for(let si=0;si<NS;si++){
+    for(let si=0;si<totalStages();si++){
       const top=rowOf(si)*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
       if(accentsOn){const ce=$('cfg-stage'+(si%5));const sc=(ce&&ce.value)||palette[si%palette.length];ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);}
       drawBackgroundForStage(si,top,w,h,cv.height);
@@ -1001,12 +1005,12 @@ const LE=(function(){
       for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
       ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
       drawPassiveZone(top,w,h,midX,midY);
-      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText('Mini-level '+(si+1)+'   0;0',8,top+18);
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText(stageLabel(si)+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>{if(o&&o.kind==='text')drawTextItem(o,si,i);else drawObstacle(o,si,i);});
       drawActiveZone(top,w,h,midX,midY);
     }
-    ctx.fillStyle='rgba(82,224,138,.75)';ctx.font='12px monospace';ctx.textAlign='left';ctx.fillText('START SCENE',8,18);ctx.fillText('FINISH SCENE',8,cv.height-24);
-    let no=0,nt=0;lvls.forEach(s=>s.forEach(o=>{if(o&&o.kind==='text')nt++;else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText(NS+' mini-levels · '+no+' obstacles · '+nt+' text · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
+    
+    let no=0,nt=0;lvls.forEach(s=>s.forEach(o=>{if(o&&o.kind==='text')nt++;else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nt+' text · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
   function getLevelData(){return lvls.map(s=>s.map(o=>({...o,coordMode:'center'})));}
 
