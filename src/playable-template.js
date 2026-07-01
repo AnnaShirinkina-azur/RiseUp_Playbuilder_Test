@@ -36,7 +36,7 @@ var FONT_CSS={
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
-  var size=L.size||40,weight=L.weight||700;
+  var size=L.size||40,weight=800;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
