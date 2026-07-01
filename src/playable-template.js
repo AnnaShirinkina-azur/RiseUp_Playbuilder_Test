@@ -627,10 +627,9 @@ class Game{
     if(mode==='common'){
       const bg=this._spr('background')||this._nearestReadyBackground(0);
       if(imgOk(bg)){
-        const minY=Math.min(...this.stages.map(s=>s.worldY));
-        const maxY=Math.max(...this.stages.map(s=>s.worldY+s.H));
-        const totalH=Math.max(CH,maxY-minY);
-        this._drawCoverFade(ctx,bg,0,minY,CW,totalH,0,this.cfg.backgroundSpriteColor);
+        // One image is a single environment backdrop for the whole visible game field,
+        // not a per-mini-level tile attached to falling/recycled stages.
+        this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
       }
       return;
     }

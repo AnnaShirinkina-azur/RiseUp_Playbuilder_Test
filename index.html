@@ -271,18 +271,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="x-btn" onclick="clearSpr('background')">✕</button>
       </div></div>
       <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="color" id="cfg-bgSpriteColor" value="#ffffff"></div>
-      <div id="env-bg-per" class="sp-row"><div id="bg-sprs-visuals"></div></div>
-    </div>
-
-    <div class="pnl" id="panel-background-image" data-title="Background image" style="display:none">
-      <div class="sec">Background image</div>
-      <div class="sp-row"><div class="sp-up">
-        <div class="thumb" id="th-background-visuals">🖼️</div>
-        <label class="ul-btn">+ Common image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
-        <button class="x-btn" onclick="clearSpr('background')">✕</button>
-      </div></div>
-      <div class="sec">Background per Stage/Level</div>
-      <div id="bg-sprs-visuals"></div>
+      <div id="env-bg-per" class="sp-row"><div id="bg-sprs-visuals" style="width:100%;display:flex;flex-direction:column;gap:6px;"></div></div>
     </div>
 
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
@@ -495,12 +484,14 @@ function loadSpr(key,inp){
   r.onload=e=>{
     RiseBuilder.setSprite(key,e.target.result);
     document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>th.innerHTML=`<img src="${e.target.result}">`);
+    if(window.RiseLevelEditor)RiseLevelEditor.draw();
   };
   r.readAsDataURL(f);
 }
 function clearSpr(key){
   RiseBuilder.setSprite(key,null);
   document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'🎈':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
+  if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 function getStageCount(){
   const e=$('cfg-stageCount');
@@ -519,7 +510,7 @@ function renderStageAssetRows(){
         <span style="font-size:12px;color:var(--dim);min-width:48px;">Mini ${i+1}</span>
         <label class="ul-btn" style="font-size:11px;">+ Img<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
         <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
-        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="cfg-bgStageColor${i}" value="#ffffff" style="width:28px;height:24px;"></label>
+        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="cfg-bgStageColor${i}" value="#ffffff" style="width:28px;height:24px;" oninput="window.RiseLevelEditor&&RiseLevelEditor.draw()" onchange="window.RiseLevelEditor&&RiseLevelEditor.draw()"></label>
       </div></div>`;
     }
     bgTargets.forEach(el=>el.innerHTML=h);
@@ -546,7 +537,8 @@ function updateBackgroundModeUI(){
   const commonIds=['le-bg-common','env-bg-common','env-bg-common-tint'];
   const perIds=['le-bg-per','env-bg-per'];
   commonIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'flex':'none';});
-  perIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'none':'flex';});
+  perIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'none':(id==='env-bg-per'?'block':'flex');});
+  renderStageAssetRows();
 }
 $('cfg-bgMode')?.addEventListener('change',()=>{updateBackgroundModeUI(); if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
@@ -663,7 +655,7 @@ const DEFS={
   'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0','cfg-obstacleSpriteColor':'#ffffff',
   'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642','cfg-bgSpriteColor':'#ffffff',
   'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
-  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont'
+  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-bgMode':'perStage','cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont'
 };
 $('btn-reset').addEventListener('click',()=>{
   Object.entries(DEFS).forEach(([id,v])=>{const e=$(id);if(!e)return;if(e.type==='checkbox'){e.checked=!!v;e.dispatchEvent(new Event('change'));}else{e.value=v;e.dispatchEvent(new Event('input'));}});
