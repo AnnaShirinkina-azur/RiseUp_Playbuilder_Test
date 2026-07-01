@@ -26,7 +26,6 @@ function readConfig(){
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:g('cfg-bgMode')||'perStage',
-    labels:(W.RiseLabels?W.RiseLabels.getLabels():[]),
     levelData,
   };
 }

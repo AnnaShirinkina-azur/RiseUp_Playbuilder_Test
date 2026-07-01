@@ -13,7 +13,7 @@ function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
 
-// ── Text labels (draw routine must match index.html editor) ──────────────────
+// ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS={
   'Baloo2':"'Baloo2',sans-serif",
   'Kameron':"'Kameron',serif",
@@ -22,28 +22,29 @@ var FONT_CSS={
   'serif':'Georgia,"Times New Roman",serif',
   'mono':'ui-monospace,Menlo,Consolas,monospace'
 };
-function labelAnchor(a,cw,ch){a=a||'cc';var v=a.charAt(0),h=a.charAt(1);return{v:v,h:h,ax:h==='l'?0:(h==='r'?cw:cw/2),ay:v==='t'?0:(v==='b'?ch:ch/2)};}
-function drawLabel(ctx,L,cw,ch){
-  if(L.enabled===false)return;
-  var text=(L.text==null?'':String(L.text));if(!text)return;
+// Draw a text label centered on (cx,cy). Text is a list of segments {t,color};
+// each segment keeps its own solid color. Newlines split lines.
+function drawTextLabel(ctx,L,cx,cy){
+  var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
-  var size=L.size||40,weight=L.weight||700,lines=text.split('\n'),lh=size*1.18;
-  var A=labelAnchor(L.anchor,cw,ch),px=A.ax+(L.x||0),py=A.ay+(L.y||0);
+  var size=L.size||40,weight=L.weight||700,align=L.align||'center';
+  var lines=[[]],s,p,col,parts;
+  for(s=0;s<segs.length;s++){
+    col=segs[s].color||'#ffffff';parts=String(segs[s].t==null?'':segs[s].t).split('\n');
+    for(p=0;p<parts.length;p++){if(p>0)lines.push([]);if(parts[p]!=='')lines[lines.length-1].push({t:parts[p],color:col});}
+  }
+  var lh=size*1.18;
   ctx.save();
-  ctx.font=weight+' '+size+'px '+fam;ctx.textAlign=L.align||'center';ctx.textBaseline='alphabetic';
+  ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
   try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
-  var totalH=lh*lines.length,ascent=size*0.80;
-  var firstBase=A.v==='t'?(py+ascent):(A.v==='b'?(py-totalH+ascent):(py-totalH/2+ascent));
-  var cols=(L.colors&&L.colors.length)?L.colors:['#ffffff'];
-  for(var i=0;i<lines.length;i++){
-    var line=lines[i],by=firstBase+i*lh,fill;
-    if(cols.length<=1){fill=cols[0]||'#ffffff';}
-    else{var w=ctx.measureText(line).width||1,x0,x1,al=ctx.textAlign;
-      if(al==='left'){x0=px;x1=px+w;}else if(al==='right'){x0=px-w;x1=px;}else{x0=px-w/2;x1=px+w/2;}
-      var g=ctx.createLinearGradient(x0,0,x1,0);for(var c=0;c<cols.length;c++)g.addColorStop(c/(cols.length-1),cols[c]);fill=g;}
-    if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;ctx.fillStyle=(cols[0]||'#000');ctx.fillText(line,px,by);ctx.restore();}
-    if(L.strokeW&&L.strokeW>0){ctx.lineWidth=L.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';ctx.strokeText(line,px,by);}
-    ctx.fillStyle=fill;ctx.fillText(line,px,by);
+  var totalH=lh*lines.length,ascent=size*0.80,firstBase=cy-totalH/2+ascent,li,r,runs,by,lineW,sx,xx;
+  for(li=0;li<lines.length;li++){
+    runs=lines[li];by=firstBase+li*lh;lineW=0;
+    for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;
+    sx=align==='left'?cx:(align==='right'?cx-lineW:cx-lineW/2);
+    if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}ctx.restore();}
+    if(L.strokeW&&L.strokeW>0){ctx.lineWidth=L.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
+    xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}
   }
   ctx.restore();
 }
@@ -122,7 +123,7 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color){this.idx=idx;this.obs=obs;this.color=color;this.H=CH+6;this.worldY=idx*this.H;}
+  constructor(idx,obs,color,labels){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.H=CH+6;this.worldY=idx*this.H;}
   reset(){this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.worldY=worldY;this.reset();}
   update(dt,fallSpeed=0,gravityModifier=1){
@@ -138,6 +139,7 @@ class Stage{
       ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
     }
     this.obs.forEach(o=>o.draw(ctx,top));
+    for(let i=0;i<this.labels.length;i++){const L=this.labels[i];drawTextLabel(ctx,L,CW/2+(L.x||0),top+CH/2+(L.y||0));}
   }
   hit(px,py,pr,top){for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
 }
@@ -301,12 +303,13 @@ class Game{
     const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
     const stageCount=hasLD?Math.max(requestedCount,ld.length):requestedCount;
     for(let si=0;si<stageCount;si++){
-      let obs=[];
+      let obs=[],labels=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
-        obs=ld[si].map(o=>{
+        ld[si].forEach(o=>{
+          if(o&&o.kind==='text'){labels.push(o);return;}
           const ob=new Obs({...o,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
-          return ob;
+          obs.push(ob);
         });
       } else {
         const n=2+si;
@@ -321,7 +324,7 @@ class Game{
           obs.push(ob);
         }
       }
-      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length]));
+      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels));
     }
   }
 
@@ -622,12 +625,6 @@ class Game{
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
-    this._drawLabels(ctx);
-  }
-
-  _drawLabels(ctx){
-    const list=this.cfg.labels;if(!list||!list.length)return;
-    for(let i=0;i<list.length;i++)drawLabel(ctx,list[i],CW,CH);
   }
 
   _drawDots(ctx){
@@ -696,7 +693,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',labels:[],
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
   levelData:null,
 };
 
