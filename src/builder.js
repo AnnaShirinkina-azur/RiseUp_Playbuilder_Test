@@ -16,15 +16,17 @@ function readConfig(){
   }
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||5,
-    obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime'),
-    tutorialDisplayTime:g('cfg-tutorialTime'),
+    obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
+    tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),
     obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
+    stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:g('cfg-bgMode')||'perStage',
+    labels:(W.RiseLabels?W.RiseLabels.getLabels():[]),
     levelData,
   };
 }
@@ -61,6 +63,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   const ff=[
     assetMap['fonts/Baloo2-Bold.ttf']?`@font-face{font-family:'Baloo2';font-weight:700;src:url('${assetMap['fonts/Baloo2-Bold.ttf']}')}`:'',
     assetMap['fonts/Kameron-SemiBold.ttf']?`@font-face{font-family:'Kameron';font-weight:600;src:url('${assetMap['fonts/Kameron-SemiBold.ttf']}')}`:'',
+    assetMap['fonts/LiberationSans.ttf']?`@font-face{font-family:'LiberationSans';src:url('${assetMap['fonts/LiberationSans.ttf']}')}`:'',
   ].filter(Boolean).join('\n');
 
   const aLines=Object.entries(assetMap).filter(([,v])=>v)
@@ -112,11 +115,16 @@ var cfg=${JSON.stringify(cfg)};
   var keys=Object.keys(sp);
   function boot(){
     if(loader)loader.style.display='none';
-    RisePlayable.init(root,cfg,imgs,{
-      onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
-      onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
-      onLose:function(){},onStageChange:function(){}
-    });
+    var go=function(){
+      RisePlayable.init(root,cfg,imgs,{
+        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
+        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
+        onLose:function(){},onStageChange:function(){}
+      });
+    };
+    if(document.fonts&&document.fonts.load){
+      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")]).then(go).catch(go);
+    }else{go();}
   }
   function loadImage(k){
     return new Promise(function(resolve){

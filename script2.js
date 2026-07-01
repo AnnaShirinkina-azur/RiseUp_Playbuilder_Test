@@ -241,7 +241,7 @@ const LE=(function(){
     document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
     $('et-custom').classList.add('on');$('et-sel').classList.remove('on');$('shape-modal').classList.remove('on');
   });
-  $('et-sel').addEventListener('click',()=>{mode='select';$('et-sel').classList.add('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
+  $('et-sel').addEventListener('click',()=>{mode='drag';$('et-sel').classList.add('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-del').addEventListener('click',()=>{if(sel===null)return;const s=lvls[cur];s.splice(sel,1);sel=null;draw();});
   $('et-clr').addEventListener('click',()=>{if(!confirm('Clear mini-level '+(cur+1)+'?'))return;lvls[cur]=[];sel=null;draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
@@ -289,7 +289,7 @@ const LE=(function(){
   cv.addEventListener('pointerdown',e=>{
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;cur=si;
-    if(mode==='select'){
+    if(mode==='drag'){
       const idx=obsAt(si,g.x,localY);sel=idx>=0?idx:null;
       if(idx>=0){drag=true;doff={x:g.x-lvls[si][idx].x,y:localY-lvls[si][idx].y};const o=lvls[si][idx];$('ow').value=o.w;$('oh').value=o.h;$('oc').value=o.color||'#e05252';$('om').value=o.moveX||0;}
       draw();return;
@@ -426,10 +426,10 @@ const LE=(function(){
     if(!cv.width||!cv.height)return;
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
+    const accentsOn=$('cfg-stageAccents')?$('cfg-stageAccents').checked:true;
     for(let si=0;si<NS;si++){
       const top=rowOf(si)*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
-      const sc=palette[si%palette.length];
-      ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);
+      if(accentsOn){const ce=$('cfg-stage'+(si%5));const sc=(ce&&ce.value)||palette[si%palette.length];ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);}
       drawBackgroundForStage(si,top,w,h,cv.height);
       ctx.strokeStyle=si===cur?'rgba(255,255,255,.55)':'rgba(255,255,255,.22)';ctx.lineWidth=si===cur?2:1;ctx.strokeRect(.5,top+.5,w-1,h-1);
       ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;

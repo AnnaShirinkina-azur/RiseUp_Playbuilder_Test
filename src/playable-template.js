@@ -13,6 +13,41 @@ function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
 
+// ── Text labels (draw routine must match index.html editor) ──────────────────
+var FONT_CSS={
+  'Baloo2':"'Baloo2',sans-serif",
+  'Kameron':"'Kameron',serif",
+  'LiberationSans':"'LiberationSans',Arial,sans-serif",
+  'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
+  'serif':'Georgia,"Times New Roman",serif',
+  'mono':'ui-monospace,Menlo,Consolas,monospace'
+};
+function labelAnchor(a,cw,ch){a=a||'cc';var v=a.charAt(0),h=a.charAt(1);return{v:v,h:h,ax:h==='l'?0:(h==='r'?cw:cw/2),ay:v==='t'?0:(v==='b'?ch:ch/2)};}
+function drawLabel(ctx,L,cw,ch){
+  if(L.enabled===false)return;
+  var text=(L.text==null?'':String(L.text));if(!text)return;
+  var fam=(FONT_CSS[L.font]||L.font||'sans-serif');
+  var size=L.size||40,weight=L.weight||700,lines=text.split('\n'),lh=size*1.18;
+  var A=labelAnchor(L.anchor,cw,ch),px=A.ax+(L.x||0),py=A.ay+(L.y||0);
+  ctx.save();
+  ctx.font=weight+' '+size+'px '+fam;ctx.textAlign=L.align||'center';ctx.textBaseline='alphabetic';
+  try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
+  var totalH=lh*lines.length,ascent=size*0.80;
+  var firstBase=A.v==='t'?(py+ascent):(A.v==='b'?(py-totalH+ascent):(py-totalH/2+ascent));
+  var cols=(L.colors&&L.colors.length)?L.colors:['#ffffff'];
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i],by=firstBase+i*lh,fill;
+    if(cols.length<=1){fill=cols[0]||'#ffffff';}
+    else{var w=ctx.measureText(line).width||1,x0,x1,al=ctx.textAlign;
+      if(al==='left'){x0=px;x1=px+w;}else if(al==='right'){x0=px-w;x1=px;}else{x0=px-w/2;x1=px+w/2;}
+      var g=ctx.createLinearGradient(x0,0,x1,0);for(var c=0;c<cols.length;c++)g.addColorStop(c/(cols.length-1),cols[c]);fill=g;}
+    if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;ctx.fillStyle=(cols[0]||'#000');ctx.fillText(line,px,by);ctx.restore();}
+    if(L.strokeW&&L.strokeW>0){ctx.lineWidth=L.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';ctx.strokeText(line,px,by);}
+    ctx.fillStyle=fill;ctx.fillText(line,px,by);
+  }
+  ctx.restore();
+}
+
 //── Particles ────────────────────────────────────────────────────────────────
 class FX{
   constructor(){this.p=[];}
@@ -97,9 +132,11 @@ class Stage{
     this.obs.forEach(o=>o.update(dt,gravityModifier));
   }
   draw(ctx,top){
-    const g=ctx.createLinearGradient(0,top,0,top+this.H);
-    g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
+    if(this.color){
+      const g=ctx.createLinearGradient(0,top,0,top+this.H);
+      g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
+    }
     this.obs.forEach(o=>o.draw(ctx,top));
   }
   hit(px,py,pr,top){for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
@@ -284,7 +321,7 @@ class Game{
           obs.push(ob);
         }
       }
-      this.stages.push(new Stage(si,obs,sc[si%sc.length]));
+      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length]));
     }
   }
 
@@ -585,12 +622,19 @@ class Game{
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
+    this._drawLabels(ctx);
+  }
+
+  _drawLabels(ctx){
+    const list=this.cfg.labels;if(!list||!list.length)return;
+    for(let i=0;i<list.length;i++)drawLabel(ctx,list[i],CW,CH);
   }
 
   _drawDots(ctx){
     const n=this.stages.length,r=5,gap=12,sc=this.cfg.stageColors||['#e05252'];
+    const accents=this.cfg.stageAccents!==false;
     let x=(CW-n*(r*2)-(n-1)*gap)/2,y=CH-22;
-    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(x+r,y,r,0,Math.PI*2);ctx.fillStyle=i===this.si?sc[i%sc.length]:rgba('#fff',.2);ctx.fill();x+=r*2+gap;}
+    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(x+r,y,r,0,Math.PI*2);ctx.fillStyle=i===this.si?(accents?sc[i%sc.length]:rgba('#fff',.55)):rgba('#fff',.2);ctx.fill();x+=r*2+gap;}
   }
 
   _drawTut(ctx){
@@ -652,7 +696,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageCount:5,orientation:'portrait',backgroundMode:'perStage',
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',labels:[],
   levelData:null,
 };
 
