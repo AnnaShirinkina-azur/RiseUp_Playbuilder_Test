@@ -21,13 +21,15 @@ function readConfig(){
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),obstacleSpriteColor:g('cfg-obstacleSpriteColor'),
-    bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),
+    bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),backgroundSpriteColor:g('cfg-bgSpriteColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:g('cfg-bgMode')||'perStage',
     googleFontUrl:g('cfg-googleFontUrl')||'',
     googleFontFamily:g('cfg-googleFontFamily')||'',
+    localFontFamily:g('cfg-localFontFamily')||'CustomFont',
+    backgroundStageColors:Array.from({length:g('cfg-stageCount')||5},(_,i)=>g('cfg-bgStageColor'+i)||'#ffffff'),
     levelData,
   };
 }
@@ -69,10 +71,14 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);
   const googleFontFamilyCss=googleFamily?fontCssFamily(googleFamily):'';
   const googleFontJs=googleFamily?('RiseFontCSS['+JSON.stringify(googleFamily)+']='+JSON.stringify(googleFontFamilyCss)+';') : '';
+  const localFamily=(cfg.localFontFamily||'CustomFont').trim();
+  const localFontCss=(sprMap.custom_font&&localFamily)?fontCssFamily(localFamily):'';
+  const localFontJs=localFontCss?('RiseFontCSS['+JSON.stringify(localFamily)+']='+JSON.stringify(localFontCss)+';') : '';
   const ff=[
     assetMap['fonts/Baloo2-Bold.ttf']?`@font-face{font-family:'Baloo2';font-weight:700;src:url('${assetMap['fonts/Baloo2-Bold.ttf']}')}`:'',
     assetMap['fonts/Kameron-SemiBold.ttf']?`@font-face{font-family:'Kameron';font-weight:600;src:url('${assetMap['fonts/Kameron-SemiBold.ttf']}')}`:'',
     assetMap['fonts/LiberationSans.ttf']?`@font-face{font-family:'LiberationSans';src:url('${assetMap['fonts/LiberationSans.ttf']}')}`:'',
+    localFontCss?`@font-face{font-family:'${localFamily.replace(/'/g,'')}';src:url('${sprMap.custom_font}')}`:'',
   ].filter(Boolean).join('\n');
 
   const aLines=Object.entries(assetMap).filter(([,v])=>v)
@@ -108,6 +114,7 @@ html,body{width:100%;height:100%;background:${JSON.stringify(cfg.bgColor||'#0d0d
 <script>
 ${gameSrc}
 ${googleFontJs}
+${localFontJs}
 var a={};${aLines}
 var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
@@ -134,7 +141,7 @@ var cfg=${JSON.stringify(cfg)};
       });
     };
     if(document.fonts&&document.fonts.load){
-      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}]).then(go).catch(go);
+      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(go).catch(go);
     }else{go();}
   }
   function loadImage(k){

@@ -90,9 +90,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .rtab:hover{color:var(--txt);}
 .rtab.on{color:var(--acc);border-bottom-color:var(--acc);}
 /* preview */
-.prev-pane{flex:1;background:#080810;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px 22px 22px;gap:14px;overflow:auto;}
+.prev-pane{flex:1;background:#080810;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:14px 22px 18px;gap:10px;overflow:hidden;min-height:0;}
 .preview-top{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;position:sticky;top:0;z-index:2;padding:2px 0 8px;background:linear-gradient(#080810 75%,rgba(8,8,16,0));}
-.phone{width:336px;height:728px;border-radius:32px;overflow:hidden;border:1.5px solid var(--brd);box-shadow:0 24px 50px rgba(0,0,0,.6);position:relative;background:#0d0d14;flex-shrink:0;}
+.phone{width:min(336px,calc((100vh - 176px)*390/844));height:min(728px,calc(100vh - 176px));border-radius:32px;overflow:hidden;border:1.5px solid var(--brd);box-shadow:0 24px 50px rgba(0,0,0,.6);position:relative;background:#0d0d14;flex-shrink:0;}
 .phone iframe{width:390px;height:844px;transform:scale(.8616);transform-origin:top left;border:none;pointer-events:none;}
 .phone.landscape{width:728px;height:336px;border-radius:26px;}
 .phone.landscape iframe{width:844px;height:390px;transform:scale(.8616);}
@@ -181,8 +181,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="tab" data-panel="shield">Shield</button>
         <button class="tab" data-panel="obstacles-visual">Obstacles</button>
         <button class="tab" data-panel="environment">Environment</button>
-        <button class="tab" data-panel="background-image">Background image</button>
-        <button class="tab" data-panel="stage-accents">Stage accents</button>
+        <button class="tab" data-panel="stage-accents">Stage debug colors</button>
         <button class="tab" data-panel="text-fonts">Text / fonts</button>
       </div>
     </div>
@@ -264,9 +263,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
       <div class="row"><label>Grid</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
       <div class="row"><label>Particles</label><input type="color" id="cfg-particleColor" value="#f5e642"></div>
+      <div class="sec">Background images</div>
+      <div class="row wide"><label>Image mode<small>One image = одна картинка на всю ленту. Each mini-level = отдельная картинка на каждый мини-уровень.</small></label><select id="cfg-bgMode" style="width:170px;background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:var(--r2);padding:6px 8px;font-size:13px;"><option value="common">One image</option><option value="perStage" selected>Each mini-level</option></select></div>
+      <div id="env-bg-common" class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-background-visuals">🖼️</div>
+        <label class="ul-btn">+ Background image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
+        <button class="x-btn" onclick="clearSpr('background')">✕</button>
+      </div></div>
+      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="color" id="cfg-bgSpriteColor" value="#ffffff"></div>
+      <div id="env-bg-per" class="sp-row"><div id="bg-sprs-visuals"></div></div>
     </div>
 
-    <div class="pnl" id="panel-background-image" data-title="Background image">
+    <div class="pnl" id="panel-background-image" data-title="Background image" style="display:none">
       <div class="sec">Background image</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-background-visuals">🖼️</div>
@@ -277,8 +285,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div id="bg-sprs-visuals"></div>
     </div>
 
-    <div class="pnl" id="panel-stage-accents" data-title="Stage accents">
-      <div class="sec">Stage accent colors · debug</div>
+    <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
+      <div class="sec">Stage debug colors</div>
       <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
       <div class="cgrid">
         <div class="cc"><input type="color" id="cfg-stage0" value="#e05252"><label>S1</label></div>
@@ -295,6 +303,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
       <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
       <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
+      <div class="sec">Local font</div>
+      <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><label class="ul-btn">+ Upload font from computer<input type="file" id="cfg-localFontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="display:none"></label><small id="cfg-localFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Поддерживаются ttf/otf/woff/woff2.</small></div>
     </div>
 
     <div class="bbar">
@@ -332,7 +343,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <div class="esep"></div>
         <button class="et on" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
         <div class="esep"></div>
-        <div class="mini">Background <select id="cfg-bgMode" style="background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:4px 6px;font-size:12px;"><option value="common">One image</option><option value="perStage" selected>Each mini-level</option></select></div><span class="level-note">One image = одна картинка на всю ленту. Each mini-level = отдельная картинка на каждый мини-уровень.</span>
       </div>
       <div class="level-bg-panel" id="le-bg-panel">
         <div class="level-bg-box" id="le-bg-common">
@@ -444,7 +454,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'
   const inspector=document.createElement('aside');
   inspector.className='inspector';
   inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
-  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-background-image','panel-stage-accents','panel-text-fonts'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-stage-accents','panel-text-fonts'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();
@@ -499,7 +509,7 @@ function getStageCount(){
 
 function renderStageAssetRows(){
   const n=getStageCount();
-  const bgTargets=[$('bg-sprs'),$('bg-sprs-visuals'),$('le-bg-stage-list')].filter(Boolean);
+  const bgTargets=[$('bg-sprs-visuals'),$('le-bg-stage-list')].filter(Boolean);
   if(bgTargets.length){
     let h='';
     for(let i=0;i<n;i++){
@@ -509,6 +519,7 @@ function renderStageAssetRows(){
         <span style="font-size:12px;color:var(--dim);min-width:48px;">Mini ${i+1}</span>
         <label class="ul-btn" style="font-size:11px;">+ Img<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
         <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
+        <label style="font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;">Tint <input type="color" id="cfg-bgStageColor${i}" value="#ffffff" style="width:28px;height:24px;"></label>
       </div></div>`;
     }
     bgTargets.forEach(el=>el.innerHTML=h);
@@ -532,13 +543,13 @@ renderStageAssetRows();
 function updateBackgroundModeUI(){
   const mode=($('cfg-bgMode')&&$('cfg-bgMode').value)||'perStage';
   const showCommon=mode==='common';
-  const commonIds=['le-bg-common'];
-  const perIds=['le-bg-per'];
+  const commonIds=['le-bg-common','env-bg-common','env-bg-common-tint'];
+  const perIds=['le-bg-per','env-bg-per'];
   commonIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'flex':'none';});
   perIds.forEach(id=>{const e=$(id);if(e)e.style.display=showCommon?'none':'flex';});
 }
 $('cfg-bgMode')?.addEventListener('change',()=>{updateBackgroundModeUI(); if(window.RiseLevelEditor)RiseLevelEditor.draw();});
-['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
 function googleFontFamilyFromUrl(url){
   url=String(url||'').trim();
@@ -586,6 +597,28 @@ function syncGoogleFontOption(){
 $('cfg-googleFontApply')?.addEventListener('click',syncGoogleFontOption);
 $('cfg-googleFontUrl')?.addEventListener('change',syncGoogleFontOption);
 $('cfg-googleFontFamily')?.addEventListener('change',syncGoogleFontOption);
+function syncLocalFontOption(dataUrl){
+  const famEl=$('cfg-localFontFamily'), st=$('cfg-localFontStatus'), sel=$('tx-font');
+  const fam=(famEl&&famEl.value.trim())||'CustomFont';
+  if(sel && !Array.from(sel.options).some(o=>o.value===fam)){const opt=document.createElement('option');opt.value=fam;opt.textContent=fam+' (local)';sel.appendChild(opt);}
+  FONT_CSS[fam]=fontCssFamily(fam);
+  if(dataUrl){
+    let style=$('local-font-style');
+    if(!style){style=document.createElement('style');style.id='local-font-style';document.head.appendChild(style);}
+    style.textContent='@font-face{font-family:"'+fam.replace(/"/g,'')+'";src:url("'+dataUrl+'")}';
+    RiseBuilder.setSprite('custom_font',dataUrl);
+    if(st)st.textContent='Loaded: '+fam;
+    if(document.fonts)document.fonts.load('800 40px '+fontCssFamily(fam)).catch(()=>{});
+  }
+}
+$('cfg-localFontFile')?.addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const famEl=$('cfg-localFontFamily');
+  if(famEl && (!famEl.value || famEl.value==='CustomFont')) famEl.value=f.name.replace(/\.(ttf|otf|woff2?|font)$/i,'').replace(/[^a-zA-Z0-9 _-]/g,' ').trim()||'CustomFont';
+  const r=new FileReader();r.onload=ev=>syncLocalFontOption(ev.target.result);r.readAsDataURL(f);
+});
+$('cfg-localFontFamily')?.addEventListener('change',()=>syncLocalFontOption());
+
 
 updateBackgroundModeUI();
 
@@ -607,15 +640,18 @@ $('btn-dl').addEventListener('click',async()=>{
 
 // preview
 let iact=false;
+function syncInteractButton(){
+  $('phone').classList.toggle('iact',iact);
+  $('btn-iact').textContent=iact?'🖱 Interact':'🔒 Lock';
+  $('btn-iact').classList.toggle('on',iact);
+}
 $('btn-prev').addEventListener('click',async()=>{
   const b=$('btn-prev');b.disabled=true;b.textContent='⏳…';
   await RiseBuilder.buildPreview($('pif'),{assetsBase:'Assets',onProgress:setP,onError:showErr});
   hideP();b.disabled=false;b.textContent='▶ Update Preview';
 });
-$('btn-iact').addEventListener('click',()=>{
-  iact=!iact;$('phone').classList.toggle('iact',iact);
-  $('btn-iact').textContent=iact?'🔒 Lock':'🖱 Interact';
-});
+$('btn-iact').addEventListener('click',()=>{iact=!iact;syncInteractButton();});
+syncInteractButton();
 
 // reset
 const DEFS={
@@ -625,9 +661,9 @@ const DEFS={
   'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff',
   'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
   'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0','cfg-obstacleSpriteColor':'#ffffff',
-  'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642',
+  'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642','cfg-bgSpriteColor':'#ffffff',
   'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
-  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':''
+  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont'
 };
 $('btn-reset').addEventListener('click',()=>{
   Object.entries(DEFS).forEach(([id,v])=>{const e=$(id);if(!e)return;if(e.type==='checkbox'){e.checked=!!v;e.dispatchEvent(new Event('change'));}else{e.value=v;e.dispatchEvent(new Event('input'));}});
@@ -837,7 +873,7 @@ const LE=(function(){
     ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
     return true;
   }
-  function drawCoverImageFade(im,x,y,w,h,fade){
+  function drawCoverImageFade(im,x,y,w,h,fade,tint){
     if(!imageReady(im))return false;
     const off=document.createElement('canvas');
     off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
@@ -845,6 +881,9 @@ const LE=(function(){
     const sc=Math.max(w/im.naturalWidth,h/im.naturalHeight);
     const dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;
     oc.drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);
+    if(tint&&String(tint).toLowerCase()!=='#ffffff'){
+      oc.globalCompositeOperation='source-atop';oc.fillStyle=tint;oc.globalAlpha=.45;oc.fillRect(0,0,w,h);oc.globalAlpha=1;oc.globalCompositeOperation='source-over';
+    }
     if(fade>0){
       const f=Math.min(fade,h/2);
       const g=oc.createLinearGradient(0,0,0,h);
@@ -887,7 +926,7 @@ const LE=(function(){
       if(bg){
         const sc=Math.max(w/bg.naturalWidth,totalH/bg.naturalHeight);
         const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-        ctx.drawImage(bg,(w-dw)/2,(totalH-dh)/2,dw,dh);
+        drawCoverImageFade(bg,0,0,w,totalH,0,$('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff');
         return true;
       }
       return false;
@@ -896,7 +935,7 @@ const LE=(function(){
     const im=getEditorImage(src);
     const bg=imageReady(im)?im:readyBgForStage(sm,si);
     const fade=Math.max(24,Math.min(110*zoom,h*.22));
-    return bg?drawCoverImageFade(bg,0,top-fade,w,h+fade*2,fade):false;
+    return bg?drawCoverImageFade(bg,0,top-fade,w,h+fade*2,fade,($('cfg-bgStageColor'+si)?$('cfg-bgStageColor'+si).value:($('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff'))):false;
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){

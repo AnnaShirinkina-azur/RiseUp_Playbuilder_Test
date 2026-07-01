@@ -577,7 +577,7 @@ class Game{
     return true;
   }
 
-  _drawCoverFade(ctx,bg,x,y,w,h,fade){
+  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint){
     if(!imgOk(bg))return false;
     const off=document.createElement('canvas');
     off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
@@ -585,6 +585,14 @@ class Game{
     const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
     const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
     oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
+    if(tint&&String(tint).toLowerCase()!=='#ffffff'){
+      oc.globalCompositeOperation='source-atop';
+      oc.fillStyle=tint;
+      oc.globalAlpha=.45;
+      oc.fillRect(0,0,w,h);
+      oc.globalAlpha=1;
+      oc.globalCompositeOperation='source-over';
+    }
     if(fade>0){
       const f=Math.min(fade,h/2);
       const g=oc.createLinearGradient(0,0,0,h);
@@ -622,16 +630,14 @@ class Game{
         const minY=Math.min(...this.stages.map(s=>s.worldY));
         const maxY=Math.max(...this.stages.map(s=>s.worldY+s.H));
         const totalH=Math.max(CH,maxY-minY);
-        const sc=Math.max(CW/bg.naturalWidth,totalH/bg.naturalHeight);
-        const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-        ctx.drawImage(bg,(CW-dw)/2,minY+(totalH-dh)/2,dw,dh);
+        this._drawCoverFade(ctx,bg,0,minY,CW,totalH,0,this.cfg.backgroundSpriteColor);
       }
       return;
     }
     const fade=Math.max(60,Math.min(150,CH*.18));
     for(const st of this.stages){
       const bg=this._nearestReadyBackground(st.idx);
-      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade);
+      if(imgOk(bg)){const t=(this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[st.idx])||this.cfg.backgroundSpriteColor;this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,t);}
     }
   }
 
@@ -721,7 +727,7 @@ const DEF={
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',
+  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',backgroundStageColors:[],
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
   levelData:null,
 };
