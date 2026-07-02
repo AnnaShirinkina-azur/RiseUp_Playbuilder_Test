@@ -419,6 +419,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="et" id="et-text">🅣 Text</button>
         <div class="esep"></div>
         <button class="et" id="et-sel">✥ Drag</button>
+        <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
         <button class="et" id="et-del">🗑 Del</button>
         <div class="esep"></div>
         <span id="obs-props" style="display:flex;align-items:center;gap:6px;">
@@ -766,7 +767,7 @@ const LE=(function(){
   let NS=getStageCount();
   let GW=390,GH=844;
   let zoom=parseFloat($('le-zoom')?.value)||0.55;
-  let cur=0,sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0};
+  let cur=0,sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0},scaleRef=null;
   let showZones=true;
   // Active zone = central square the level should fit into (design units, square).
   // Passive zone = the screen extension around it: vertical bands in portrait,
@@ -830,7 +831,7 @@ const LE=(function(){
   document.querySelectorAll('.et[data-shape]').forEach(b=>{
     b.addEventListener('click',()=>{
       document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on');shape=b.dataset.shape;mode='add';$('et-sel').classList.remove('on');$('et-text').classList.remove('on');
+      b.classList.add('on');shape=b.dataset.shape;mode='add';$('et-sel').classList.remove('on');$('et-text').classList.remove('on');$('et-scale').classList.remove('on');
     });
   });
   $('et-custom').addEventListener('click',()=>{$('shape-modal').classList.add('on');});
@@ -861,7 +862,8 @@ const LE=(function(){
     document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
     $('et-custom').classList.add('on');$('et-sel').classList.remove('on');$('shape-modal').classList.remove('on');
   });
-  $('et-sel').addEventListener('click',()=>{mode='drag';$('et-sel').classList.add('on');$('et-text').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
+  $('et-sel').addEventListener('click',()=>{mode='drag';$('et-sel').classList.add('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
+  $('et-scale').addEventListener('click',()=>{mode='scale';$('et-scale').classList.add('on');$('et-sel').classList.remove('on');$('et-text').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-del').addEventListener('click',()=>{if(sel===null)return;const s=lvls[cur];s.splice(sel,1);sel=null;syncProps();draw();});
   $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=[];sel=null;syncProps();draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
@@ -936,9 +938,14 @@ const LE=(function(){
       const L=newTextLabel(Math.round(g.x),Math.round(localY));
       lvls[si].push(L);sel=lvls[si].length-1;syncProps();draw();return;
     }
-    if(mode==='drag'){
+    if(mode==='drag'||mode==='scale'){
       const idx=obsAt(si,g.x,localY);sel=idx>=0?idx:null;
-      if(idx>=0){drag=true;const it=lvls[si][idx],l=it.kind==='text'?textLocal(it):it;doff={x:g.x-l.x,y:localY-l.y};}
+      if(idx>=0){
+        drag=true;const it=lvls[si][idx],l=it.kind==='text'?textLocal(it):it;doff={x:g.x-l.x,y:localY-l.y};
+        // Scale: remember grab distance from the object center and its start size;
+        // dragging away from the center grows it, toward the center shrinks it.
+        scaleRef=mode==='scale'?{d0:Math.max(8,Math.hypot(g.x-l.x,localY-l.y)),w0:it.w||60,h0:it.h||60,s0:it.size||64}:null;
+      }
       syncProps();draw();return;
     }
     const o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800};
@@ -950,9 +957,23 @@ const LE=(function(){
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;
     if(si!==cur)return;
+    if(mode==='scale'&&scaleRef){
+      const it=lvls[cur][sel];if(!it)return;
+      const l=it.kind==='text'?textLocal(it):it;
+      const f=Math.hypot(g.x-l.x,localY-l.y)/scaleRef.d0;
+      if(it.kind==='text'){
+        it.size=Math.max(6,Math.min(400,Math.round(scaleRef.s0*f)));
+        $('tx-size').value=it.size;
+      }else{
+        it.w=Math.max(10,Math.min(1200,Math.round(scaleRef.w0*f)));
+        it.h=Math.max(10,Math.min(1200,Math.round(scaleRef.h0*f)));
+        $('ow').value=it.w;$('oh').value=it.h;
+      }
+      draw();return;
+    }
     {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor),sq=activeSq();it.anchorOffsetX=Math.round(((nx-b.x)/sq)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/sq)*1000)/10;setTextLocalFromOffset(it);}else{it.x=nx;it.y=ny;}draw();}
   });
-  cv.addEventListener('pointerup',()=>drag=false);cv.addEventListener('pointercancel',()=>drag=false);
+  cv.addEventListener('pointerup',()=>{drag=false;scaleRef=null;});cv.addEventListener('pointercancel',()=>{drag=false;scaleRef=null;});
 
   function sprMap(){return (window.RiseBuilder&&RiseBuilder.getSprites&&RiseBuilder.getSprites())||{};}
   function drawCoverImage(im,x,y,w,h){
@@ -1149,7 +1170,7 @@ const LE=(function(){
     for(let i=a;i<b;i++)txColors[i]=color;
     rebuildSegments(o);draw();inp.focus();try{inp.setSelectionRange(a,b);}catch(e){}
   }
-  $('et-text').addEventListener('click',()=>{mode='text';$('et-text').classList.add('on');$('et-sel').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
+  $('et-text').addEventListener('click',()=>{mode='text';$('et-text').classList.add('on');$('et-sel').classList.remove('on');$('et-scale').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('tx-text').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;rebuildSegments(o);txColors=expandColors(o);draw();});
   $('tx-base').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;const old=txBase,nw=$('tx-base').value;for(let i=0;i<txColors.length;i++)if(txColors[i]===old)txColors[i]=nw;txBase=nw;rebuildSegments(o);draw();});
   $('tx-accent').addEventListener('input',()=>{txAccent=$('tx-accent').value;const o=selItem();if(o&&o.kind==='text')o.accentColor=txAccent;});

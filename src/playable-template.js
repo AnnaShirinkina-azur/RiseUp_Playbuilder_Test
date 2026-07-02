@@ -489,6 +489,11 @@ class Game{
     const H=this.stages[0].H;
     let highest=Math.min(...this.stages.map(s=>s.worldY));
     for(const st of this.stages){
+      // Completed waves are parked far below the screen (worldY=CH+H*4), so
+      // without this guard they would re-trigger the threshold check on every
+      // frame and inflate completedStages — the game "won" a split second
+      // after the first wave passed. Count each wave exactly once.
+      if(st.done)continue;
       // When a wave has fallen below the screen, move it back above every
       // other wave. This creates new obstacles at the top instead of moving
       // old level chunks upward with the camera.
