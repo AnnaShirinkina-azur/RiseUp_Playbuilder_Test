@@ -500,7 +500,10 @@ class Game{
       if(st.worldY>CH+CH*.35){
         highest-=H;
         this.completedStages++;
-        if(this.completedStages>=this.stages.length){
+        // Win as soon as the FINISH scene is the one on screen (i.e. start +
+        // all mini-levels have passed), so the ball flies up through the
+        // finish scene — not after it has already fallen past the player.
+        if(this.completedStages>=this.stages.length-1){
           this.si=this.stages.length-1;
           this.cb.onStageChange&&this.cb.onStageChange(this.si);
           this._win();
@@ -523,7 +526,7 @@ class Game{
     if(st==='playing'||st==='respawning'){
       this._updateCamera();
     }
-    if(st==='playing'||st==='respawning'){
+    if(st==='playing'||st==='respawning'||st==='won'){
       const fall=this._obstacleFallSpeed();
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
     }
