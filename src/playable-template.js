@@ -730,11 +730,14 @@ class Game{
   }
 
   _drawProgressBars(ctx){
-    const bars=(this.progressBars&&this.progressBars.length)?this.progressBars:[{anchor:'cl',anchorOffsetX:9,anchorOffsetY:0,w:64,h:300,fill:'#b9ff9b',line:'#101625',autoDefault:true}];
+    // Progress bars are editor elements, just like text labels: no hard-coded
+    // flask is drawn unless the user placed one in Level Editor. Position is
+    // always resolved from the selected anchor + percentage offsets.
+    const bars=(this.progressBars&&this.progressBars.length)?this.progressBars:[];
+    if(!bars.length)return;
     const denom=Math.max(1,this.stages.length-1);
     const p=clamp((this.completedStages||0)/denom,0,1);
     for(const b of bars){
-      if(b.autoDefault&&this.progressBars&&this.progressBars.length)return;
       const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
       this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line);
     }
