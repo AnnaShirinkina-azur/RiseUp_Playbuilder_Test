@@ -47,7 +47,6 @@ function progressLocal(L){
   if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=progressAnchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
-function ctaLocal(L){return progressLocal(L);}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -395,7 +394,6 @@ class Game{
     const sh=['rect','circle','triangle'];
     this.stages=[];
     this.progressBars=[];
-    this.ctaButtons=[];
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
     // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
     const ld=c.levelData;
@@ -407,7 +405,6 @@ class Game{
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
           if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
-          if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -806,15 +803,6 @@ class Game{
     ctx.fillText('TAP TO PLAY',CW/2,CH*.84);ctx.restore();
   }
 
-
-  _drawCustomCta(ctx,b){
-    const p=ctaLocal(b),w=b.w||260,h=b.h||86,x=CW/2+p.x-w/2,y=CH/2+p.y-h/2;
-    if(imgOk(b.bgImg))drawTintedImage(ctx,b.bgImg,x,y,w,h,b.bgTint||'#ffffff');
-    else{ctx.fillStyle=b.bgTint||this.cfg.obstacleColor;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,h*.22):ctx.rect(x,y,w,h);ctx.fill();}
-    if(imgOk(b.textImg))drawTintedImage(ctx,b.textImg,x,y,w,h,b.textTint||'#ffffff');
-    else{ctx.fillStyle=b.textTint||'#ffffff';ctx.font='bold '+Math.max(12,h*.28)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('PLAY NOW',CW/2+p.x,CH/2+p.y);}
-  }
-
   _drawEnd(ctx){
     const finishBg=this._spr('background_finish');
     if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
@@ -828,12 +816,11 @@ class Game{
     ctx.fillText(this.isWin?'🎉':'😔',CW/2,cy+80);
     ctx.fillStyle='#fff';ctx.font='bold 26px sans-serif';ctx.fillText(this.isWin?'You Win!':'Game Over',CW/2,cy+150);
     ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='14px sans-serif';ctx.fillText(this.isWin?'Amazing!':'Better luck next time',CW/2,cy+182);
-    if(this.ctaButtons&&this.ctaButtons.length){for(let i=0;i<this.ctaButtons.length;i++)this._drawCustomCta(ctx,this.ctaButtons[i]);}
-    else{const bw=200,bh=50,bx2=(CW-bw)/2,by2=cy+ch-72;
+    const bw=200,bh=50,bx2=(CW-bw)/2,by2=cy+ch-72;
     const bg=ctx.createLinearGradient(bx2,0,bx2+bw,0);
     bg.addColorStop(0,this.cfg.obstacleColor);bg.addColorStop(1,this.cfg.obstacleColorAlt||'#5282e0');
     ctx.fillStyle=bg;ctx.beginPath();ctx.rect(bx2,by2,bw,bh);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.fillText('PLAY NOW',CW/2,by2+bh/2);}
+    ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.fillText('PLAY NOW',CW/2,by2+bh/2);
     ctx.restore();
   }
 
