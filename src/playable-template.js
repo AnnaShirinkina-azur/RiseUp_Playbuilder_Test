@@ -38,6 +38,10 @@ function textLocal(L){
   if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
+function progressLocal(L){
+  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
+  return {x:(L&&L.x)||0,y:(L&&L.y)||0};
+}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -384,6 +388,7 @@ class Game{
     const sc=c.stageColors||['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     const sh=['rect','circle','triangle'];
     this.stages=[];
+    this.progressBars=[];
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
     // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
     const ld=c.levelData;
@@ -394,6 +399,7 @@ class Game{
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
+          if(o&&o.kind==='progress'){this.progressBars.push(o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -701,11 +707,37 @@ class Game{
     this.ball.draw(ctx);
     this.shield.draw(ctx);
     this._drawDots(ctx);
+    this._drawProgressBars(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0)this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
+  }
+
+  _flaskPath(ctx,x,y,w,h){
+    const r=w*.18,neck=w*.42,nx=x+w/2-neck/2,ny=y+4,bodyBot=y+h-r;
+    ctx.beginPath();ctx.moveTo(nx,ny);ctx.quadraticCurveTo(x+w/2,ny-r*.45,nx+neck,ny);ctx.lineTo(nx+neck,bodyBot);ctx.quadraticCurveTo(nx+neck,bodyBot+r*.9,x+w/2,bodyBot+r*.9);ctx.quadraticCurveTo(nx,bodyBot+r*.9,nx,bodyBot);ctx.closePath();
+  }
+
+  _drawFlask(ctx,x,y,w,h,progress,fill,line){
+    progress=clamp(progress==null?0:progress,0,1);
+    ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.clip();ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x,y,w,h);
+    const fy=y+h-h*progress;ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);ctx.restore();
+    ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.strokeStyle=line||'#101625';ctx.lineWidth=Math.max(2,w*.045);ctx.stroke();ctx.lineWidth=Math.max(1,w*.025);
+    for(let k=1;k<10;k++){const yy=y+h-k*h/10;ctx.beginPath();ctx.moveTo(x+w*.52,yy);ctx.lineTo(x+w*.86,yy);ctx.stroke();}
+    ctx.restore();
+  }
+
+  _drawProgressBars(ctx){
+    const bars=(this.progressBars&&this.progressBars.length)?this.progressBars:[{anchor:'cl',anchorOffsetX:9,anchorOffsetY:0,w:64,h:300,fill:'#b9ff9b',line:'#101625',autoDefault:true}];
+    const denom=Math.max(1,this.stages.length-1);
+    const p=clamp((this.completedStages||0)/denom,0,1);
+    for(const b of bars){
+      if(b.autoDefault&&this.progressBars&&this.progressBars.length)return;
+      const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
+      this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line);
+    }
   }
 
   _drawDots(ctx){
