@@ -38,8 +38,13 @@ function textLocal(L){
   if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
+function progressAnchorBaseLocal(anchor){
+  var a=anchor||'cl',av=a.charAt(0),ah=a.charAt(1);
+  return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
+}
 function progressLocal(L){
-  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
+  // Progress UI is anchored to the whole screen, not to the square gameplay area.
+  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=progressAnchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
 
@@ -399,7 +404,7 @@ class Game{
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
-          if(o&&o.kind==='progress'){this.progressBars.push(o);return;}
+          if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -720,10 +725,22 @@ class Game{
     ctx.beginPath();ctx.moveTo(nx,ny);ctx.quadraticCurveTo(x+w/2,ny-r*.45,nx+neck,ny);ctx.lineTo(nx+neck,bodyBot);ctx.quadraticCurveTo(nx+neck,bodyBot+r*.9,x+w/2,bodyBot+r*.9);ctx.quadraticCurveTo(nx,bodyBot+r*.9,nx,bodyBot);ctx.closePath();
   }
 
-  _drawFlask(ctx,x,y,w,h,progress,fill,line){
+  _drawFlask(ctx,x,y,w,h,progress,fill,line,b){
     progress=clamp(progress==null?0:progress,0,1);
+    const flask=b&&imgOk(b.flaskImg)?b.flaskImg:null, fillImg=b&&imgOk(b.fillImg)?b.fillImg:null;
+    if(flask){
+      const ow=Math.max(1,Math.ceil(w)),oh=Math.max(1,Math.ceil(h));
+      const off=document.createElement('canvas');off.width=ow;off.height=oh;const ox=off.getContext('2d');
+      const fy=oh-oh*progress;
+      if(fillImg)ox.drawImage(fillImg,0,fillImg.naturalHeight*(1-progress),fillImg.naturalWidth,fillImg.naturalHeight*progress,0,fy,ow,oh-fy);
+      else{ox.fillStyle=fill||'#b9ff9b';ox.fillRect(0,fy,ow,oh-fy);}
+      ox.globalCompositeOperation='destination-in';ox.drawImage(flask,0,0,ow,oh);
+      ctx.drawImage(off,x,y,w,h);ctx.drawImage(flask,x,y,w,h);return;
+    }
     ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.clip();ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x,y,w,h);
-    const fy=y+h-h*progress;ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);ctx.restore();
+    const fy=y+h-h*progress;
+    if(fillImg)ctx.drawImage(fillImg,0,fillImg.naturalHeight*(1-progress),fillImg.naturalWidth,fillImg.naturalHeight*progress,x,fy,w,h*progress);else{ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);}
+    ctx.restore();
     ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.strokeStyle=line||'#101625';ctx.lineWidth=Math.max(2,w*.045);ctx.stroke();ctx.lineWidth=Math.max(1,w*.025);
     for(let k=1;k<10;k++){const yy=y+h-k*h/10;ctx.beginPath();ctx.moveTo(x+w*.52,yy);ctx.lineTo(x+w*.86,yy);ctx.stroke();}
     ctx.restore();
@@ -736,10 +753,14 @@ class Game{
     const bars=(this.progressBars&&this.progressBars.length)?this.progressBars:[];
     if(!bars.length)return;
     const denom=Math.max(1,this.stages.length-1);
-    const p=clamp((this.completedStages||0)/denom,0,1);
+    const H=this.stages[0]?this.stages[0].H:CH,firstTop=-160,threshold=CH+CH*.35;
+    let frac=0;
+    const st=this.stages[this.completedStages];
+    if(st&&!st.done)frac=clamp((st.worldY-firstTop)/(threshold-firstTop),0,1);
+    const p=clamp(((this.completedStages||0)+frac)/denom,0,1);
     for(const b of bars){
       const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
-      this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line);
+      this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line,b);
     }
   }
 

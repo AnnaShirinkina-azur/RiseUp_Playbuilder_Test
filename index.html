@@ -460,13 +460,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
             <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
           </div>
         </div>
-        <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of active square side"></div>
-        <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of active square side"></div>
+        <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
+        <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
         <div class="lp">Stroke <input type="color" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
         <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
       </div>
       <div class="lblbar" id="pbar" style="display:none">
-        <div class="lp">Flask progress</div>
+        <div class="lp">Image progress</div>
+        <label class="ul-btn">+ Flask image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('flask',this)"></label><button class="x-btn" id="pb-flask-clear" type="button">✕</button>
+        <label class="ul-btn">+ Fill image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('fill',this)"></label><button class="x-btn" id="pb-fill-clear" type="button">✕</button>
         <div class="lp">W<input type="number" id="pb-w" value="64" min="20" max="260" step="1"></div>
         <div class="lp">H<input type="number" id="pb-h" value="300" min="60" max="900" step="1"></div>
         <div class="lp">Fill <input type="color" id="pb-fill" value="#b9ff9b"></div>
@@ -952,8 +954,13 @@ const LE=(function(){
     return {x:(o&&o.x)||0,y:(o&&o.y)||0};
   }
   function setTextLocalFromOffset(o){if(!o||o.kind!=='text')return;const l=textLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
+  function progressAnchorBaseLocal(anchor){
+    const a=anchor||'cl',av=a.charAt(0),ah=a.charAt(1);
+    return {x:ah==='l'?-GW/2:(ah==='r'?GW/2:0),y:av==='t'?-GH/2:(av==='b'?GH/2:0)};
+  }
   function progressLocal(o){
-    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=anchorBaseLocal(o.anchor);const sq=activeSq();return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*sq/100};}
+    // Progress UI is anchored to the full screen area, not the active gameplay square.
+    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=progressAnchorBaseLocal(o.anchor);return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*GW/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*GH/100};}
     return {x:(o&&o.x)||0,y:(o&&o.y)||0};
   }
   function setProgressLocalFromOffset(o){if(!o||o.kind!=='progress')return;const l=progressLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
@@ -985,7 +992,7 @@ const LE=(function(){
     }
     if(mode==='progress'){
       const sq=activeSq(),x=Math.round(g.x),y=Math.round(localY);
-      const P={kind:'progress',coordMode:'center',x,y,w:64,h:300,anchor:'cl',anchorOffsetX:Math.round(((x-anchorBaseLocal('cl').x)/sq)*1000)/10,anchorOffsetY:Math.round((y/sq)*1000)/10,fill:'#b9ff9b',line:'#101625'};
+      const P={kind:'progress',coordMode:'screen',x,y,w:64,h:300,anchor:'cl',anchorOffsetX:Math.round(((x-progressAnchorBaseLocal('cl').x)/GW)*1000)/10,anchorOffsetY:Math.round((y/GH)*1000)/10,fill:'#b9ff9b',line:'#101625',flaskSrc:null,fillSrc:null};
       lvls[si].push(P);sel=lvls[si].length-1;syncProps();draw();return;
     }
     if(mode==='bgimg'&&selImgId){
@@ -1028,7 +1035,7 @@ const LE=(function(){
       }
       draw();return;
     }
-    {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor),sq=activeSq();it.anchorOffsetX=Math.round(((nx-b.x)/sq)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/sq)*1000)/10;setTextLocalFromOffset(it);}else if(it.kind==='progress'){const b=anchorBaseLocal(it.anchor),sq=activeSq();it.anchorOffsetX=Math.round(((nx-b.x)/sq)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/sq)*1000)/10;setProgressLocalFromOffset(it);}else{it.x=nx;it.y=ny;}draw();}
+    {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor),sq=activeSq();it.anchorOffsetX=Math.round(((nx-b.x)/sq)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/sq)*1000)/10;setTextLocalFromOffset(it);}else if(it.kind==='progress'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setProgressLocalFromOffset(it);}else{it.x=nx;it.y=ny;}draw();}
   });
   cv.addEventListener('pointerup',()=>{drag=false;scaleRef=null;});cv.addEventListener('pointercancel',()=>{drag=false;scaleRef=null;});
 
@@ -1115,22 +1122,35 @@ const LE=(function(){
     }
     ctx.restore();
   }
+  const progressImgCache={};
+  function progressImg(src){if(!src)return null;if(!progressImgCache[src]){const im=new Image();im.src=src;progressImgCache[src]=im;}return progressImgCache[src];}
   function flaskPath(ctx,x,y,w,h){
-    const r=w*.18,neck=w*.42,nx=x+w/2-neck/2,ny=y+4,bodyTop=y+h*.07,bodyBot=y+h-r;
+    const r=w*.18,neck=w*.42,nx=x+w/2-neck/2,ny=y+4,bodyBot=y+h-r;
     ctx.beginPath();ctx.moveTo(nx,ny);ctx.quadraticCurveTo(x+w/2,ny-r*.45,nx+neck,ny);ctx.lineTo(nx+neck,bodyBot);ctx.quadraticCurveTo(nx+neck,bodyBot+r*.9,x+w/2,bodyBot+r*.9);ctx.quadraticCurveTo(nx,bodyBot+r*.9,nx,bodyBot);ctx.closePath();
   }
-  function drawProgressShape(ctx,x,y,w,h,progress,fill,line){
+  function drawProgressShape(ctx,x,y,w,h,progress,fill,line,flaskSrc,fillSrc){
     progress=Math.max(0,Math.min(1,progress==null?0:progress));
+    const flask=progressImg(flaskSrc),fillIm=progressImg(fillSrc);
+    if(flask&&imageReady(flask)){
+      const ow=Math.max(1,Math.ceil(w)),oh=Math.max(1,Math.ceil(h));
+      const off=document.createElement('canvas');off.width=ow;off.height=oh;const ox=off.getContext('2d');
+      const fy=oh-oh*progress;
+      if(fillIm&&imageReady(fillIm))ox.drawImage(fillIm,0,fillIm.naturalHeight*(1-progress),fillIm.naturalWidth,fillIm.naturalHeight*progress,0,fy,ow,oh-fy);
+      else{ox.fillStyle=fill||'#b9ff9b';ox.fillRect(0,fy,ow,oh-fy);}
+      ox.globalCompositeOperation='destination-in';ox.drawImage(flask,0,0,ow,oh);
+      ctx.drawImage(off,x,y,w,h);ctx.drawImage(flask,x,y,w,h);return;
+    }
     ctx.save();flaskPath(ctx,x,y,w,h);ctx.clip();
     ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x,y,w,h);
-    const fy=y+h-(h*progress);ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);
+    const fy=y+h-(h*progress);
+    if(fillIm&&imageReady(fillIm))ctx.drawImage(fillIm,0,fillIm.naturalHeight*(1-progress),fillIm.naturalWidth,fillIm.naturalHeight*progress,x,fy,w,h*progress);else{ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);}
     ctx.restore();ctx.save();flaskPath(ctx,x,y,w,h);ctx.strokeStyle=line||'#101625';ctx.lineWidth=Math.max(2,w*.045);ctx.stroke();
     ctx.lineWidth=Math.max(1,w*.025);for(let k=1;k<10;k++){const yy=y+h-k*h/10;ctx.beginPath();ctx.moveTo(x+w*.52,yy);ctx.lineTo(x+w*.86,yy);ctx.stroke();}
     ctx.restore();
   }
   function drawProgressItem(o,si,i){
     const l=progressLocal(o),c=toC(si,l.x,l.y),sw=(o.w||64)*zoom,sh=(o.h||300)*zoom;
-    drawProgressShape(ctx,c.x-sw/2,c.y-sh/2,sw,sh,.42,o.fill,o.line);
+    drawProgressShape(ctx,c.x-sw/2,c.y-sh/2,sw,sh,.42,o.fill,o.line,o.flaskSrc,o.fillSrc);
     if(si===cur&&i===sel){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(c.x-sw/2-5,c.y-sh/2-5,sw+10,sh+10);ctx.setLineDash([]);}
   }
   function drawObstacle(o,si,i){
@@ -1247,7 +1267,7 @@ const LE=(function(){
       $('tx-text').value=labelText(o);txColors=expandColors(o);
       document.querySelectorAll('#tx-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cc')));
     } else if(isProg){
-      if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=anchorBaseLocal(o.anchor),sq=activeSq();o.anchorOffsetX=Math.round(((l.x-b.x)/sq)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/sq)*1000)/10;}
+      if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=progressAnchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}
       $('pb-w').value=o.w||64;$('pb-h').value=o.h||300;$('pb-fill').value=o.fill||'#b9ff9b';$('pb-line').value=o.line||'#101625';$('pb-offx').value=o.anchorOffsetX||0;$('pb-offy').value=o.anchorOffsetY||0;
       document.querySelectorAll('#pb-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cl')));
     } else if(o&&o.kind==='bg'){
@@ -1290,6 +1310,9 @@ const LE=(function(){
   function bindPb(id,field,tf){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='progress')return;o[field]=tf?tf(e.value):e.value;draw();});}
   function bindPbOffset(id,field){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='progress')return;o[field]=parseFloat(e.value)||0;setProgressLocalFromOffset(o);draw();});}
   bindPb('pb-w','w',v=>Math.max(20,parseFloat(v)||64));bindPb('pb-h','h',v=>Math.max(60,parseFloat(v)||300));bindPb('pb-fill','fill');bindPb('pb-line','line');bindPbOffset('pb-offx','anchorOffsetX');bindPbOffset('pb-offy','anchorOffsetY');
+  window.loadProgressPart=function(part,inp){const o=selItem();if(!o||o.kind!=='progress'||!inp.files||!inp.files[0])return;const r=new FileReader();r.onload=e=>{if(part==='flask')o.flaskSrc=e.target.result;else o.fillSrc=e.target.result;draw();};r.readAsDataURL(inp.files[0]);inp.value='';};
+  $('pb-flask-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='progress'){o.flaskSrc=null;draw();}});
+  $('pb-fill-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='progress'){o.fillSrc=null;draw();}});
 
   setStageCount(NS);renderImgLib();sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});
