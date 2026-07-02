@@ -461,7 +461,10 @@ class Game{
     const cv=this.cv;
     const down=(x,y)=>{
       if(this.state==='start'){this._start();return;}
-      if(this.state==='playing'){this.shield.down(x,y);}
+      if(this.state==='playing'){
+        if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
+        this.shield.down(x,y);
+      }
       if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
     };
     const move=(x,y)=>{
@@ -716,6 +719,7 @@ class Game{
     this.shield.draw(ctx);
     this._drawDots(ctx);
     this._drawProgressBars(ctx);
+    this._drawCtas(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0)this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
@@ -807,12 +811,31 @@ class Game{
   }
 
 
+  _ctaRect(b){
+    const p=ctaLocal(b),w=b.w||260,h=b.h||86;
+    return {x:CW/2+p.x-w/2,y:CH/2+p.y-h/2,w,h,cx:CW/2+p.x,cy:CH/2+p.y};
+  }
+
+  _pointInCta(x,y){
+    if(!this.ctaButtons||!this.ctaButtons.length)return false;
+    for(let i=this.ctaButtons.length-1;i>=0;i--){
+      const r=this._ctaRect(this.ctaButtons[i]);
+      if(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)return true;
+    }
+    return false;
+  }
+
   _drawCustomCta(ctx,b){
-    const p=ctaLocal(b),w=b.w||260,h=b.h||86,x=CW/2+p.x-w/2,y=CH/2+p.y-h/2;
+    const r=this._ctaRect(b),x=r.x,y=r.y,w=r.w,h=r.h;
     if(imgOk(b.bgImg))drawTintedImage(ctx,b.bgImg,x,y,w,h,b.bgTint||'#ffffff');
     else{ctx.fillStyle=b.bgTint||this.cfg.obstacleColor;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,h*.22):ctx.rect(x,y,w,h);ctx.fill();}
     if(imgOk(b.textImg))drawTintedImage(ctx,b.textImg,x,y,w,h,b.textTint||'#ffffff');
-    else{ctx.fillStyle=b.textTint||'#ffffff';ctx.font='bold '+Math.max(12,h*.28)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('PLAY NOW',CW/2+p.x,CH/2+p.y);}
+    else{ctx.fillStyle=b.textTint||'#ffffff';ctx.font='bold '+Math.max(12,h*.28)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('PLAY NOW',r.cx,r.cy);}
+  }
+
+  _drawCtas(ctx){
+    if(!this.ctaButtons||!this.ctaButtons.length)return;
+    for(let i=0;i<this.ctaButtons.length;i++)this._drawCustomCta(ctx,this.ctaButtons[i]);
   }
 
   _drawEnd(ctx){
