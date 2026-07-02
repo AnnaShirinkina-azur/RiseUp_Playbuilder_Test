@@ -679,12 +679,33 @@ class Game{
       }
       return;
     }
+    // Full-screen base layer: per-stage strips are attached to falling waves,
+    // so on their own they can leave the default bg color exposed (above the
+    // first wave, at the finish fly-up, on the endcard). Stretch the image of
+    // the wave closest to the screen center over the WHOLE screen first — if
+    // any image is loaded the player never sees the default background.
+    let baseIdx=-1,best=Infinity;
+    for(const st of this.stages){
+      if(st.done)continue;
+      const d=Math.abs(st.worldY+st.H/2-CH/2);
+      if(d<best){best=d;baseIdx=st.idx;}
+    }
+    if(baseIdx>=0){
+      const bg=this._spr('background_stage'+baseIdx)||this._nearestReadyBackground(baseIdx);
+      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this._stageTint(baseIdx));
+    }
     const fade=Math.max(60,Math.min(150,CH*.18));
     for(const st of this.stages){
       if(st.done)continue;
       const bg=this._spr('background_stage'+st.idx);
-      if(imgOk(bg)){const t=st.idx===0?this.cfg.backgroundStartColor:(st.idx===this.stages.length-1?this.cfg.backgroundFinishColor:((this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[st.idx-1])||this.cfg.backgroundSpriteColor));this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,t);}
+      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,this._stageTint(st.idx));
     }
+  }
+
+  _stageTint(idx){
+    if(idx===0)return this.cfg.backgroundStartColor;
+    if(idx===this.stages.length-1)return this.cfg.backgroundFinishColor;
+    return (this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[idx-1])||this.cfg.backgroundSpriteColor;
   }
 
   _draw(){
@@ -737,7 +758,7 @@ class Game{
 
   _drawStart(ctx){
     ctx.save();
-    const startBg=this._spr('background_start');
+    const startBg=this._spr('background_start')||this._spr('background_stage0');
     if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundStartColor||this.cfg.backgroundSpriteColor);
     const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
     g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
@@ -748,7 +769,7 @@ class Game{
   }
 
   _drawEnd(ctx){
-    const finishBg=this._spr('background_finish');
+    const finishBg=this._spr('background_finish')||this._spr('background_stage'+(this.stages.length-1))||this._nearestReadyBackground(this.stages.length-1);
     if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundFinishColor||this.cfg.backgroundSpriteColor);
     ctx.save();ctx.globalAlpha=this.endA;
     ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(0,0,CW,CH);
