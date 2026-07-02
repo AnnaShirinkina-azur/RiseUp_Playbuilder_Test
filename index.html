@@ -185,6 +185,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="tab" data-panel="stage-accents">Stage debug colors</button>
         <button class="tab" data-panel="text-fonts">Text / fonts</button>
       </div>
+      <button class="acc-head on" data-acc="audio">Audio changes</button>
+      <div class="acc-body on" id="acc-audio">
+        <button class="tab" data-panel="sounds">Sounds</button>
+      </div>
     </div>
 
     <div class="pnl on" id="panel-player" data-title="Player">
@@ -259,7 +263,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
-      <div class="row wide"><label>Playable orientation<small>Preview and exported HTML</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
       <div class="sec">Environment</div>
       <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
       <div class="row"><label>Grid</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
@@ -296,6 +300,63 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="sec">Local font</div>
       <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
       <div class="row wide"><label class="ul-btn">+ Upload font from computer<input type="file" id="cfg-localFontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="display:none"></label><small id="cfg-localFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Поддерживаются ttf/otf/woff/woff2.</small></div>
+    </div>
+
+    <div class="pnl" id="panel-sounds" data-title="Sounds">
+      <div class="sec">Sound</div>
+      <div class="row"><label>Enable sounds<small>Вкл/выкл все звуки в playable</small></label><input type="checkbox" id="cfg-soundEnabled" checked></div>
+      <div class="row wide"><label>Master volume<small>Общая громкость</small></label>
+        <div class="rr"><input type="range" id="cfg-soundVolume" value="0.8" min="0" max="1" step="0.05" oninput="sv('cfg-soundVolume-v',Math.round(this.value*100)+'%')"><span id="cfg-soundVolume-v">80%</span></div></div>
+
+      <div class="sec">Background music</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-bgm">🎵</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('bgm',this)"></label>
+        <button class="x-btn" onclick="clearSnd('bgm')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('bgm')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Фоновая музыка (loop)</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-bgm" value="0.7" min="0" max="1" step="0.05" oninput="sv('cfg-vol-bgm-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-bgm-v">70%</span></div></div>
+
+      <div class="sec">Win sound</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-win">🏆</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('win',this)"></label>
+        <button class="x-btn" onclick="clearSnd('win')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('win')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Звук победы</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-win" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-win-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-win-v">100%</span></div></div>
+
+      <div class="sec">Lose sound</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-lose">💀</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('lose',this)"></label>
+        <button class="x-btn" onclick="clearSnd('lose')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('lose')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Звук поражения</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-lose" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-lose-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-lose-v">100%</span></div></div>
+
+      <div class="sec">Ball hit (collision)</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-hit">💥</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('hit',this)"></label>
+        <button class="x-btn" onclick="clearSnd('hit')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('hit')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Столкновение шара с препятствием (потеря жизни)</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-hit" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-hit-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-hit-v">100%</span></div></div>
+
+      <div class="sec">Shield touch</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-shield">🛡️</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('shield',this)"></label>
+        <button class="x-btn" onclick="clearSnd('shield')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('shield')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Соприкасание шара-защитника и препятствия</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-shield" value="0.9" min="0" max="1" step="0.05" oninput="sv('cfg-vol-shield-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-shield-v">90%</span></div></div>
     </div>
 
     <div class="bbar">
@@ -444,7 +505,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'
   const inspector=document.createElement('aside');
   inspector.className='inspector';
   inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
-  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-stage-accents','panel-text-fonts'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();
@@ -493,6 +554,34 @@ function clearSpr(key){
   RiseBuilder.setSprite(key,null);
   document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'🎈':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
+}
+
+// ── Sounds ──────────────────────────────────────────────────────────────────
+const SND_DEFAULTS={bgm:'Assets/audio/bgm.wav',win:'Assets/audio/sfx_win.wav',lose:'Assets/audio/sfx_lose.wav',hit:'Assets/audio/sfx_wrong.wav',shield:'Assets/audio/sfx_correct.wav'};
+const SND_ICON={bgm:'🎵',win:'🏆',lose:'💀',hit:'💥',shield:'🛡️'};
+let sndPreview=null;
+function loadSnd(key,inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    RiseBuilder.setSprite('audio_'+key,e.target.result);
+    const th=$('th-audio-'+key);if(th){th.textContent='✔';th.title=f.name;th.style.color='var(--acc)';}
+  };
+  r.readAsDataURL(f);
+  inp.value='';
+}
+function clearSnd(key){
+  RiseBuilder.setSprite('audio_'+key,null);
+  const th=$('th-audio-'+key);if(th){th.textContent=SND_ICON[key]||'🔊';th.title='';th.style.color='';}
+}
+function playSnd(key){
+  try{if(sndPreview){sndPreview.pause();sndPreview=null;}}catch(e){}
+  const sp=RiseBuilder.getSprites();
+  const src=sp['audio_'+key]||SND_DEFAULTS[key];
+  const volEl=$('cfg-vol-'+key), master=parseFloat($('cfg-soundVolume')?.value)||0;
+  sndPreview=new Audio(src);
+  sndPreview.volume=Math.max(0,Math.min(1,(volEl?parseFloat(volEl.value):1)*master));
+  sndPreview.play().catch(()=>{});
 }
 function getStageCount(){
   const e=$('cfg-stageCount');
@@ -658,11 +747,13 @@ const DEFS={
   'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0','cfg-obstacleSpriteColor':'#ffffff',
   'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642','cfg-bgSpriteColor':'#ffffff',
   'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
-  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-bgMode':'perStage','cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont'
+  'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-bgMode':'perStage','cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont',
+  'cfg-soundEnabled':true,'cfg-soundVolume':0.8,'cfg-vol-bgm':0.7,'cfg-vol-win':1,'cfg-vol-lose':1,'cfg-vol-hit':1,'cfg-vol-shield':0.9
 };
 $('btn-reset').addEventListener('click',()=>{
   Object.entries(DEFS).forEach(([id,v])=>{const e=$(id);if(!e)return;if(e.type==='checkbox'){e.checked=!!v;e.dispatchEvent(new Event('change'));}else{e.value=v;e.dispatchEvent(new Event('input'));}});
   setOrientation('portrait');
+  ['bgm','win','lose','hit','shield'].forEach(clearSnd);
   const l=document.getElementById('google-font-link'); if(l)l.remove();
 });
 

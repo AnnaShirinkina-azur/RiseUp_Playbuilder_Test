@@ -90,6 +90,36 @@ class FX{
   draw(ctx){for(const p of this.p){ctx.globalAlpha=p.life;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
 }
 
+//── Sound manager ────────────────────────────────────────────────────────────
+// Keys: bgm (loop), win, lose, hit (ball × obstacle), shield (protector × obstacle).
+// Sources come from cfg.audioSources (base64 data URLs embedded by the builder).
+class SND{
+  constructor(cfg){
+    this.enabled=cfg.soundEnabled!==false;
+    this.master=cfg.soundVolume==null?1:Math.max(0,Math.min(1,+cfg.soundVolume||0));
+    this.vol=cfg.soundVolumes||{};
+    this.base={};
+    const srcs=cfg.audioSources||{};
+    for(const k in srcs){
+      if(!srcs[k])continue;
+      try{const au=new Audio();au.src=srcs[k];au.preload='auto';this.base[k]=au;}catch(e){}
+    }
+    if(this.base.bgm)this.base.bgm.loop=true;
+  }
+  _v(k){const v=this.vol[k];return clamp(this.master*(v==null?1:+v),0,1);}
+  play(k){
+    if(!this.enabled)return;
+    const b=this.base[k];if(!b)return;
+    try{
+      if(k==='bgm'){b.volume=this._v(k);const p=b.play();if(p&&p.catch)p.catch(function(){});return;}
+      // clone so overlapping sfx (quick shield touches) can play simultaneously
+      const au=b.cloneNode(true);au.volume=this._v(k);
+      const p=au.play();if(p&&p.catch)p.catch(function(){});
+    }catch(e){}
+  }
+  stopBgm(){const b=this.base.bgm;if(!b)return;try{b.pause();b.currentTime=0;}catch(e){}}
+}
+
 //── Obstacle ─────────────────────────────────────────────────────────────────
 class Obs{
   constructor(o){
@@ -317,6 +347,7 @@ class Game{
     el.appendChild(this.cv);
     this.ctx=this.cv.getContext('2d');
     this.fx=new FX();
+    this.snd=new SND(this.cfg);
     this._buildStages();
     this._bindInput();
     this._reset();
@@ -436,7 +467,7 @@ class Game{
     this.completedStages=0;
     this.si=0;
   }
-  _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);}
+  _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);this.snd.play('bgm');}
 
   _loop(ts){
     if(!this._last)this._last=ts;
@@ -548,6 +579,7 @@ class Game{
       const spin=clamp((svx*.018)+(awayX*.08),-.22,.22);
       obs.push(vx,vy,spin);
       this.shield.flash=400;
+      this.snd.play('shield');
     } else {
       obs.push(dx/len*f,dy/len*f-2,clamp(dx*.01,-.18,.18));
       this.ball.flash=400;
@@ -557,7 +589,7 @@ class Game{
     this.tutDone=true;
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.snd.play('hit');}
   _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
@@ -572,8 +604,8 @@ class Game{
     this.si=n;
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
-  _win(){this.state='won';this.isWin=true;this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.state='endcard';this.isWin=false;this.cb.onLose&&this.cb.onLose();}
+  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
+  _lose(){this.state='endcard';this.isWin=false;this.snd.stopBgm();this.snd.play('lose');this.cb.onLose&&this.cb.onLose();}
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;
@@ -729,6 +761,42 @@ class Game{
   }
 
   destroy(){if(this._raf)cancelAnimationFrame(this._raf);this.cv.remove();}
+
+  // Live orientation switch: one exported HTML serves both portrait and
+  // landscape. Game state (lives, progress, flying obstacles) is preserved;
+  // positions are re-derived from center-based layout coords or scaled.
+  setOrientation(or){
+    or=or==='landscape'?'landscape':'portrait';
+    if(or===this.cfg.orientation)return;
+    const oldW=CW,oldH=CH;
+    this.cfg.orientation=or;setView(or);
+    const kx=CW/oldW,ky=CH/oldH;
+    this.cv.width=CW;this.cv.height=CH;
+    // ball: recompute its fixed lines for the new screen
+    const b=this.ball;
+    b.x=CW/2;b.ty=CH*.72;b.idleY=Math.min(CH-b.r-8,b.ty+80);
+    if(b.finalFly)b.y*=ky;
+    else if(b.flying)b.y=b.introT>=1?b.ty:lerp(b.idleY,b.ty,1-Math.pow(1-b.introT,3));
+    else b.y=b.idleY;
+    // shield: keep relative position
+    const s=this.shield;
+    s.x*=kx;s.y*=ky;s.tx*=kx;s.ty*=ky;s._px=s.x;s._py=s.y;
+    s.x=clamp(s.x,s.r,CW-s.r);s.y=clamp(s.y,s.r,CH*.8);
+    // stages: wave height follows CH; kinematic obstacles re-derive layout
+    // from their local (center-based) coords, free-flying ones just scale
+    for(const st of this.stages){
+      st.H=CH+6;
+      st.worldY*=ky;
+      for(const o of st.obs){
+        if(o.kin&&o.live){
+          o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX});
+          o.iy=layoutY({coordMode:o.coordMode,y:o.layoutLocalY});
+          o.x=o.ix;o.y=o.iy;
+        }else{o.x*=kx;o.y*=ky;}
+      }
+    }
+    if(this.spawnTop!=null)this.spawnTop*=ky;
+  }
 }
 
 const DEF={
@@ -739,6 +807,7 @@ const DEF={
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',backgroundStageColors:[],backgroundStartColor:'#ffffff',backgroundFinishColor:'#ffffff',
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
+  soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
 };
 

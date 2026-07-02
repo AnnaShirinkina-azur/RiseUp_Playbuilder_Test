@@ -32,6 +32,15 @@ function readConfig(){
     backgroundStartColor:g('cfg-bgStartColor')||'#ffffff',
     backgroundFinishColor:g('cfg-bgFinishColor')||'#ffffff',
     backgroundStageColors:Array.from({length:g('cfg-stageCount')||5},(_,i)=>g('cfg-bgStageColor'+i)||'#ffffff'),
+    soundEnabled:(function(){var e=document.getElementById('cfg-soundEnabled');return e?e.checked:true;})(),
+    soundVolume:(g('cfg-soundVolume')!=null?g('cfg-soundVolume'):0.8),
+    soundVolumes:{
+      bgm:(g('cfg-vol-bgm')!=null?g('cfg-vol-bgm'):0.7),
+      win:(g('cfg-vol-win')!=null?g('cfg-vol-win'):1),
+      lose:(g('cfg-vol-lose')!=null?g('cfg-vol-lose'):1),
+      hit:(g('cfg-vol-hit')!=null?g('cfg-vol-hit'):1),
+      shield:(g('cfg-vol-shield')!=null?g('cfg-vol-shield'):0.9),
+    },
     levelData,
   };
 }
@@ -122,7 +131,28 @@ var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
 (function(){
   var root=document.getElementById('gr');
-  root.className=(cfg.orientation==='landscape')?'landscape':'portrait';
+  // Adaptive: one file serves both orientations (like Luna playground previews).
+  // Orientation is detected from the viewport and updated live on rotate/resize.
+  function orNow(){return window.innerWidth>window.innerHeight?'landscape':'portrait';}
+  cfg.orientation=orNow();
+  root.className=cfg.orientation;
+  // Audio: custom sounds from the builder (sp.audio_*) win over bundled defaults.
+  cfg.audioSources={
+    bgm:sp.audio_bgm||a['audio/bgm.wav']||null,
+    win:sp.audio_win||a['audio/sfx_win.wav']||null,
+    lose:sp.audio_lose||a['audio/sfx_lose.wav']||null,
+    hit:sp.audio_hit||a['audio/sfx_wrong.wav']||null,
+    shield:sp.audio_shield||a['audio/sfx_correct.wav']||null
+  };
+  var game=null;
+  function onOrient(){
+    var o=orNow();
+    if(o===cfg.orientation)return;
+    cfg.orientation=o;root.className=o;
+    if(game&&game.setOrientation)game.setOrientation(o);
+  }
+  window.addEventListener('resize',onOrient);
+  window.addEventListener('orientationchange',onOrient);
   var loader=document.getElementById('loader');
   var firstBg=sp.background;
   if(!firstBg){
@@ -132,11 +162,12 @@ var cfg=${JSON.stringify(cfg)};
   if(firstBg)root.style.setProperty('--loader-bg','url('+JSON.stringify(firstBg)+')');
   else root.style.setProperty('--loader-bg','none');
   var imgs={};
-  var keys=Object.keys(sp);
+  var keys=Object.keys(sp).filter(function(k){return !/^audio_/.test(k)&&k!=='custom_font';});
   function boot(){
     if(loader)loader.style.display='none';
     var go=function(){
-      RisePlayable.init(root,cfg,imgs,{
+      onOrient();
+      game=RisePlayable.init(root,cfg,imgs,{
         onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
         onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
         onLose:function(){},onStageChange:function(){}
