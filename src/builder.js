@@ -25,13 +25,10 @@ function readConfig(){
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     orientation:g('cfg-orientation')||'portrait',
-    backgroundMode:g('cfg-bgMode')||'perStage',
+    backgroundMode:'common',
     googleFontUrl:g('cfg-googleFontUrl')||'',
     googleFontFamily:g('cfg-googleFontFamily')||'',
     localFontFamily:g('cfg-localFontFamily')||'CustomFont',
-    backgroundStartColor:g('cfg-bgStartColor')||'#ffffff',
-    backgroundFinishColor:g('cfg-bgFinishColor')||'#ffffff',
-    backgroundStageColors:Array.from({length:g('cfg-stageCount')||5},(_,i)=>g('cfg-bgStageColor'+i)||'#ffffff'),
     soundEnabled:(function(){var e=document.getElementById('cfg-soundEnabled');return e?e.checked:true;})(),
     soundVolume:(g('cfg-soundVolume')!=null?g('cfg-soundVolume'):0.8),
     soundVolumes:{
@@ -156,7 +153,7 @@ var cfg=${JSON.stringify(cfg)};
   var loader=document.getElementById('loader');
   var firstBg=sp.background;
   if(!firstBg){
-    var bgKeys=Object.keys(sp).filter(function(k){return /^background_stage\d+$/.test(k);}).sort(function(a,b){return parseInt(a.replace('background_stage',''),10)-parseInt(b.replace('background_stage',''),10);});
+    var bgKeys=Object.keys(sp).filter(function(k){return /^bgimg_/.test(k);}).sort();
     if(bgKeys.length)firstBg=sp[bgKeys[0]];
   }
   if(firstBg)root.style.setProperty('--loader-bg','url('+JSON.stringify(firstBg)+')');

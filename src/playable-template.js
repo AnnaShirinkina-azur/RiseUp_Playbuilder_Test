@@ -120,6 +120,29 @@ class SND{
   stopBgm(){const b=this.base.bgm;if(!b)return;try{b.pause();b.currentTime=0;}catch(e){}}
 }
 
+//── Background image item ────────────────────────────────────────────────────
+// Decorative image placed in the level editor: no collisions, drawn behind
+// obstacles/labels, moves with its wave. Freely positioned, stretched (w/h
+// independent) and tinted per instance.
+class BgImg{
+  constructor(o,img){
+    this.coordMode=o.coordMode||'center';
+    this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
+    this.x=layoutX(o);this.y=layoutY(o);
+    this.w=o.w||200;this.h=o.h||200;
+    this.tint=o.tint||'#ffffff';
+    this.img=img||null;
+  }
+  relayout(){
+    this.x=layoutX({coordMode:this.coordMode,x:this.layoutLocalX});
+    this.y=layoutY({coordMode:this.coordMode,y:this.layoutLocalY});
+  }
+  draw(ctx,top){
+    if(!imgOk(this.img))return;
+    drawTintedImage(ctx,this.img,this.x-this.w/2,this.y+top-this.h/2,this.w,this.h,this.tint);
+  }
+}
+
 //── Obstacle ─────────────────────────────────────────────────────────────────
 class Obs{
   constructor(o){
@@ -182,7 +205,7 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
+  constructor(idx,obs,color,labels,bgs){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
   reset(){this.done=false;this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
@@ -200,6 +223,7 @@ class Stage{
       g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
     }
+    this.bgs.forEach(b=>b.draw(ctx,top));
     this.obs.forEach(o=>o.draw(ctx,top));
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
@@ -366,10 +390,11 @@ class Game{
     const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
     const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
     for(let si=0;si<stageCount;si++){
-      let obs=[],labels=[];
+      let obs=[],labels=[],bgs=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
+          if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
           obs.push(ob);
@@ -388,7 +413,7 @@ class Game{
           obs.push(ob);
         }
       }
-      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels));
+      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs));
     }
   }
 
@@ -654,58 +679,12 @@ class Game{
     return true;
   }
 
-  _nearestReadyBackground(idx){
-    const common=this._spr('background');
-    const exact=this._spr('background_stage'+idx);
-    if(exact)return exact;
-    for(let d=1;d<=this.stages.length;d++){
-      const prev=this._spr('background_stage'+(idx-d));
-      if(prev)return prev;
-      const next=this._spr('background_stage'+(idx+d));
-      if(next)return next;
-    }
-    return common;
-  }
-
   _drawBackground(ctx){
     ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
-    const mode=this.cfg.backgroundMode||'perStage';
-    if(mode==='common'){
-      const bg=this._spr('background')||this._nearestReadyBackground(0);
-      if(imgOk(bg)){
-        // One image is a single environment backdrop for the whole visible game field,
-        // not a per-mini-level tile attached to falling/recycled stages.
-        this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
-      }
-      return;
-    }
-    // Full-screen base layer: per-stage strips are attached to falling waves,
-    // so on their own they can leave the default bg color exposed (above the
-    // first wave, at the finish fly-up, on the endcard). Stretch the image of
-    // the wave closest to the screen center over the WHOLE screen first — if
-    // any image is loaded the player never sees the default background.
-    let baseIdx=-1,best=Infinity;
-    for(const st of this.stages){
-      if(st.done)continue;
-      const d=Math.abs(st.worldY+st.H/2-CH/2);
-      if(d<best){best=d;baseIdx=st.idx;}
-    }
-    if(baseIdx>=0){
-      const bg=this._spr('background_stage'+baseIdx)||this._nearestReadyBackground(baseIdx);
-      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this._stageTint(baseIdx));
-    }
-    const fade=Math.max(60,Math.min(150,CH*.18));
-    for(const st of this.stages){
-      if(st.done)continue;
-      const bg=this._spr('background_stage'+st.idx);
-      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,st.worldY-fade,CW,st.H+fade*2,fade,this._stageTint(st.idx));
-    }
-  }
-
-  _stageTint(idx){
-    if(idx===0)return this.cfg.backgroundStartColor;
-    if(idx===this.stages.length-1)return this.cfg.backgroundFinishColor;
-    return (this.cfg.backgroundStageColors&&this.cfg.backgroundStageColors[idx-1])||this.cfg.backgroundSpriteColor;
+    // One optional full-screen environment image; all other background art is
+    // placed in the level editor as BgImg items and travels with its wave.
+    const bg=this._spr('background');
+    if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
   }
 
   _draw(){
@@ -758,8 +737,8 @@ class Game{
 
   _drawStart(ctx){
     ctx.save();
-    const startBg=this._spr('background_start')||this._spr('background_stage0');
-    if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundStartColor||this.cfg.backgroundSpriteColor);
+    const startBg=this._spr('background_start');
+    if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
     const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
     g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
     ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
@@ -769,8 +748,8 @@ class Game{
   }
 
   _drawEnd(ctx){
-    const finishBg=this._spr('background_finish')||this._spr('background_stage'+(this.stages.length-1))||this._nearestReadyBackground(this.stages.length-1);
-    if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundFinishColor||this.cfg.backgroundSpriteColor);
+    const finishBg=this._spr('background_finish');
+    if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
     ctx.save();ctx.globalAlpha=this.endA;
     ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(0,0,CW,CH);
     const cw=300,ch=360,cx=(CW-cw)/2,cy=(CH-ch)/2;
@@ -816,6 +795,7 @@ class Game{
     for(const st of this.stages){
       st.H=CH+6;
       st.worldY*=ky;
+      st.bgs.forEach(b=>b.relayout());
       for(const o of st.obs){
         if(o.kin&&o.live){
           o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX});
@@ -834,8 +814,8 @@ const DEF={
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',backgroundStageColors:[],backgroundStartColor:'#ffffff',backgroundFinishColor:'#ffffff',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',backgroundMode:'perStage',
+  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
 };
