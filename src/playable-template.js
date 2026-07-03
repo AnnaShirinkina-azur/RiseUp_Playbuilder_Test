@@ -47,6 +47,17 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
+function obstacleAnchorBaseLocal(anchor){var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};}
+function obstacleCenterLocal(o){
+  if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){
+    var a=o.anchor||'cc',av=a.charAt(0),ah=a.charAt(1),w=parseFloat(o.w)||60,h=parseFloat(o.h)||60;
+    var b=obstacleAnchorBaseLocal(a),ax=b.x+(parseFloat(o.anchorOffsetX)||0)*CW/100,ay=b.y+(parseFloat(o.anchorOffsetY)||0)*CH/100;
+    return {x:ah==='l'?ax+w/2:(ah==='r'?ax-w/2:ax),y:av==='t'?ay+h/2:(av==='b'?ay-h/2:ay)};
+  }
+  return {x:(o&&o.x)||0,y:(o&&o.y)||0};
+}
+function obstacleLayoutX(o){var l=obstacleCenterLocal(o);return o&&o.coordMode==='center'?CW/2+l.x:(o&&o.x!=null?o.x:195);}
+function obstacleLayoutY(o){var l=obstacleCenterLocal(o);return o&&o.coordMode==='center'?CH/2+l.y:(o&&o.y!=null?o.y:200);}
 function playerStartPoint(cfg){const p=cfg&&cfg.playerStart;return p?{x:layoutX(p),y:layoutY(p)}:{x:CW/2,y:CH*.70};}
 function anchorBaseLocal(anchor){
   var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
@@ -197,9 +208,11 @@ class Obs{
   constructor(o){
     this.cfg=o.cfg||{};
     this.coordMode=o.coordMode||'screen';
-    this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
-    this.x=layoutX(o);this.y=layoutY(o);
     this.w=o.w||60;this.h=o.h||60;
+    this.anchor=o.anchor||'cc';this.anchorOffsetX=o.anchorOffsetX;this.anchorOffsetY=o.anchorOffsetY;
+    const lc=obstacleCenterLocal({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});
+    this.layoutLocalX=lc.x;this.layoutLocalY=lc.y;
+    this.x=obstacleLayoutX({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});this.y=obstacleLayoutY({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});
     this.shape=o.shape||'rect';
     this.points=(o.points||null);
     this.color=o.color||'#e05252';
@@ -1112,8 +1125,8 @@ class Game{
       st.bgs.forEach(b=>b.relayout());
       for(const o of st.obs){
         if(o.kin&&o.live){
-          o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX});
-          o.iy=layoutY({coordMode:o.coordMode,y:o.layoutLocalY});
+          o.ix=obstacleLayoutX({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
+          o.iy=obstacleLayoutY({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
           o.x=o.ix;o.y=o.iy;
         }else{o.x*=kx;o.y*=ky;}
       }
