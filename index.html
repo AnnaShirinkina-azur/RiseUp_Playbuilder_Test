@@ -523,19 +523,26 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=29"></script>
-<script src="src/builder.js?v=29"></script>
+<script src="src/playable-template.js?v=30"></script>
+<script src="src/builder.js?v=30"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
 let currentOrientation='portrait';
+function editorDims(or){
+  const h=844;
+  // The visual landscape frame is still 844×390, but the level coordinate
+  // system keeps height 844 and reveals extra width: 844*(844/390).
+  if(or==='landscape')return {w:Math.round(h*(844/390)),h};
+  return {w:390,h};
+}
 function setOrientation(or){
   currentOrientation=or;
   const hidden=$('cfg-orientation'); if(hidden) hidden.value=or;
   ['orientation-main','orientation-preview','orientation-editor'].forEach(id=>{const w=$(id); if(!w)return; w.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.or===or));});
   $('phone')?.classList.toggle('landscape',or==='landscape');
   $('editor-phone')?.classList.toggle('landscape',or==='landscape');
-  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'1826×844 view · active 390×844':'390×844')+' · нажми Update Preview после изменений';
+  const lab=$('phone-label'); if(lab){const d=editorDims(or);lab.textContent=d.w+'×'+d.h+' · высота уровня фиксирована, ширина адаптивная';}
   if(window.RiseLevelEditor)RiseLevelEditor.resize();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'); if(b)setOrientation(b.dataset.or);});
@@ -830,17 +837,8 @@ const LE=(function(){
   let zoom=parseFloat($('le-zoom')?.value)||0.55;
   let cur=0,sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0},scaleRef=null;
   let showZones=true;
-  // Active zone is the fixed portrait gameplay column. Landscape only adds
-  // passive side blocks; active height and width stay unchanged.
-  const ACTIVE_W=390,ACTIVE_H=844;
-  function landscapeGW(){return Math.round(ACTIVE_H*844/390);}
-  function clampObstacle(o){
-    if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='cta'||o.kind==='bg')return o;
-    const hw=(o.w||0)/2,hh=(o.h||0)/2;
-    o.x=Math.round(Math.max(-ACTIVE_W/2+hw,Math.min(ACTIVE_W/2-hw,o.x||0)));
-    o.y=Math.round(Math.max(-ACTIVE_H/2+hh,Math.min(ACTIVE_H/2-hh,o.y||0)));
-    return o;
-  }
+  // Level area: fixed height, adaptive width (same model as the attached playable).
+  // Landscape does not shrink height; it reveals extra side area.
   let customShapeImageSrc=null,customShapeSvgPoints=null;
   const lvls=Array.from({length:NS+2},()=>[]);
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
@@ -952,12 +950,13 @@ const LE=(function(){
     wrap.scrollTop=Math.max(0,cy*zoom-wrap.clientHeight/2);
   });
 
-  ['ow','oh','oc','om'].forEach(id=>{$(id).addEventListener('input',()=>{if(sel===null||!lvls[cur]||!lvls[cur][sel])return;const o=lvls[cur][sel];if(o.kind==='text')return;if(o.kind==='bg'){o.w=parseInt($('ow').value)||o.w;o.h=parseInt($('oh').value)||o.h;o.tint=$('oc').value;draw();return;}o.w=parseInt($('ow').value)||60;o.h=parseInt($('oh').value)||60;o.color=$('oc').value;o.moveX=parseInt($('om').value)||0;clampObstacle(o);draw();});});
+  ['ow','oh','oc','om'].forEach(id=>{$(id).addEventListener('input',()=>{if(sel===null||!lvls[cur]||!lvls[cur][sel])return;const o=lvls[cur][sel];if(o.kind==='text')return;if(o.kind==='bg'){o.w=parseInt($('ow').value)||o.w;o.h=parseInt($('oh').value)||o.h;o.tint=$('oc').value;draw();return;}o.w=parseInt($('ow').value)||60;o.h=parseInt($('oh').value)||60;o.color=$('oc').value;o.moveX=parseInt($('om').value)||0;draw();});});
 
   function resize(keepScroll=false){
     const oldTop=wrap.scrollTop,oldLeft=wrap.scrollLeft;
-    GW=currentOrientation==='landscape'?landscapeGW():ACTIVE_W;
-    GH=ACTIVE_H;
+    const d=editorDims(currentOrientation);
+    GW=d.w;
+    GH=d.h;
     cv.width=Math.max(1,Math.round(GW*zoom));
     cv.height=Math.max(1,Math.round(GH*(NS+2)*zoom));
     cv.style.width=cv.width+'px';cv.style.height=cv.height+'px';
@@ -976,13 +975,12 @@ const LE=(function(){
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
   function stageLabel(si){return si===0?'Start scene':(si===NS+1?'Finish scene':'Mini-level '+si);}
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
-  function activeSq(){return Math.min(ACTIVE_W,ACTIVE_H);}
   function anchorBaseLocal(anchor){
     const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
-    return {x:ah==='l'?-ACTIVE_W/2:(ah==='r'?ACTIVE_W/2:0),y:av==='t'?-ACTIVE_H/2:(av==='b'?ACTIVE_H/2:0)};
+    return {x:ah==='l'?-GW/2:(ah==='r'?GW/2:0),y:av==='t'?-GH/2:(av==='b'?GH/2:0)};
   }
   function textLocal(o){
-    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=anchorBaseLocal(o.anchor);return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*ACTIVE_W/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*ACTIVE_H/100};}
+    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=anchorBaseLocal(o.anchor);return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*GW/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*GH/100};}
     return {x:(o&&o.x)||0,y:(o&&o.y)||0};
   }
   function setTextLocalFromOffset(o){if(!o||o.kind!=='text')return;const l=textLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
@@ -1017,6 +1015,13 @@ const LE=(function(){
     }
     return -1;
   }
+
+  function clampObstacle(o){
+    if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='cta'||o.kind==='bg')return;
+    const hw=(o.w||60)/2,hh=(o.h||60)/2;
+    o.x=Math.max(-GW/2+hw,Math.min(GW/2-hw,o.x||0));
+    o.y=Math.max(-GH/2+hh,Math.min(GH/2-hh,o.y||0));
+  }
   function updateCurrentFromScroll(){const row=Math.max(0,Math.min(totalStages()-1,Math.floor((wrap.scrollTop/zoom+GH*.45)/GH)));cur=stageOf(row);}
   wrap.addEventListener('scroll',()=>{const old=cur;updateCurrentFromScroll();if(old!==cur){sel=null;syncProps();draw();}});
 
@@ -1024,11 +1029,11 @@ const LE=(function(){
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;cur=si;
     if(mode==='text'){
-      const L=newTextLabel(Math.max(-ACTIVE_W/2,Math.min(ACTIVE_W/2,Math.round(g.x))),Math.max(-ACTIVE_H/2,Math.min(ACTIVE_H/2,Math.round(localY))));
+      const L=newTextLabel(Math.round(g.x),Math.round(localY));
       lvls[si].push(L);sel=lvls[si].length-1;syncProps();draw();return;
     }
     if(mode==='progress'){
-      const sq=activeSq(),x=Math.round(g.x),y=Math.round(localY);
+      const x=Math.round(g.x),y=Math.round(localY);
       const P={kind:'progress',coordMode:'screen',x,y,w:64,h:300,anchor:'cl',anchorOffsetX:Math.round(((x-progressAnchorBaseLocal('cl').x)/GW)*1000)/10,anchorOffsetY:Math.round((y/GH)*1000)/10,fill:'#b9ff9b',line:'#101625',flaskSrc:null,fillSrc:null};
       lvls[si].push(P);sel=lvls[si].length-1;syncProps();draw();return;
     }
@@ -1047,8 +1052,9 @@ const LE=(function(){
       }
       syncProps();draw();return;
     }
-    const o=clampObstacle({x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800});
+    const o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800};
     if(shape==='custom'&&customShape){o.customName=customShape.name;o.points=customShape.points.map(p=>({x:p.x,y:p.y}));if(customShape.imageSrc)o.imageSrc=customShape.imageSrc;}
+    clampObstacle(o);
     lvls[si].push(o);sel=lvls[si].length-1;syncProps();draw();
   });
   cv.addEventListener('pointermove',e=>{
@@ -1070,7 +1076,7 @@ const LE=(function(){
       }
       draw();return;
     }
-    {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/ACTIVE_W)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/ACTIVE_H)*1000)/10;setTextLocalFromOffset(it);}else if(it.kind==='progress'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setProgressLocalFromOffset(it);}else if(it.kind==='cta'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setCtaLocalFromOffset(it);}else{it.x=nx;it.y=ny;clampObstacle(it);}draw();}
+    {const it=lvls[cur][sel],nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);if(it.kind==='text'){const b=anchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setTextLocalFromOffset(it);}else if(it.kind==='progress'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setProgressLocalFromOffset(it);}else if(it.kind==='cta'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setCtaLocalFromOffset(it);}else{it.x=nx;it.y=ny;clampObstacle(it);}draw();}
   });
   cv.addEventListener('pointerup',()=>{drag=false;scaleRef=null;});cv.addEventListener('pointercancel',()=>{drag=false;scaleRef=null;});
 
@@ -1239,47 +1245,19 @@ const LE=(function(){
     else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
     if(o.moveX>0){const mx=o.moveX*zoom;ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}ctx.restore();
   }
-  // ── Active / passive zones ────────────────────────────────────────────────
-  // The active zone is the fixed centered gameplay column. The passive zone
-  // is whatever is added on the sides to stretch landscape.
-  function zoneRect(top,w,h,midX,midY){
-    const aw=ACTIVE_W*zoom,ah=ACTIVE_H*zoom;
-    const x0=midX-aw/2,y0=midY-ah/2;
-    return {aw,ah,sq:Math.min(aw,ah),x0,y0,x1:x0+aw,y1:y0+ah,top,bottom:top+h,w};
+  // ── Level area guide ───────────────────────────────────────────────────────
+  function drawPassiveZone(top,w,h,midX,midY){
+    // No separate passive zone: the playable model keeps one fixed-height level
+    // and changes only its width. In landscape the side area is part of the same
+    // level coordinate system.
   }
-  function drawPassiveZone(top,w,h,midX,midY){ // call BEFORE obstacles
+  function drawActiveZone(top,w,h,midX,midY){
     if(!showZones)return;
-    const z=zoneRect(top,w,h,midX,midY);
     ctx.save();
-    ctx.fillStyle='rgba(6,6,12,.5)';         // dim the extension area
-    if(z.y0>z.top+0.5)ctx.fillRect(0,z.top,w,z.y0-z.top);            // top band
-    if(z.y1<z.bottom-0.5)ctx.fillRect(0,z.y1,w,z.bottom-z.y1);       // bottom band
-    const sy0=Math.max(z.top,z.y0),sy1=Math.min(z.bottom,z.y1);
-    if(z.x0>0.5)ctx.fillRect(0,sy0,z.x0,sy1-sy0);                    // left band
-    if(z.x1<w-0.5)ctx.fillRect(z.x1,sy0,w-z.x1,sy1-sy0);            // right band
-    ctx.restore();
-  }
-  function drawActiveZone(top,w,h,midX,midY){ // call AFTER obstacles
-    if(!showZones)return;
-    const z=zoneRect(top,w,h,midX,midY);
-    ctx.save();
-    // square outline
-    ctx.setLineDash([]);ctx.strokeStyle='#52e08a';ctx.lineWidth=2;
-    ctx.strokeRect(z.x0,z.y0,z.aw,z.ah);
-    // corner brackets
-    ctx.lineWidth=3;const cl=Math.min(22,z.sq*0.18);
-    [[z.x0,z.y0,1,1],[z.x1,z.y0,-1,1],[z.x0,z.y1,1,-1],[z.x1,z.y1,-1,-1]].forEach(([cx,cy,dx,dy])=>{
-      ctx.beginPath();ctx.moveTo(cx+dx*cl,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*cl);ctx.stroke();
-    });
-    // active label
-    if(z.sq>70){
-      ctx.fillStyle='#52e08a';ctx.font='600 '+Math.max(10,Math.min(13,11*zoom))+'px system-ui,sans-serif';ctx.textAlign='left';
-      ctx.fillText('ACTIVE '+ACTIVE_W+'×'+ACTIVE_H,z.x0+6,z.y0+15);
-    }
-    // passive label (only where a band actually exists)
-    ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';ctx.textAlign='center';
-    if(z.y0>z.top+22){ctx.fillText('PASSIVE',w/2,z.top+(z.y0-z.top)/2+3);}
-    else if(z.x0>34){ctx.fillText('PASSIVE',z.x0/2,top+h/2+3);}
+    ctx.strokeStyle='#52e08a';ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.strokeRect(0.5,top+0.5,w-1,h-1);
+    ctx.fillStyle='#52e08a';ctx.font='600 '+Math.max(10,Math.min(13,11*zoom))+'px system-ui,sans-serif';ctx.textAlign='left';
+    ctx.fillText('LEVEL AREA '+GW+'×'+GH+' · fixed height',8,top+15);
     ctx.restore();
   }
   function draw(){
@@ -1306,17 +1284,12 @@ const LE=(function(){
     
     let no=0,nt=0,nb=0,np=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='cta')nc++;else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
-  function withPercents(o){
-    o=clampObstacle(o);
-    if(o&&!(o.kind==='text'||o.kind==='progress'||o.kind==='cta'||o.kind==='bg')){o.xPercent=Math.round(((o.x+ACTIVE_W/2)/ACTIVE_W)*1000)/10;o.yPercent=Math.round(((o.y+ACTIVE_H/2)/ACTIVE_H)*1000)/10;}
-    return o;
-  }
-  function getLevelData(){return lvls.map(s=>s.map(o=>({...withPercents(o),coordMode:(o.kind==='progress'||o.kind==='cta')?'screen':'center'})));}
+  function getLevelData(){return lvls.map(s=>s.map(o=>({...o,coordMode:'center'})));}
 
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';
   function newTextLabel(x,y){
-    return {kind:'text',coordMode:'center',x:x,y:y,anchorOffsetX:Math.round((x/ACTIVE_W)*100),anchorOffsetY:Math.round((y/ACTIVE_H)*100),
+    return {kind:'text',coordMode:'center',x:x,y:y,anchorOffsetX:Math.round((x/GW)*100),anchorOffsetY:Math.round((y/GH)*100),
       segments:[{t:'TAP TO ',color:'#ffffff'},{t:'PLAY',color:'#52e08a'}],
       baseColor:'#ffffff',accentColor:'#52e08a',
       font:'Baloo2',size:64,anchor:'cc',stroke:'#000000',strokeW:0,shadow:true,letterSpacing:0};
@@ -1339,7 +1312,7 @@ const LE=(function(){
     if(isText){
       $('tx-font').value=o.font||'Baloo2';$('tx-size').value=o.size||64;
       $('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;
-      if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=anchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/ACTIVE_W)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/ACTIVE_H)*1000)/10;}
+      if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=anchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}
       $('tx-offx').value=o.anchorOffsetX||0;$('tx-offy').value=o.anchorOffsetY||0;
       txBase=o.baseColor||(o.segments[0]&&o.segments[0].color)||'#ffffff';
       txAccent=o.accentColor||o.segments.map(s=>s.color).find(c=>c&&c!==txBase)||'#52e08a';
