@@ -378,18 +378,20 @@ const LE=(function(){
   let selectedTemplateId=null;
   const lvls=Array.from({length:NS+2},()=>[]);
   const PLAYER_KIND='playerStart';
-  function defaultPlayerLocal(){return {x:0,y:Math.round(GH*.22)};}
+  function defaultPlayerLocal(){return {x:0,y:Math.round(GH*.22),anchor:'cc',anchorOffsetX:0,anchorOffsetY:22};}
   function ensurePlayerObject(){
     if(!lvls[0])lvls[0]=[];
     const existing=lvls[0].find(o=>o&&o.kind===PLAYER_KIND);
     if(existing)return existing;
     const d=defaultPlayerLocal();
-    const p={kind:PLAYER_KIND,coordMode:'center',x:d.x,y:d.y,lockedSingleton:true};
+    const p={kind:PLAYER_KIND,coordMode:'center',x:d.x,y:d.y,anchor:d.anchor,anchorOffsetX:d.anchorOffsetX,anchorOffsetY:d.anchorOffsetY,locked:false,lockedSingleton:true};
     lvls[0].unshift(p);
     if(cur===0){selSet=new Set(Array.from(selSet).map(i=>i+1));if(sel!=null)sel++;}
     return p;
   }
-  function playerLocal(o){return {x:(o&&o.x!=null)?o.x:0,y:(o&&o.y!=null)?o.y:Math.round(GH*.22)};}
+  function playerLocal(o){if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=progressAnchorBaseLocal(o.anchor||'cc');return {x:b.x+(parseFloat(o.anchorOffsetX)||0)*GW/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*GH/100};}return {x:(o&&o.x!=null)?o.x:0,y:(o&&o.y!=null)?o.y:Math.round(GH*.22)};}
+  function ensurePlayerAnchor(o){if(!o||o.kind!==PLAYER_KIND)return;if(!o.anchor)o.anchor='cc';if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y==null?Math.round(GH*.22):o.y},b=progressAnchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}}
+  function setPlayerLocalFromOffset(o){if(!o||o.kind!==PLAYER_KIND)return;const l=playerLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
 
   const imageCache=new Map();
@@ -409,7 +411,7 @@ const LE=(function(){
   function itemLocal(it){return it.kind===PLAYER_KIND?playerLocal(it):(it.kind==='text'?textLocal(it):(it.kind==='progress'?progressLocal(it):(it.kind==='health'?healthLocal(it):(it.kind==='cta'?ctaLocal(it):it))));}
   function moveItemTo(it,nx,ny){
     nx=Math.round(nx);ny=Math.round(ny);
-    if(it.kind===PLAYER_KIND){it.x=nx;it.y=ny;}
+    if(it.kind===PLAYER_KIND){ensurePlayerAnchor(it);it.anchorOffsetX=Math.round(((nx-progressAnchorBaseLocal(it.anchor).x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-progressAnchorBaseLocal(it.anchor).y)/GH)*1000)/10;setPlayerLocalFromOffset(it);}
     else if(it.kind==='text'){const b=anchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setTextLocalFromOffset(it);}
     else if(it.kind==='progress'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setProgressLocalFromOffset(it);}
     else if(it.kind==='health'){const b=progressAnchorBaseLocal(it.anchor);it.anchorOffsetX=Math.round(((nx-b.x)/GW)*1000)/10;it.anchorOffsetY=Math.round(((ny-b.y)/GH)*1000)/10;setHealthLocalFromOffset(it);}
@@ -813,7 +815,9 @@ const LE=(function(){
       if(idx>=0){
         if(e.shiftKey){setSelection(idx,true);if(!selSet.has(idx)){syncProps();draw();return;}}
         if(!selSet.has(idx))setSelection(idx,false);
-        drag=true;const it=lvls[si][idx],l=itemLocal(it);doff={x:g.x-l.x,y:localY-l.y};
+        const it=lvls[si][idx];
+        if(it&&it.kind===PLAYER_KIND&&it.locked){syncProps();draw();return;}
+        drag=true;const l=itemLocal(it);doff={x:g.x-l.x,y:localY-l.y};
         dragStart={clicked:idx,items:selectionIndices().map(j=>{const q=lvls[si][j],ql=itemLocal(q);return {idx:j,x:ql.x,y:ql.y};}),clickedStart:{x:l.x,y:l.y}};
         // Scale: remember grab distance from the object center and its start size;
         // dragging away from the center grows it, toward the center shrinks it.
@@ -854,8 +858,8 @@ const LE=(function(){
     {const nx=Math.round(g.x-doff.x),ny=Math.round(localY-doff.y);
       if(dragStart&&dragStart.items&&dragStart.items.length>1){
         const dx=nx-dragStart.clickedStart.x,dy=ny-dragStart.clickedStart.y;
-        dragStart.items.forEach(st=>{const it=lvls[cur][st.idx];if(it)moveItemTo(it,st.x+dx,st.y+dy);});
-      }else{const it=lvls[cur][sel];if(it)moveItemTo(it,nx,ny);}
+        dragStart.items.forEach(st=>{const it=lvls[cur][st.idx];if(it&&!(it.kind===PLAYER_KIND&&it.locked))moveItemTo(it,st.x+dx,st.y+dy);});
+      }else{const it=lvls[cur][sel];if(it&&!(it.kind===PLAYER_KIND&&it.locked))moveItemTo(it,nx,ny);}
       draw();}
   });
   cv.addEventListener('pointerup',()=>{drag=false;scaleRef=null;dragStart=null;});cv.addEventListener('pointercancel',()=>{drag=false;scaleRef=null;dragStart=null;});
@@ -1150,7 +1154,7 @@ const LE=(function(){
     let no=0,nt=0,nb=0,np=0,nh=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='health')nh++;else if(o.kind==='cta')nc++;else if(o.kind===PLAYER_KIND){}else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nh+' health · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
   function getLevelData(){ensurePlayerObject();return lvls.map(stage=>{const out=[];stage.forEach(o=>{if(!o||o.kind===PLAYER_KIND)return;if(o.kind==='svgTemplate'){flattenSvgTemplate(o).forEach(x=>out.push({...x,coordMode:'center'}));}else{if(!o.kind)ensureObstacleScale(o);out.push({...o,coordMode:'center'});}});return out;});}
-  function getPlayerStart(){const p=ensurePlayerObject();return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.22):p.y)};}
+  function getPlayerStart(){const p=ensurePlayerObject();ensurePlayerAnchor(p);setPlayerLocalFromOffset(p);return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.22):p.y)};}
 
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';
@@ -1171,13 +1175,21 @@ const LE=(function(){
   }
   function syncProps(){
     const o=selItem(),isPlayer=!!(o&&o.kind===PLAYER_KIND),isText=!!(o&&o.kind==='text'),isProg=!!(o&&o.kind==='progress'),isHealth=!!(o&&o.kind==='health'),isCta=!!(o&&o.kind==='cta');
+    if($('playerbar'))$('playerbar').style.display=isPlayer?'':'none';
     $('txtbar').style.display=isText?'':'none';
     $('pbar').style.display=isProg?'':'none';
     $('hbar').style.display=isHealth?'':'none';
     $('ctabar').style.display=isCta?'':'none';
     $('obs-props').style.display=(!o||isPlayer||isText||isProg||isHealth||isCta)?'none':'flex';
     if($('tpl-unlock'))$('tpl-unlock').style.display='none';
-    if(isText){
+    if(isPlayer){
+      ensurePlayerAnchor(o);setPlayerLocalFromOffset(o);
+      $('pl-offx').value=o.anchorOffsetX||0;$('pl-offy').value=o.anchorOffsetY||0;
+      document.querySelectorAll('#pl-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cc')));
+      if($('pl-lock'))$('pl-lock').classList.toggle('on',!!o.locked);
+      if($('pl-unlock'))$('pl-unlock').classList.toggle('on',!o.locked);
+      if($('pl-lock-note'))$('pl-lock-note').textContent=o.locked?'Locked: шар нельзя двигать мышью. Позицию можно менять через anchors/offset.':'Unlocked: шар можно двигать мышью. Anchor/offset задают стартовую позицию.';
+    } else if(isText){
       $('tx-font').value=o.font||'Baloo2';$('tx-size').value=o.size||64;
       $('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;
       if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=anchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}
@@ -1215,6 +1227,13 @@ const LE=(function(){
   $('tx-base').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;const old=txBase,nw=$('tx-base').value;for(let i=0;i<txColors.length;i++)if(txColors[i]===old)txColors[i]=nw;txBase=nw;rebuildSegments(o);draw();});
   $('tx-accent').addEventListener('input',()=>{txAccent=$('tx-accent').value;const o=selItem();if(o&&o.kind==='text')o.accentColor=txAccent;});
   // keep the text selection when clicking the paint buttons
+
+  function selectedPlayer(){const o=selItem();return o&&o.kind===PLAYER_KIND?o:null;}
+  $('pl-lock')?.addEventListener('click',()=>{const o=selectedPlayer();if(!o)return;o.locked=true;syncProps();draw();});
+  $('pl-unlock')?.addEventListener('click',()=>{const o=selectedPlayer();if(!o)return;o.locked=false;syncProps();draw();});
+  document.querySelectorAll('#pl-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selectedPlayer();if(!o)return;ensurePlayerAnchor(o);o.anchor=b.dataset.a;setPlayerLocalFromOffset(o);syncProps();draw();}));
+  ['pl-offx','pl-offy'].forEach(id=>{$(id)?.addEventListener('input',()=>{const o=selectedPlayer();if(!o)return;ensurePlayerAnchor(o);o.anchorOffsetX=parseFloat($('pl-offx').value)||0;o.anchorOffsetY=parseFloat($('pl-offy').value)||0;setPlayerLocalFromOffset(o);draw();});});
+
   $('tx-paint-acc').addEventListener('mousedown',e=>e.preventDefault());
   $('tx-paint-base').addEventListener('mousedown',e=>e.preventDefault());
   $('tx-paint-acc').addEventListener('click',()=>paintRange($('tx-accent').value));

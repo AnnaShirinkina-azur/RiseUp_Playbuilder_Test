@@ -464,6 +464,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         </span>
         <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
       </div>
+      <div class="lblbar" id="playerbar" style="display:none">
+        <div class="lp">Player start</div>
+        <button class="et" id="pl-lock" type="button">🔒 Lock</button>
+        <button class="et" id="pl-unlock" type="button">🔓 Unlock</button>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="pl-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="pl-offx" value="0" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="pl-offy" value="22" min="-200" max="200" step="1"></div>
+        <small id="pl-lock-note" style="color:var(--dim);font-size:11px;line-height:1.25;">Unlocked: шар можно двигать мышью. Locked: позиция меняется только через anchors/offset.</small>
+      </div>
       <div class="lblbar" id="txtbar" style="display:none">
         <div class="lp">Text <input type="text" id="tx-text" placeholder="TAP TO PLAY" style="width:150px"></div>
         <div class="lp">Base <input type="color" id="tx-base" value="#ffffff"></div>
