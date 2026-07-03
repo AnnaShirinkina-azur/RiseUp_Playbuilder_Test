@@ -314,7 +314,7 @@ const LE=(function(){
   };
   Object.values(BUILTIN_SHAPES).forEach(b=>{b.imageSrc='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(b.svg);});
   function ensureObstacleScale(o){
-    if(!o||(o.kind&&o.kind!=='svgTemplate'))return o;
+    if(!o||o.kind)return o;
     if(o.baseW==null)o.baseW=Math.max(1,parseFloat(o.w)||60);
     if(o.baseH==null)o.baseH=Math.max(1,parseFloat(o.h)||60);
     if(o.scale==null)o.scale=1;
@@ -322,7 +322,7 @@ const LE=(function(){
     if(o.scaleY==null)o.scaleY=Math.max(.05,(parseFloat(o.h)||o.baseH)/(o.baseH*(parseFloat(o.scale)||1)));
     applyObstacleScale(o);return o;
   }
-  function applyObstacleScale(o){if(!o||(o.kind&&o.kind!=='svgTemplate'))return;const sc=Math.max(.05,parseFloat(o.scale)||1),sx=Math.max(.05,parseFloat(o.scaleX)||1),sy=Math.max(.05,parseFloat(o.scaleY)||1);o.scale=sc;o.scaleX=sx;o.scaleY=sy;o.w=Math.max(6,Math.round((o.baseW||60)*sc*sx));o.h=Math.max(6,Math.round((o.baseH||60)*sc*sy));}
+  function applyObstacleScale(o){if(!o||o.kind)return;const sc=Math.max(.05,parseFloat(o.scale)||1),sx=Math.max(.05,parseFloat(o.scaleX)||1),sy=Math.max(.05,parseFloat(o.scaleY)||1);o.scale=sc;o.scaleX=sx;o.scaleY=sy;o.w=Math.max(6,Math.round((o.baseW||60)*sc*sx));o.h=Math.max(6,Math.round((o.baseH||60)*sc*sy));}
   function scaleUiValues(){return {scale:Math.max(.05,parseFloat($('os')?.value)||1),scaleX:Math.max(.05,parseFloat($('osx')?.value)||1),scaleY:Math.max(.05,parseFloat($('osy')?.value)||1)};}
   function makeBuiltInObstacle(kind,x,y){const b=BUILTIN_SHAPES[kind]||BUILTIN_SHAPES.rect,v=scaleUiValues();const o={x,y,coordMode:'center',shape:'custom',customName:b.name,points:b.points.map(p=>({x:p.x,y:p.y})),imageSrc:b.imageSrc,baseW:b.baseW,baseH:b.baseH,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc')?.value||'#ffffff',moveX:parseInt($('om')?.value)||0,moveSpeed:1800};applyObstacleScale(o);return o;}
   const svgTemplates=[];
@@ -523,20 +523,16 @@ const LE=(function(){
   renderTemplateList();
   function addPrefabObstacles(stageIndex,cx,cy,prefab){
     const sv=scaleUiValues(),groupW=Math.round(180*sv.scale*sv.scaleX),groupH=Math.round(170*sv.scale*sv.scaleY),color=$('oc').value,moveX=parseInt($('om').value)||0;
-    const o={kind:'svgTemplate',x:cx,y:cy,coordMode:'center',w:Math.max(6,groupW),h:Math.max(6,groupH),baseW:180,baseH:170,scale:sv.scale,scaleX:sv.scaleX,scaleY:sv.scaleY,color,moveX,moveSpeed:1800,templateName:prefab.name||'svg_template',imageSrc:prefab.imageSrc,items:(prefab.items||[]).map(it=>({shape:it.shape||'rect',dx:it.dx||0,dy:it.dy||0,wRel:it.wRel||.1,hRel:it.hRel||.1,points:it.points?it.points.map(p=>({x:p.x,y:p.y})):null,color:it.color||null}))};
-    lvls[stageIndex].push(o);
-    setSelection(lvls[stageIndex].length-1,false);
-  }
-  function flattenSvgTemplate(o){
-    ensureObstacleScale(o);
-    const out=[];
-    (o.items||[]).forEach((it,idx)=>{
-      const child={x:Math.round((o.x||0)+(it.dx||0)*(o.w||180)),y:Math.round((o.y||0)+(it.dy||0)*(o.h||170)),coordMode:'center',baseW:Math.max(6,Math.round((it.wRel||.1)*(o.w||180))),baseH:Math.max(6,Math.round((it.hRel||.1)*(o.h||170))),scale:1,scaleX:1,scaleY:1,shape:it.shape||'rect',color:it.color||o.color||'#ffffff',moveX:o.moveX||0,moveSpeed:o.moveSpeed||1800,prefabName:o.templateName||'svg_template',prefabIndex:idx};
-      child.w=child.baseW;child.h=child.baseH;
-      if(child.shape==='custom'&&it.points)child.points=it.points.map(p=>({x:p.x,y:p.y}));
-      out.push(child);
+    const start=(lvls[stageIndex]||[]).length;
+    (prefab.items||[]).forEach((it,idx)=>{
+      const o={x:Math.round(cx+it.dx*groupW),y:Math.round(cy+it.dy*groupH),coordMode:'center',baseW:Math.max(6,Math.round(it.wRel*groupW)),baseH:Math.max(6,Math.round(it.hRel*groupH)),scale:1,scaleX:1,scaleY:1,shape:it.shape||'custom',color:it.color||color,moveX,moveSpeed:1800,prefabName:prefab.name||'svg_prefab',prefabIndex:idx};
+      o.w=o.baseW;o.h=o.baseH;
+      if(o.shape==='custom'&&it.points)o.points=it.points.map(p=>({x:p.x,y:p.y}));
+      lvls[stageIndex].push(o);
     });
-    return out;
+    selSet.clear();
+    for(let i=start;i<lvls[stageIndex].length;i++)selSet.add(i);
+    sel=lvls[stageIndex].length>start?start:null;
   }
 
   // shape buttons
@@ -724,13 +720,13 @@ const LE=(function(){
     if(mode==='drag'||mode==='scale'){
       const idx=obsAt(si,g.x,localY);
       if(idx>=0){
-        if(e.shiftKey){setSelection(idx,true);if(!selSet.has(idx)){syncProps();draw();return;}}
+        if(e.shiftKey){setSelection(idx,true);syncProps();draw();return;}
         if(!selSet.has(idx))setSelection(idx,false);
         drag=true;const it=lvls[si][idx],l=itemLocal(it);doff={x:g.x-l.x,y:localY-l.y};
         dragStart={clicked:idx,items:selectionIndices().map(j=>{const q=lvls[si][j],ql=itemLocal(q);return {idx:j,x:ql.x,y:ql.y};}),clickedStart:{x:l.x,y:l.y}};
         // Scale: remember grab distance from the object center and its start size;
         // dragging away from the center grows it, toward the center shrinks it.
-        if(mode==='scale'&&(!it.kind||it.kind==='svgTemplate'))ensureObstacleScale(it);
+        if(mode==='scale'&&!it.kind)ensureObstacleScale(it);
         scaleRef=mode==='scale'?{d0:Math.max(8,Math.hypot(g.x-l.x,localY-l.y)),w0:it.w||60,h0:it.h||60,s0:it.size||64,scale0:it.scale||1,scaleX0:it.scaleX||1,scaleY0:it.scaleY||1}:null;
       }else{clearSelection();}
       syncProps();draw();return;
@@ -757,7 +753,7 @@ const LE=(function(){
         it.size=Math.max(6,Math.min(400,Math.round(scaleRef.s0*f)));
         $('tx-size').value=it.size;
       }else{
-        if(!it.kind||it.kind==='svgTemplate'){ensureObstacleScale(it);it.scale=Math.max(.05,Math.min(20,scaleRef.scale0*f));applyObstacleScale(it);$('os').value=Number(it.scale).toFixed(2);$('osx').value=Number(it.scaleX).toFixed(2);$('osy').value=Number(it.scaleY).toFixed(2);}
+        if(!it.kind){ensureObstacleScale(it);it.scale=Math.max(.05,Math.min(20,scaleRef.scale0*f));applyObstacleScale(it);$('os').value=Number(it.scale).toFixed(2);$('osx').value=Number(it.scaleX).toFixed(2);$('osy').value=Number(it.scaleY).toFixed(2);}
         else {it.w=Math.max(10,Math.min(1200,Math.round(scaleRef.w0*f)));it.h=Math.max(10,Math.min(1200,Math.round(scaleRef.h0*f)));if(it.kind==='progress'){$('pb-w').value=it.w;$('pb-h').value=it.h;}else if(it.kind==='health'){it.heartW=Math.max(8,Math.min(180,Math.round(scaleRef.w0*f)));$('hb-size').value=it.heartW;}else if(it.kind==='cta'){$('cta-w').value=it.w;$('cta-h').value=it.h;}}
       }
       draw();return;
@@ -939,17 +935,9 @@ const LE=(function(){
     if(isSelected(si,i)){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(x-5,y-5,sw+10,sh+10);ctx.setLineDash([]);}
   }
   function drawObstacle(o,si,i){
-    if(o.kind==='svgTemplate')ensureObstacleScale(o);else if(!o.kind)ensureObstacleScale(o);
     const c=toC(si,o.x,o.y),sw=o.w*zoom,sh=o.h*zoom;
     ctx.save();ctx.fillStyle=o.color||'#e05252';ctx.strokeStyle=(isSelected(si,i))?'#fff':'rgba(255,255,255,.24)';ctx.lineWidth=(isSelected(si,i))?2.5:1.5;
-    if(o.kind==='svgTemplate'){
-      const im=getEditorImage(o.imageSrc);
-      if(imageReady(im))drawTintedImage(im,c.x-sw/2,c.y-sh/2,sw,sh,o.color||'#ffffff');
-      else{ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(c.x-sw/2,c.y-sh/2,sw,sh);}
-      ctx.strokeRect(c.x-sw/2,c.y-sh/2,sw,sh);
-      if(isSelected(si,i)){ctx.setLineDash([6,4]);ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.strokeRect(c.x-sw/2-5,c.y-sh/2-5,sw+10,sh+10);ctx.setLineDash([]);}
-    }
-    else if(o.shape==='circle'){ctx.beginPath();ctx.arc(c.x,c.y,sw/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    if(o.shape==='circle'){ctx.beginPath();ctx.arc(c.x,c.y,sw/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
     else if(o.shape==='triangle'){ctx.beginPath();ctx.moveTo(c.x,c.y-sh/2);ctx.lineTo(c.x+sw/2,c.y+sh/2);ctx.lineTo(c.x-sw/2,c.y+sh/2);ctx.closePath();ctx.fill();ctx.stroke();}
     else if(o.shape==='custom'&&o.points&&o.points.length>=3){const im=getEditorImage(o.imageSrc);if(imageReady(im))drawTintedImage(im,c.x-sw/2,c.y-sh/2,sw,sh,o.color||'#ffffff');else{ctx.fillStyle=o.color||'#ffffff';ctx.fillRect(c.x-sw/2,c.y-sh/2,sw,sh);}ctx.beginPath();o.points.forEach((p,pi)=>{const px=c.x+p.x*sw,py=c.y+p.y*sh;if(pi===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.stroke();}
     else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
@@ -1024,7 +1012,7 @@ const LE=(function(){
     
     let no=0,nt=0,nb=0,np=0,nh=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='health')nh++;else if(o.kind==='cta')nc++;else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nh+' health · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
-  function getLevelData(){return lvls.map(stage=>{const out=[];stage.forEach(o=>{if(!o)return;if(o.kind==='svgTemplate'){flattenSvgTemplate(o).forEach(x=>out.push({...x,coordMode:'center'}));}else{if(!o.kind)ensureObstacleScale(o);out.push({...o,coordMode:'center'});}});return out;});}
+  function getLevelData(){return lvls.map(s=>s.map(o=>{if(o&&!o.kind)ensureObstacleScale(o);return {...o,coordMode:'center'};}));}
 
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';
