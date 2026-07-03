@@ -224,7 +224,7 @@ class Obs{
     ctx.translate(dx,dy);
     if(!this.kin)ctx.rotate(this.rot);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
-    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.cfg&&this.cfg.obstacleSpriteColor);}
+    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
     else{
       ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
@@ -460,7 +460,7 @@ class Game{
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
     // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
     const ld=c.levelData;
-    const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
+    const hasLD=Array.isArray(ld);
     const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
     for(let si=0;si<stageCount;si++){
       let obs=[],labels=[],bgs=[];

@@ -22,7 +22,6 @@ function readConfig(){
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
-    obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),obstacleSpriteColor:g('cfg-obstacleSpriteColor'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),backgroundSpriteColor:g('cfg-bgSpriteColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
