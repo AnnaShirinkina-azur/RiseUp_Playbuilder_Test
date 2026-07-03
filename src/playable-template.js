@@ -1,6 +1,21 @@
 (function(W){'use strict';
 let CW=390,CH=844;
-function setView(orientation){CH=844;CW=(orientation==='landscape')?844:390;}
+function viewAspect(){
+  try{
+    const w=Math.max(1,window.innerWidth||0),h=Math.max(1,window.innerHeight||0);
+    return w/h;
+  }catch(e){return 1;}
+}
+function setView(orientation){
+  CH=844;
+  if(orientation==='landscape'){
+    // Same vertical game height as portrait; landscape only reveals/uses extra width.
+    // This matches the playable behaviour: no zoom-out / no vertical squashing.
+    CW=Math.max(390,Math.round(CH*viewAspect()));
+  }else{
+    CW=390;
+  }
+}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 // Default per-mini-level background gradients (bottom,top), cycled by stage
@@ -976,9 +991,9 @@ class Game{
   // positions are re-derived from center-based layout coords or scaled.
   setOrientation(or){
     or=or==='landscape'?'landscape':'portrait';
-    if(or===this.cfg.orientation)return;
-    const oldW=CW,oldH=CH;
+    const oldW=CW,oldH=CH,oldOr=this.cfg.orientation;
     this.cfg.orientation=or;setView(or);
+    if(or===oldOr&&CW===oldW&&CH===oldH)return;
     const kx=CW/oldW,ky=CH/oldH;
     this.cv.width=CW;this.cv.height=CH;
     // ball: recompute its fixed lines for the new screen
