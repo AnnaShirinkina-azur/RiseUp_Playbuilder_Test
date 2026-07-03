@@ -61,7 +61,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/heart.png','textures/balloon.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
+  'textures/hand.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
   'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
@@ -84,6 +84,7 @@ function getSprites(){return Object.assign({},SPRS);}
 function buildHTML(cfg,assetMap,sprMap,gameSrc){
   if(assetMap['textures/heart.png'])cfg.defaultHeartSrc=assetMap['textures/heart.png'];
   if(assetMap['textures/balloon.png'])cfg.defaultPlayerSrc=assetMap['textures/balloon.png'];
+  if(assetMap['textures/balloon_death.png'])cfg.defaultPlayerDeathSrc=assetMap['textures/balloon_death.png'];
   if(assetMap['textures/controller.png'])cfg.defaultShieldSrc=assetMap['textures/controller.png'];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;

@@ -374,21 +374,23 @@ class Ball{
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
     this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;
     this.travel=0;this.speed=0;this.animT=0;
+    this.deathT=0;
     this.spr=null;
+    this.deathSpr=null;
   }
   get r(){return 20*this.cfg.playerSize;}
   get worldY(){return this.travel;}
-  die(){this.dead=true;this.da=0;}
+  die(){this.dead=true;this.da=0;this.deathT=0;}
   respawn(){
     const ps=playerStartPoint(this.cfg);
     this.dead=false;this.x=ps.x;this.ty=ps.y;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
-    this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;this.animT=0;
+    this.da=0;this.deathT=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;this.animT=0;
   }
   start(speed,travel=0){this.flying=true;this.finalFly=false;this.speed=speed;this.travel=travel;this.introT=0;}
   flyAway(){this.flying=true;this.finalFly=true;this.fy=0;}
   update(dt){
     this.animT+=dt;
-    if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
+    if(this.dead){this.deathT+=dt;this.da=Math.min(1,this.deathT/(this.cfg.playerDeathDuration||900));return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
     if(this.finalFly){
@@ -408,6 +410,7 @@ class Ball{
   }
   draw(ctx){
     if(this.dead){
+      if(this._paintDeath(ctx))return;
       ctx.save();ctx.globalAlpha=lerp(1,0,this.da);
       ctx.translate(this.x,this.y);ctx.scale(lerp(1,.05,this.da),lerp(1,.05,this.da));
       this._paint(ctx,0,0);ctx.restore();return;
@@ -417,6 +420,41 @@ class Ball{
     if(this.flash>0)ctx.globalAlpha=.5+.5*Math.sin(this.flash*.04);
     this._paint(ctx,0,0);ctx.restore();
   }
+  _paintDeath(ctx){
+    const sheet=this.deathSpr;
+    if(!imgOk(sheet))return false;
+    const r=this.r;
+    const frames=Math.max(1,parseInt(this.cfg.playerDeathFrames,10)||8);
+    const frameW=(sheet.naturalWidth||sheet.width||1)/frames;
+    const frameH=sheet.naturalHeight||sheet.height||1;
+    const animDur=this.cfg.playerDeathAnimDuration||720;
+    const fadeStart=this.cfg.playerDeathFadeStart||650;
+    const fi=clamp(Math.floor((this.deathT/animDur)*frames),0,frames-1);
+    const h=r*4.15,w=h*(frameW/frameH);
+    const alpha=this.deathT>fadeStart?clamp(1-(this.deathT-fadeStart)/260,0,1):1;
+    const t=(this.animT||0)/1000;
+    const sway=Math.sin(t*2.2)*r*.075;
+    const rot=Math.sin(t*1.65)*0.035;
+    ctx.save();
+    ctx.globalAlpha=alpha;
+    ctx.translate(this.x+sway,this.y+r*.15);
+    ctx.rotate(rot);
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0,-r*.05,r*.92,r*1.18,0,0,Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(sheet,fi*frameW,0,frameW,frameH,-w/2,-h*.58,w,h);
+    ctx.restore();
+    if(this.deathT<fadeStart){
+      ctx.globalAlpha=alpha*.85;
+      ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.9);
+      ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(0,r*1.02);ctx.bezierCurveTo(0,r*1.75,0,r*2.5,Math.sin(t*2.2)*r*.10,r*3.25);ctx.stroke();
+    }
+    ctx.restore();
+    return true;
+  }
+
   _paint(ctx,x,y){
     const r=this.r;
     if(imgOk(this.spr)){
@@ -543,6 +581,7 @@ class Game{
     this.ball=new Ball(this.cfg);
     this.shield.spr=this._spr('shield')||makeImg(this.cfg.defaultShieldSrc);
     this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
+    this.ball.deathSpr=this._spr('player_death')||makeImg(this.cfg.defaultPlayerDeathSrc);
     this._resetFallingStages();
     this.completedStages=0;
     this.paused=false;
@@ -1142,6 +1181,7 @@ const DEF={
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
+  playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
   backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
