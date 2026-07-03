@@ -279,9 +279,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         </div></div>
         <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
           <div class="rr"><input type="range" id="cfg-seamScale" value="1" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">1.00</span></div></div>
-        <div class="row"><label>Image tint<small>Общий тинт для пер-уровневых картинок (по альфе)</small></label><input type="color" id="cfg-bgStageTint" value="#ffffff"></div>
         <div class="sec">Per-level backgrounds</div>
-        <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов (верх → низ).</small></label></div>
+        <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов. Пикеры в ряду: нижний цвет градиента · верхний цвет · тинт картинки (окрашивает её по альфе, белый = без тинта).</small></label></div>
         <div id="bg-stage-rows"></div>
       </div>
       <div id="bg-single-box" style="display:none">
@@ -524,8 +523,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=28"></script>
-<script src="src/builder.js?v=28"></script>
+<script src="src/playable-template.js?v=29"></script>
+<script src="src/builder.js?v=29"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -661,7 +660,7 @@ function renderBgStageRows(){
   let h='';
   for(let i=0;i<total;i++){
     const k='bg_stage'+i,d=BG_GRAD_DEFAULTS[i%BG_GRAD_DEFAULTS.length];
-    const a=keep['cfg-bgg'+i+'a']||d[0],b=keep['cfg-bgg'+i+'b']||d[1];
+    const a=keep['cfg-bgg'+i+'a']||d[0],b=keep['cfg-bgg'+i+'b']||d[1],t=keep['cfg-bgt'+i]||'#ffffff';
     h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
       <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">🖼️</div>
       <span style="font-size:12px;color:var(--dim);min-width:48px;">${bgStageLabel(i,total)}</span>
@@ -669,6 +668,7 @@ function renderBgStageRows(){
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
       <input type="color" id="cfg-bgg${i}a" value="${a}" title="Нижний цвет градиента">
       <input type="color" id="cfg-bgg${i}b" value="${b}" title="Верхний цвет градиента">
+      <input type="color" id="cfg-bgt${i}" value="${t}" title="Тинт картинки уровня (белый = без тинта)" style="margin-left:6px;">
     </div></div>`;
   }
   box.innerHTML=h;
@@ -696,7 +696,6 @@ document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.__bgBound=true);
 setBgMode(getBgMode()); // синхронизируем видимость блоков при загрузке
 window.RiseBgUI={getBgMode,renderBgStageRows,BG_GRAD_DEFAULTS};
 $('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
-$('cfg-bgStageTint')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
 function googleFontFamilyFromUrl(url){
@@ -803,7 +802,7 @@ syncInteractButton();
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,'cfg-bgStageTint':'#ffffff',
+  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
   'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff',
   'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
@@ -1154,8 +1153,8 @@ const LE=(function(){
       ctx.fillStyle=g;ctx.fillRect(0,top,w,h);
       const im=getEditorImage(sm['bg_stage'+si]);
       if(imageReady(im)){
-        const tint=$('cfg-bgStageTint')?$('cfg-bgStageTint').value:'#ffffff';
-        drawCoverImageFade(im,0,top,w,h,0,tint);
+        const te=$('cfg-bgt'+si);
+        drawCoverImageFade(im,0,top,w,h,0,(te&&te.value)||'#ffffff');
       }
     }
     const seam=getEditorImage(sm.bg_seam);

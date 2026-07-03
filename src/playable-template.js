@@ -795,7 +795,10 @@ class Game{
       // with the wave at a constant scale — no zoom-out effect at the start
       // while the edge extension collapses.
       const img=this._spr('bg_stage'+v.i);
-      if(imgOk(img))this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,this.cfg.bgStageTint);
+      if(imgOk(img)){
+        const tint=(this.cfg.stageBgTints&&this.cfg.stageBgTints[v.i])||this.cfg.bgStageTint;
+        this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint);
+      }
     }
     // seam sprite over each junction between neighbouring bands
     const seam=this._spr('bg_seam');
@@ -1015,7 +1018,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
