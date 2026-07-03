@@ -7,7 +7,7 @@ function setOrientation(or){
   ['orientation-main','orientation-preview','orientation-editor'].forEach(id=>{const w=$(id); if(!w)return; w.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.or===or));});
   $('phone')?.classList.toggle('landscape',or==='landscape');
   $('editor-phone')?.classList.toggle('landscape',or==='landscape');
-  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'844×390':'390×844')+' · нажми Update Preview после изменений';
+  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'1826×844 view · active 390×844':'390×844')+' · нажми Update Preview после изменений';
   if(window.RiseLevelEditor)RiseLevelEditor.resize();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'); if(b)setOrientation(b.dataset.or);});
@@ -150,9 +150,16 @@ const LE=(function(){
   let zoom=parseFloat($('le-zoom')?.value)||0.55;
   let cur=0,sel=null,mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0};
   let showZones=true;
-  // Active zone = central square the level should fit into; passive zone = screen
-  // extension around it (vertical in portrait, horizontal in landscape). Visual only.
-  const ACTIVE_W=1020,ACTIVE_H=1020;
+  // Active zone is the fixed portrait gameplay column. Landscape only adds
+  // passive side blocks; active height and width stay unchanged.
+  const ACTIVE_W=390,ACTIVE_H=844;
+  function landscapeGW(){return Math.round(ACTIVE_H*844/390);}
+  function clampObstacle(o){
+    const hw=(o.w||0)/2,hh=(o.h||0)/2;
+    o.x=Math.round(Math.max(-ACTIVE_W/2+hw,Math.min(ACTIVE_W/2-hw,o.x||0)));
+    o.y=Math.round(Math.max(-ACTIVE_H/2+hh,Math.min(ACTIVE_H/2-hh,o.y||0)));
+    return o;
+  }
   let customShapeImageSrc=null,customShapeSvgPoints=null;
   const lvls=Array.from({length:NS},()=>[]);
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
@@ -263,8 +270,8 @@ const LE=(function(){
 
   function resize(keepScroll=false){
     const oldTop=wrap.scrollTop,oldLeft=wrap.scrollLeft;
-    GW=currentOrientation==='landscape'?844:390;
-    GH=currentOrientation==='landscape'?390:844;
+    GW=currentOrientation==='landscape'?landscapeGW():ACTIVE_W;
+    GH=ACTIVE_H;
     cv.width=Math.max(1,Math.round(GW*zoom));
     cv.height=Math.max(1,Math.round(GH*NS*zoom));
     cv.style.width=cv.width+'px';cv.style.height=cv.height+'px';
@@ -294,7 +301,7 @@ const LE=(function(){
       if(idx>=0){drag=true;doff={x:g.x-lvls[si][idx].x,y:localY-lvls[si][idx].y};const o=lvls[si][idx];$('ow').value=o.w;$('oh').value=o.h;$('oc').value=o.color||'#e05252';$('om').value=o.moveX||0;}
       draw();return;
     }
-    const o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800};
+    const o=clampObstacle({x:Math.round(g.x),y:Math.round(localY),coordMode:'center',w:parseInt($('ow').value)||60,h:parseInt($('oh').value)||60,shape:shape==='custom'?'custom':shape,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800});
     if(shape==='custom'&&customShape){o.customName=customShape.name;o.points=customShape.points.map(p=>({x:p.x,y:p.y}));if(customShape.imageSrc)o.imageSrc=customShape.imageSrc;}
     lvls[si].push(o);sel=lvls[si].length-1;draw();
   });
@@ -303,7 +310,7 @@ const LE=(function(){
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;
     if(si!==cur)return;
-    lvls[cur][sel].x=Math.round(g.x-doff.x);lvls[cur][sel].y=Math.round(localY-doff.y);draw();
+    lvls[cur][sel].x=Math.round(g.x-doff.x);lvls[cur][sel].y=Math.round(localY-doff.y);clampObstacle(lvls[cur][sel]);draw();
   });
   cv.addEventListener('pointerup',()=>drag=false);cv.addEventListener('pointercancel',()=>drag=false);
 
@@ -387,9 +394,9 @@ const LE=(function(){
     if(o.moveX>0){const mx=o.moveX*zoom;ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}ctx.restore();
   }
   function zoneRect(top,w,h,midX,midY){
-    const sq=Math.min(GW,GH)*zoom;
-    const x0=midX-sq/2,y0=midY-sq/2;
-    return {sq,x0,y0,x1:x0+sq,y1:y0+sq,top,bottom:top+h,w};
+    const aw=ACTIVE_W*zoom,ah=ACTIVE_H*zoom;
+    const x0=midX-aw/2,y0=midY-ah/2;
+    return {aw,ah,sq:Math.min(aw,ah),x0,y0,x1:x0+aw,y1:y0+ah,top,bottom:top+h,w};
   }
   function drawPassiveZone(top,w,h,midX,midY){
     if(!showZones)return;
@@ -408,7 +415,7 @@ const LE=(function(){
     const z=zoneRect(top,w,h,midX,midY);
     ctx.save();
     ctx.setLineDash([]);ctx.strokeStyle='#52e08a';ctx.lineWidth=2;
-    ctx.strokeRect(z.x0,z.y0,z.sq,z.sq);
+    ctx.strokeRect(z.x0,z.y0,z.aw,z.ah);
     ctx.lineWidth=3;const cl=Math.min(22,z.sq*0.18);
     [[z.x0,z.y0,1,1],[z.x1,z.y0,-1,1],[z.x0,z.y1,1,-1],[z.x1,z.y1,-1,-1]].forEach(([cx,cy,dx,dy])=>{
       ctx.beginPath();ctx.moveTo(cx+dx*cl,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*cl);ctx.stroke();
@@ -443,7 +450,12 @@ const LE=(function(){
     }
     const total=lvls.reduce((a,s)=>a+s.length,0);ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText(NS+' mini-levels · '+total+' obstacles · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
-  function getLevelData(){return lvls.map(s=>s.map(o=>({...o,coordMode:'center'})));}
+  function withPercents(o){
+    o=clampObstacle(o);
+    if(o&&!(o.kind==='text'||o.kind==='progress'||o.kind==='cta'||o.kind==='bg')){o.xPercent=Math.round(((o.x+ACTIVE_W/2)/ACTIVE_W)*1000)/10;o.yPercent=Math.round(((o.y+ACTIVE_H/2)/ACTIVE_H)*1000)/10;}
+    return o;
+  }
+  function getLevelData(){return lvls.map(s=>s.map(o=>({...withPercents(o),coordMode:'center'})));}
 
   setStageCount(NS);sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});

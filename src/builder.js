@@ -116,7 +116,7 @@ html,body{width:100%;height:100%;background:${JSON.stringify(cfg.bgColor||'#0d0d
 #loader::before{content:'';position:absolute;inset:0;background-image:var(--loader-bg);background-size:cover;background-position:center;opacity:.96;transform:scale(1.02)}
 #loader::after{content:'Loading...';position:relative;padding:8px 12px;border-radius:999px;background:rgba(0,0,0,.22);backdrop-filter:blur(4px)}
 #gr.portrait{--gw:390px;--gh:844px}
-#gr.landscape{--gw:844px;--gh:390px}
+#gr.landscape{--gw:1826px;--gh:844px}
 @media(max-aspect-ratio:390/844){#gr.portrait{width:100vw;height:calc(100vw*844/390)}}
 @media(min-aspect-ratio:390/844){#gr.portrait{height:100vh;width:calc(100vh*390/844)}}
 @media(max-aspect-ratio:844/390){#gr.landscape{width:100vw;height:calc(100vw*390/844)}}
