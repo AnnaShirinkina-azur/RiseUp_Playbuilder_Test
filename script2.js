@@ -7,7 +7,7 @@ function setOrientation(or){
   ['orientation-main','orientation-preview','orientation-editor'].forEach(id=>{const w=$(id); if(!w)return; w.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.or===or));});
   $('phone')?.classList.toggle('landscape',or==='landscape');
   $('editor-phone')?.classList.toggle('landscape',or==='landscape');
-  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'844×390':'390×844')+' · нажми Update Preview после изменений';
+  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'844×844':'390×844')+' · нажми Update Preview после изменений';
   if(window.RiseLevelEditor)RiseLevelEditor.resize();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'); if(b)setOrientation(b.dataset.or);});

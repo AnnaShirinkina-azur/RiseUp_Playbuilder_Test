@@ -1,6 +1,6 @@
 (function(W){'use strict';
 let CW=390,CH=844;
-function setView(orientation){if(orientation==='landscape'){CW=844;CH=390;}else{CW=390;CH=844;}}
+function setView(orientation){CH=844;CW=(orientation==='landscape')?844:390;}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
@@ -29,13 +29,12 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
-function activeSq(){return Math.min(CW,CH);}
 function anchorBaseLocal(anchor){
-  var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),sq=activeSq();
-  return {x:ah==='l'?-sq/2:(ah==='r'?sq/2:0),y:av==='t'?-sq/2:(av==='b'?sq/2:0)};
+  var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
+  return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
 }
 function textLocal(L){
-  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor),sq=activeSq();return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*sq/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*sq/100};}
+  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
 function progressAnchorBaseLocal(anchor){
