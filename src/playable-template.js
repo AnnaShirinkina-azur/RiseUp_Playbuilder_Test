@@ -899,7 +899,7 @@ class Game{
     // ball below shield
     this.ball.draw(ctx);
     this.shield.draw(ctx);
-    this._drawDots(ctx);
+    // Level progress dots removed: progress indicators should be placed manually in the editor.
     this._drawProgressBars(ctx);
     this._drawHealthBars(ctx);
     this._drawCtas(ctx);
