@@ -47,6 +47,7 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
+function playerStartPoint(cfg){const p=cfg&&cfg.playerStart;return p?{x:layoutX(p),y:layoutY(p)}:{x:CW/2,y:CH*.72};}
 function anchorBaseLocal(anchor){
   var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
   return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
@@ -332,8 +333,9 @@ class Shield{
 class Ball{
   constructor(cfg){
     this.cfg=cfg;
-    this.x=CW/2;
-    this.ty=CH*.72;              // fixed gameplay line after the first tap
+    const ps=playerStartPoint(this.cfg);
+    this.x=ps.x;
+    this.ty=ps.y;              // fixed gameplay line after the first tap
     this.idleY=Math.min(CH-this.r-8,this.ty+80); // before tap: 50-100px lower
     this.y=this.idleY;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
@@ -345,7 +347,8 @@ class Ball{
   get worldY(){return this.travel;}
   die(){this.dead=true;this.da=0;}
   respawn(){
-    this.dead=false;this.x=CW/2;this.ty=CH*.72;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
+    const ps=playerStartPoint(this.cfg);
+    this.dead=false;this.x=ps.x;this.ty=ps.y;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
     this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;this.animT=0;
   }
   start(speed,travel=0){this.flying=true;this.finalFly=false;this.speed=speed;this.travel=travel;this.introT=0;}
@@ -1072,7 +1075,8 @@ class Game{
     this.cv.width=CW;this.cv.height=CH;
     // ball: recompute its fixed lines for the new screen
     const b=this.ball;
-    b.x=CW/2;b.ty=CH*.72;b.idleY=Math.min(CH-b.r-8,b.ty+80);
+    const ps=playerStartPoint(this.cfg);
+    b.x=ps.x;b.ty=ps.y;b.idleY=Math.min(CH-b.r-8,b.ty+80);
     if(b.finalFly)b.y*=ky;
     else if(b.flying)b.y=b.introT>=1?b.ty:lerp(b.idleY,b.ty,1-Math.pow(1-b.introT,3));
     else b.y=b.idleY;
@@ -1102,7 +1106,7 @@ const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   chainReaction:true,scatterBounciness:0.35,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
