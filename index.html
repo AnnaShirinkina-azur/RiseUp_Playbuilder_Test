@@ -276,14 +276,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
       <div class="row"><label>Grid</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
       <div class="row"><label>Particles</label><input type="color" id="cfg-particleColor" value="#f5e642"></div>
-      <div class="sec">Background images</div>
-      <div class="row wide"><label>Environment image<small>Одна картинка-окружение на весь экран (опционально). Остальные фоновые картинки размещаются в Level Editor: загрузите их в Images, перетащите на уровень, растяните и задайте тинт.</small></label></div>
+      <div class="sec">Background mode</div>
+      <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
+        <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
+        <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
+      <div id="bg-perstage-box">
+        <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык между уровнями (например, облака). Опционально — без него стык просто линия между градиентами.</small></label></div>
+        <div class="sp-row"><div class="sp-up">
+          <div class="thumb" id="th-bg_seam">〰️</div>
+          <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
+          <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
+        </div></div>
+        <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
+          <div class="rr"><input type="range" id="cfg-seamScale" value="1" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">1.00</span></div></div>
+        <div class="sec">Per-level backgrounds</div>
+        <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов (верх → низ).</small></label></div>
+        <div id="bg-stage-rows"></div>
+      </div>
+      <div id="bg-single-box" style="display:none">
+      <div class="row wide"><label>Environment image<small>Одна статичная картинка на всю игру. Остальные фоновые картинки размещаются в Level Editor: загрузите их в Images, перетащите на уровень, растяните и задайте тинт.</small></label></div>
       <div id="env-bg-common" class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-background-visuals">🖼️</div>
         <label class="ul-btn">+ Background image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
         <button class="x-btn" onclick="clearSpr('background')">✕</button>
       </div></div>
       <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="color" id="cfg-bgSpriteColor" value="#ffffff"></div>
+      </div>
     </div>
 
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
@@ -654,6 +672,47 @@ function renderStageAssetRows(){
   }
 }
 renderStageAssetRows();
+
+// ── Per-level backgrounds ─────────────────────────────────────────────────
+const BG_GRAD_DEFAULTS=[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
+function bgStageLabel(i,total){return i===0?'Start':(i===total-1?'Finish':'Mini '+i);}
+function renderBgStageRows(){
+  const box=$('bg-stage-rows');if(!box)return;
+  const total=getStageCount()+2; // Start + minis + Finish
+  // preserve already chosen gradient colors across re-render
+  const keep={};box.querySelectorAll('input[type=color]').forEach(e=>keep[e.id]=e.value);
+  let h='';
+  for(let i=0;i<total;i++){
+    const k='bg_stage'+i,d=BG_GRAD_DEFAULTS[i%BG_GRAD_DEFAULTS.length];
+    const a=keep['cfg-bgg'+i+'a']||d[0],b=keep['cfg-bgg'+i+'b']||d[1];
+    h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
+      <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">🖼️</div>
+      <span style="font-size:12px;color:var(--dim);min-width:48px;">${bgStageLabel(i,total)}</span>
+      <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
+      <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
+      <input type="color" id="cfg-bgg${i}a" value="${a}" title="Верхний цвет градиента">
+      <input type="color" id="cfg-bgg${i}b" value="${b}" title="Нижний цвет градиента">
+    </div></div>`;
+  }
+  box.innerHTML=h;
+  // restore uploaded thumbnails
+  const sp=RiseBuilder.getSprites();
+  for(let i=0;i<total;i++){const k='bg_stage'+i;if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
+  box.querySelectorAll('input[type=color]').forEach(e=>{const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+}
+renderBgStageRows();
+function getBgMode(){const e=$('cfg-backgroundMode');return (e&&e.value)||'perStage';}
+function setBgMode(m){
+  const e=$('cfg-backgroundMode');if(e)e.value=m;
+  const bar=$('bg-mode-bar');if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.bgmode===m));
+  const ps=$('bg-perstage-box'),sg=$('bg-single-box');
+  if(ps)ps.style.display=m==='perStage'?'':'none';
+  if(sg)sg.style.display=m==='common'?'':'none';
+  if(window.RiseLevelEditor)RiseLevelEditor.draw();
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-bgmode]');if(b)setBgMode(b.dataset.bgmode);});
+window.RiseBgUI={getBgMode,renderBgStageRows,BG_GRAD_DEFAULTS};
+$('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
 function googleFontFamilyFromUrl(url){
@@ -760,7 +819,7 @@ syncInteractButton();
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-scatterBounciness':0.35,
+  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
   'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff',
   'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
@@ -814,6 +873,7 @@ const LE=(function(){
     if(lvls.length>total)lvls.length=total;
     if(cur>=total)cur=total-1;
     renderStageAssetRows();
+    renderBgStageRows();
     sel=null;resize(true);
   }
 
@@ -1142,6 +1202,36 @@ const LE=(function(){
     const tint=$('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff';
     for(let r=0;r<totalStages();r++)drawCoverImageFade(im,0,r*GH*zoom,GW*zoom,GH*zoom,0,tint);
   }
+  function drawPerStageBg(){
+    // Per-mini-level bands: uploaded image (cover) or a 2-colour gradient,
+    // plus the optional seam sprite over every junction — matches the playable.
+    const sm=sprMap();
+    const defs=(window.RiseBgUI&&RiseBgUI.BG_GRAD_DEFAULTS)||[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
+    const w=GW*zoom,h=GH*zoom;
+    for(let si=0;si<totalStages();si++){
+      const top=rowOf(si)*h;
+      const im=getEditorImage(sm['bg_stage'+si]);
+      if(imageReady(im)){
+        const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
+        const s=Math.max(w/iw,h/ih),dw=iw*s,dh=ih*s;
+        ctx.save();ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
+        ctx.drawImage(im,(w-dw)/2,top+(h-dh)/2,dw,dh);ctx.restore();
+      }else{
+        const a=$('cfg-bgg'+si+'a'),b=$('cfg-bgg'+si+'b'),d=defs[si%defs.length];
+        const g=ctx.createLinearGradient(0,top,0,top+h);
+        g.addColorStop(0,(a&&a.value)||d[0]);g.addColorStop(1,(b&&b.value)||d[1]);
+        ctx.fillStyle=g;ctx.fillRect(0,top,w,h);
+      }
+    }
+    const seam=getEditorImage(sm.bg_seam);
+    if(imageReady(seam)){
+      const sc=parseFloat($('cfg-seamScale')?.value)||1;
+      const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
+      const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
+      // seams sit on the boundary between neighbouring rows
+      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+    }
+  }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){
     const l=textLocal(o),baseX=GW/2+l.x, baseY=rowOf(si)*GH+GH/2+l.y;
@@ -1256,7 +1346,7 @@ const LE=(function(){
   function draw(){
     if(!cv.width||!cv.height)return;
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
-    drawCommonBg();
+    if(window.RiseBgUI&&RiseBgUI.getBgMode()==='common')drawCommonBg();else drawPerStageBg();
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     const accentsOn=$('cfg-stageAccents')?$('cfg-stageAccents').checked:true;
     for(let si=0;si<totalStages();si++){

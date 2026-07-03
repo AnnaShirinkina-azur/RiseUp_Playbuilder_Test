@@ -3,6 +3,9 @@ let CW=390,CH=844;
 function setView(orientation){if(orientation==='landscape'){CW=844;CH=390;}else{CW=390;CH=844;}}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
+// Default per-mini-level background gradients (top,bottom), cycled by stage
+// index while no bg_stage{i} image is uploaded. Index 0 = Start scene.
+const BG_GRADS=[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
@@ -755,10 +758,63 @@ class Game{
 
   _drawBackground(ctx){
     ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
-    // One optional full-screen environment image; all other background art is
-    // placed in the level editor as BgImg items and travels with its wave.
-    const bg=this._spr('background');
-    if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
+    // Two background modes:
+    //  'common'   — one static full-screen image for the whole game.
+    //  'perStage' — every mini-level carries its own background band that
+    //               travels with its wave; until an image is uploaded the
+    //               band shows a 2-colour gradient (its own per stage), and
+    //               an optional seam sprite covers the junction between bands.
+    if(this.cfg.backgroundMode==='common'){
+      const bg=this._spr('background');
+      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
+      return;
+    }
+    const grads=(this.cfg.stageBgGradients&&this.cfg.stageBgGradients.length)?this.cfg.stageBgGradients:BG_GRADS;
+    const vis=[];
+    for(let i=0;i<this.stages.length;i++){
+      const s=this.stages[i];if(s.done)continue;
+      vis.push({i,top:s.worldY,H:s.H});
+    }
+    if(!vis.length)return;
+    vis.sort((a,b)=>a.top-b.top);
+    for(let k=0;k<vis.length;k++){
+      const v=vis[k];
+      let top=v.top,bot=v.top+v.H;
+      if(k===0)top=Math.min(top,0);              // extend edge bands so no
+      if(k===vis.length-1)bot=Math.max(bot,CH);  // bgColor gaps show through
+      if(bot<0||top>CH)continue;
+      const img=this._spr('bg_stage'+v.i);
+      if(imgOk(img))this._drawBandCover(ctx,img,top,bot);
+      else{
+        const g=grads[v.i%grads.length]||grads[0];
+        const lg=ctx.createLinearGradient(0,top,0,bot);
+        lg.addColorStop(0,g[0]);lg.addColorStop(1,g[1]);
+        ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
+      }
+    }
+    // seam sprite over each junction between neighbouring bands
+    const seam=this._spr('bg_seam');
+    if(imgOk(seam)){
+      const sc=this.cfg.seamScale||1;
+      const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
+      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
+      for(let k=1;k<vis.length;k++){
+        const y=vis[k].top;
+        if(y<-sh||y>CH+sh)continue;
+        ctx.drawImage(seam,0,y-sh/2,CW,sh);
+      }
+    }
+  }
+
+  // Cover-fit an image into the full-width band [top..bot], cropping overflow.
+  _drawBandCover(ctx,img,top,bot){
+    const h=bot-top;if(h<=0)return;
+    const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+    if(!iw||!ih)return;
+    const s=Math.max(CW/iw,h/ih),dw=iw*s,dh=ih*s;
+    ctx.save();ctx.beginPath();ctx.rect(0,top,CW,h);ctx.clip();
+    ctx.drawImage(img,(CW-dw)/2,top+(h-dh)/2,dw,dh);
+    ctx.restore();
   }
 
   _draw(){
@@ -965,6 +1021,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
