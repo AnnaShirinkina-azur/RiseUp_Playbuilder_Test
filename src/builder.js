@@ -175,6 +175,14 @@ var cfg=${JSON.stringify(cfg)};
         onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
         onLose:function(){},onStageChange:function(){}
       });
+      window.RiseGame=game;
+      window.RisePreviewControl={
+        play:function(){if(game&&game.play)game.play();},
+        pause:function(){if(game&&game.pause)game.pause();},
+        stop:function(){if(game&&game.stop)game.stop();},
+        isPaused:function(){return !!(game&&game.isPaused&&game.isPaused());},
+        state:function(){return game&&game.getState?game.getState():null;}
+      };
     };
     if(document.fonts&&document.fonts.load){
       Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(go).catch(go);

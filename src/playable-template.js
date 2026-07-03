@@ -509,6 +509,7 @@ class Game{
     this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
     this._resetFallingStages();
     this.completedStages=0;
+    this.paused=false;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
     this._raf=requestAnimationFrame(t=>this._loop(t));
@@ -576,9 +577,27 @@ class Game{
   _loop(ts){
     if(!this._last)this._last=ts;
     const dt=Math.min(50,ts-this._last);this._last=ts;
-    this._update(dt);this._draw();
+    if(!this.paused)this._update(dt);
+    this._draw();
     this._raf=requestAnimationFrame(t=>this._loop(t));
   }
+
+  play(){
+    this.paused=false;
+    if(this.state==='start')this._start();
+    else if((this.state==='playing'||this.state==='respawning')&&this.snd)this.snd.play('bgm');
+  }
+  pause(){
+    this.paused=true;
+    if(this.snd&&this.snd.base&&this.snd.base.bgm){try{this.snd.base.bgm.pause();}catch(e){}}
+  }
+  stop(){
+    if(this.snd)this.snd.stopBgm();
+    this._reset();
+    this.paused=true;
+  }
+  isPaused(){return !!this.paused;}
+  getState(){return this.state;}
 
   _sst(i){return this.stages[i].worldY;}
 

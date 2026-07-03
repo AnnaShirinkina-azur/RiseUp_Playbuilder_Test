@@ -7,7 +7,7 @@ function setOrientation(or){
   ['orientation-main','orientation-preview','orientation-editor'].forEach(id=>{const w=$(id); if(!w)return; w.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.or===or));});
   $('phone')?.classList.toggle('landscape',or==='landscape');
   $('editor-phone')?.classList.toggle('landscape',or==='landscape');
-  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'844×844':'390×844')+' · нажми Update Preview после изменений';
+  const lab=$('phone-label'); if(lab) lab.textContent=(or==='landscape'?'844×844':'390×844')+' · нажми Play после изменений';
   if(window.RiseLevelEditor)RiseLevelEditor.resize();
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'); if(b)setOrientation(b.dataset.or);});
@@ -255,20 +255,57 @@ $('btn-dl').addEventListener('click',async()=>{
   });
 });
 
-// preview
-let iact=false;
-function syncInteractButton(){
-  $('phone').classList.toggle('iact',iact);
-  $('btn-iact').textContent=iact?'🖱 Interact':'🔒 Lock';
-  $('btn-iact').classList.toggle('on',iact);
+// preview controls
+let previewBuilt=false;
+let previewDirty=true;
+let previewBuilding=false;
+function previewApi(){
+  try{return $('pif').contentWindow&&$('pif').contentWindow.RisePreviewControl;}catch(e){return null;}
 }
-$('btn-prev').addEventListener('click',async()=>{
-  const b=$('btn-prev');b.disabled=true;b.textContent='⏳…';
+function markPreviewDirty(){previewDirty=true;}
+document.addEventListener('input',e=>{if(!e.target.closest('.pact'))markPreviewDirty();},true);
+document.addEventListener('change',e=>{if(!e.target.closest('.pact'))markPreviewDirty();},true);
+document.addEventListener('pointerup',e=>{if(e.target&&e.target.id==='ec')markPreviewDirty();},true);
+document.addEventListener('keyup',e=>{if(['Delete','Backspace'].includes(e.key))markPreviewDirty();},true);
+async function ensurePreviewBuilt(force){
+  if(previewBuilding)return false;
+  const api=previewApi();
+  if(!force&&previewBuilt&&!previewDirty&&api)return true;
+  previewBuilding=true;
+  const playBtn=$('btn-play');
+  const oldText=playBtn?playBtn.textContent:'';
+  if(playBtn){playBtn.disabled=true;playBtn.textContent='⏳…';}
   await RiseBuilder.buildPreview($('pif'),{assetsBase:'Assets',onProgress:setP,onError:showErr});
-  hideP();b.disabled=false;b.textContent='▶ Update Preview';
+  hideP();
+  previewBuilt=true;
+  previewDirty=false;
+  previewBuilding=false;
+  if(playBtn){playBtn.disabled=false;playBtn.textContent=oldText||'▶ Play';}
+  return true;
+}
+$('btn-play').addEventListener('click',async()=>{
+  let api=previewApi();
+  const canResume=api&&api.isPaused&&api.isPaused()&&!previewDirty;
+  if(!canResume){
+    if(!(await ensurePreviewBuilt(true)))return;
+    api=previewApi();
+  }
+  if(api&&api.play)api.play();
+  $('btn-play').classList.add('on');
+  $('btn-pause').classList.remove('on');
 });
-$('btn-iact').addEventListener('click',()=>{iact=!iact;syncInteractButton();});
-syncInteractButton();
+$('btn-pause').addEventListener('click',()=>{
+  const api=previewApi();
+  if(api&&api.pause)api.pause();
+  $('btn-pause').classList.add('on');
+  $('btn-play').classList.remove('on');
+});
+$('btn-stop').addEventListener('click',()=>{
+  const api=previewApi();
+  if(api&&api.stop)api.stop();
+  $('btn-play').classList.remove('on');
+  $('btn-pause').classList.remove('on');
+});
 
 // reset
 const DEFS={
@@ -292,7 +329,7 @@ $('btn-reset').addEventListener('click',()=>{
 
 setOrientation('portrait');
 // placeholder
-$('pif').srcdoc=`<!DOCTYPE html><html><head><style>*{margin:0;padding:0}html,body{width:100%;height:100%;background:#0d0d14;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui;color:rgba(232,232,240,.4);font-size:13px}</style></head><body><div style="font-size:44px">🎈</div><div style="font-weight:600;color:rgba(232,232,240,.65)">Rise Playable</div><div>Нажми ▶ Update Preview</div></body></html>`;
+$('pif').srcdoc=`<!DOCTYPE html><html><head><style>*{margin:0;padding:0}html,body{width:100%;height:100%;background:#0d0d14;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui;color:rgba(232,232,240,.4);font-size:13px}</style></head><body><div style="font-size:44px">🎈</div><div style="font-weight:600;color:rgba(232,232,240,.65)">Rise Playable</div><div>Нажми ▶ Play</div></body></html>`;
 
 // ── Level Editor ──────────────────────────────────────────────────────────
 const LE=(function(){
