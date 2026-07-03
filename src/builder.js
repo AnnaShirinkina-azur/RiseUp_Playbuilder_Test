@@ -30,6 +30,7 @@ function readConfig(){
     backgroundMode:(function(){var e=document.getElementById('cfg-backgroundMode');return (e&&e.value)||'perStage';})(),
     stageBgGradients:(function(){var a=[],i=0;for(;;){var x=document.getElementById('cfg-bgg'+i+'a'),y=document.getElementById('cfg-bgg'+i+'b');if(!x||!y)break;a.push([x.value,y.value]);i++;}return a.length?a:null;})(),
     seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?1:v;})(),
+    bgStageTint:(function(){var e=document.getElementById('cfg-bgStageTint');return (e&&e.value)||'#ffffff';})(),
     googleFontUrl:g('cfg-googleFontUrl')||'',
     googleFontFamily:g('cfg-googleFontFamily')||'',
     localFontFamily:g('cfg-localFontFamily')||'CustomFont',

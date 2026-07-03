@@ -783,15 +783,19 @@ class Game{
       if(k===0)top=Math.min(top,0);              // extend edge bands so no
       if(k===vis.length-1)bot=Math.max(bot,CH);  // bgColor gaps show through
       if(bot<0||top>CH)continue;
+      // The gradient is ALWAYS drawn: it fills the edge extensions and shows
+      // through transparent areas of the band image. Stops are anchored to the
+      // natural band, so the gradient doesn't shift while an extension shrinks.
+      const g=grads[v.i%grads.length]||grads[0];
+      const lg=ctx.createLinearGradient(0,v.top,0,v.top+v.H);
+      // pair order: [bottom colour, top colour]
+      lg.addColorStop(0,g[1]);lg.addColorStop(1,g[0]);
+      ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
+      // The image is cover-fitted into the band's NATURAL rect and travels
+      // with the wave at a constant scale — no zoom-out effect at the start
+      // while the edge extension collapses.
       const img=this._spr('bg_stage'+v.i);
-      if(imgOk(img))this._drawBandCover(ctx,img,top,bot);
-      else{
-        const g=grads[v.i%grads.length]||grads[0];
-        const lg=ctx.createLinearGradient(0,top,0,bot);
-        // pair order: [bottom colour, top colour]
-        lg.addColorStop(0,g[1]);lg.addColorStop(1,g[0]);
-        ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
-      }
+      if(imgOk(img))this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,this.cfg.bgStageTint);
     }
     // seam sprite over each junction between neighbouring bands
     const seam=this._spr('bg_seam');
@@ -805,17 +809,6 @@ class Game{
         ctx.drawImage(seam,0,y-sh/2,CW,sh);
       }
     }
-  }
-
-  // Cover-fit an image into the full-width band [top..bot], cropping overflow.
-  _drawBandCover(ctx,img,top,bot){
-    const h=bot-top;if(h<=0)return;
-    const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
-    if(!iw||!ih)return;
-    const s=Math.max(CW/iw,h/ih),dw=iw*s,dh=ih*s;
-    ctx.save();ctx.beginPath();ctx.rect(0,top,CW,h);ctx.clip();
-    ctx.drawImage(img,(CW-dw)/2,top+(h-dh)/2,dw,dh);
-    ctx.restore();
   }
 
   _draw(){
@@ -1022,7 +1015,7 @@ const DEF={
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
