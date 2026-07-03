@@ -977,6 +977,37 @@ const LE=(function(){
     else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
     if(o.moveX>0){const mx=o.moveX*zoom;ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}ctx.restore();
   }
+
+  function drawEditorBall(si){
+    // Show the player balloon in the level editor as a non-interactive reference.
+    // It uses the same screen-space gameplay line as the playable.
+    const x=GW/2,y=GH*.72;
+    const c=toC(si,x,y);
+    const playerSize=Math.max(.1,parseFloat($('cfg-playerSize')?.value)||2);
+    const r=20*playerSize*zoom;
+    const im=getEditorImage('Assets/textures/balloon.png');
+    ctx.save();
+    ctx.globalAlpha=.82;
+    if(imageReady(im)){
+      const iw=im.naturalWidth||im.width||1,ih=im.naturalHeight||im.height||1;
+      const h=r*4.15,w=h*(iw/ih);
+      drawTintedImage(im,c.x-w/2,c.y-r*.43,w,h,$('cfg-playerSpriteColor')?.value||'#ffffff');
+      ctx.strokeStyle='rgba(255,255,255,.45)';
+      ctx.lineWidth=Math.max(1,r*.045);
+      ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(c.x,c.y+r*1.17);
+      ctx.bezierCurveTo(c.x-r*.04,c.y+r*1.75,c.x+r*.04,c.y+r*2.45,c.x,c.y+r*3.35);
+      ctx.stroke();
+    }else{
+      const g=ctx.createRadialGradient(c.x-r*.3,c.y-r*.3,r*.1,c.x,c.y,r);
+      g.addColorStop(0,$('cfg-playerColor')?.value||'#ffffff');g.addColorStop(1,'rgba(255,255,255,.65)');
+      ctx.fillStyle=g;ctx.strokeStyle=$('cfg-playerOutline')?.value||'#ffffff';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(c.x,c.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // ── Active / passive zones ────────────────────────────────────────────────
   // The active zone is a centered square whose side equals the SHORT side of the
   // screen (full width in portrait, full height in landscape). The passive zone
@@ -1043,6 +1074,7 @@ const LE=(function(){
       drawPassiveZone(top,w,h,midX,midY);
       ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText(stageLabel(si)+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>{if(!o||o.kind==='bg')return;if(o.kind==='text')drawTextItem(o,si,i);else if(o.kind==='progress')drawProgressItem(o,si,i);else if(o.kind==='health')drawHealthItem(o,si,i);else if(o.kind==='cta')drawCtaItem(o,si,i);else drawObstacle(o,si,i);});
+      drawEditorBall(si);
       drawActiveZone(top,w,h,midX,midY);
     }
     

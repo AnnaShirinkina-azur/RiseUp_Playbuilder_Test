@@ -737,10 +737,6 @@ class Game{
   _draw(){
     const ctx=this.ctx;
     this._drawBackground(ctx);
-    // grid
-    const sp=90,off=this.camY*.25%sp;
-    ctx.strokeStyle=rgba(this.cfg.groundColor,.38);ctx.lineWidth=1;
-    for(let y=off%sp;y<CH;y+=sp){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
@@ -854,9 +850,7 @@ class Game{
     const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
     g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
     ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
-    ctx.globalAlpha=.8+.2*Math.sin(Date.now()/400);
-    ctx.fillStyle='#fff';ctx.font='bold 22px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('TAP TO PLAY',CW/2,CH*.84);ctx.restore();
+    ctx.restore();
   }
 
   _drawEnd(ctx){
