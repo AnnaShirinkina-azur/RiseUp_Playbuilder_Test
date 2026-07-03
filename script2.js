@@ -302,6 +302,7 @@ const LE=(function(){
   let autoFitZoom=true;
   let cur=0,sel=null,selSet=new Set(),mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0},scaleRef=null,dragStart=null,groupAnchorUI={anchor:'cc'};
   let showZones=true;
+  let showGrid=true;
   // Active zone = central square the level should fit into (design units, square).
   // Passive zone = the screen extension around it: vertical bands in portrait,
   // horizontal bands in landscape. Purely a visual guide — placement is not restricted.
@@ -523,9 +524,15 @@ const LE=(function(){
   renderTemplateList();
   function addPrefabObstacles(stageIndex,cx,cy,prefab){
     const sv=scaleUiValues(),groupW=Math.round(180*sv.scale*sv.scaleX),groupH=Math.round(170*sv.scale*sv.scaleY),color=$('oc').value,moveX=parseInt($('om').value)||0;
-    const o={kind:'svgTemplate',x:cx,y:cy,coordMode:'center',w:Math.max(6,groupW),h:Math.max(6,groupH),baseW:180,baseH:170,scale:sv.scale,scaleX:sv.scaleX,scaleY:sv.scaleY,color,moveX,moveSpeed:1800,templateName:prefab.name||'svg_template',imageSrc:prefab.imageSrc,items:(prefab.items||[]).map(it=>({shape:it.shape||'rect',dx:it.dx||0,dy:it.dy||0,wRel:it.wRel||.1,hRel:it.hRel||.1,points:it.points?it.points.map(p=>({x:p.x,y:p.y})):null,color:it.color||null}))};
-    lvls[stageIndex].push(o);
-    setSelection(lvls[stageIndex].length-1,false);
+    const wrapper={kind:'svgTemplate',x:cx,y:cy,coordMode:'center',w:Math.max(6,groupW),h:Math.max(6,groupH),baseW:180,baseH:170,scale:sv.scale,scaleX:sv.scaleX,scaleY:sv.scaleY,color,moveX,moveSpeed:1800,templateName:prefab.name||'svg_template',imageSrc:prefab.imageSrc,items:(prefab.items||[]).map(it=>({shape:it.shape||'rect',dx:it.dx||0,dy:it.dy||0,wRel:it.wRel||.1,hRel:it.hRel||.1,points:it.points?it.points.map(p=>({x:p.x,y:p.y})):null,color:it.color||null}))};
+    // Templates are inserted unlocked: in the editor they are immediately separate obstacles,
+    // but they are selected together so the user can still move/scale the just-placed template as a group.
+    if(!wrapper.templateGroupId)wrapper.templateGroupId='tpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
+    const children=flattenSvgTemplate(wrapper);
+    const start=lvls[stageIndex].length;
+    lvls[stageIndex].push(...children);
+    selSet=new Set(children.map((_,k)=>start+k));
+    sel=start;
   }
   function flattenSvgTemplate(o){
     ensureObstacleScale(o);
@@ -598,12 +605,12 @@ const LE=(function(){
   $('et-sel').addEventListener('click',()=>{selectedTemplateId=null;renderTemplateList();mode='drag';$('et-sel').classList.add('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-scale').addEventListener('click',()=>{selectedTemplateId=null;renderTemplateList();mode='scale';$('et-scale').classList.add('on');$('et-sel').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-del').addEventListener('click',()=>{const s=lvls[cur],ids=selectionIndices();if(!ids.length)return;ids.sort((a,b)=>b-a).forEach(i=>s.splice(i,1));clearSelection();syncProps();draw();});
-  $('tpl-unlock')?.addEventListener('click',unlockSelectedTemplate);
   $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=[];clearSelection();syncProps();draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
   $('le-stage-count')?.addEventListener('input',e=>setStageCount(e.target.value));
   $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
   $('le-zones')?.addEventListener('click',()=>{showZones=!showZones;$('le-zones').classList.toggle('on',showZones);draw();});
+  $('le-grid')?.addEventListener('change',e=>{showGrid=!!e.target.checked;draw();});
 
   // ── Tool buttons helper ───────────────────────────────────────────────────
   function clearToolButtons(){document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));$('et-sel').classList.remove('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');}
@@ -1027,10 +1034,12 @@ const LE=(function(){
       // background image items — behind grid/obstacles, like in the playable
       (lvls[si]||[]).forEach((o,i)=>{if(o&&o.kind==='bg')drawBgItem(o,si,i);});
       ctx.strokeStyle=si===cur?'rgba(255,255,255,.55)':'rgba(255,255,255,.22)';ctx.lineWidth=si===cur?2:1;ctx.strokeRect(.5,top+.5,w-1,h-1);
-      ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;
-      for(let x=0;x<=GW;x+=65){ctx.beginPath();ctx.moveTo(x*zoom,top);ctx.lineTo(x*zoom,top+h);ctx.stroke();}
-      for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
-      ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
+      if(showGrid){
+        ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;
+        for(let x=0;x<=GW;x+=65){ctx.beginPath();ctx.moveTo(x*zoom,top);ctx.lineTo(x*zoom,top+h);ctx.stroke();}
+        for(let y=0;y<=GH;y+=65){ctx.beginPath();ctx.moveTo(0,top+y*zoom);ctx.lineTo(w,top+y*zoom);ctx.stroke();}
+        ctx.strokeStyle='rgba(255,255,255,.38)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(midX,top);ctx.lineTo(midX,top+h);ctx.stroke();ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();
+      }
       drawPassiveZone(top,w,h,midX,midY);
       ctx.fillStyle='rgba(255,255,255,.55)';ctx.font=Math.max(10,12*zoom)+'px monospace';ctx.textAlign='left';ctx.fillText(stageLabel(si)+'   0;0',8,top+18);
       (lvls[si]||[]).forEach((o,i)=>{if(!o||o.kind==='bg')return;if(o.kind==='text')drawTextItem(o,si,i);else if(o.kind==='progress')drawProgressItem(o,si,i);else if(o.kind==='health')drawHealthItem(o,si,i);else if(o.kind==='cta')drawCtaItem(o,si,i);else drawObstacle(o,si,i);});
@@ -1065,7 +1074,7 @@ const LE=(function(){
     $('hbar').style.display=isHealth?'':'none';
     $('ctabar').style.display=isCta?'':'none';
     $('obs-props').style.display=(!o||isText||isProg||isHealth||isCta)?'none':'flex';
-    if($('tpl-unlock'))$('tpl-unlock').style.display=(o&&o.kind==='svgTemplate'&&!hasMultiSelection())?'':'none';
+    if($('tpl-unlock'))$('tpl-unlock').style.display='none';
     if(isText){
       $('tx-font').value=o.font||'Baloo2';$('tx-size').value=o.size||64;
       $('tx-stroke').value=o.stroke||'#000000';$('tx-strokeW').value=o.strokeW||0;$('tx-shadow').checked=o.shadow!==false;

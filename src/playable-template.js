@@ -872,9 +872,11 @@ class Game{
     const ctx=this.ctx;
     this._drawBackground(ctx);
     // grid
-    const sp=90,off=this.camY*.25%sp;
-    ctx.strokeStyle=rgba(this.cfg.groundColor,.38);ctx.lineWidth=1;
-    for(let y=off%sp;y<CH;y+=sp){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+    if(this.cfg.showGrid!==false){
+      const sp=90,off=this.camY*.25%sp;
+      ctx.strokeStyle=rgba(this.cfg.groundColor,.38);ctx.lineWidth=1;
+      for(let y=off%sp;y<CH;y+=sp){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+    }
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
@@ -1094,7 +1096,7 @@ const DEF={
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
   backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',stageBgTints:null,
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:true,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
 };
