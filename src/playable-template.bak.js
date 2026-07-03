@@ -713,7 +713,7 @@ class Game{
     this._drawDots(ctx);
     this._drawProgressBars(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
-    if(this.hpA>0)this._drawHp(ctx);
+    if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
@@ -760,6 +760,26 @@ class Game{
     for(const b of bars){
       const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
       this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line,b);
+    }
+  }
+
+
+  _drawHealthBars(ctx){
+    const bars=(this.healthBars&&this.healthBars.length)?this.healthBars:[];
+    if(!bars.length)return;
+    for(const b of bars){
+      const count=Math.max(1,parseInt(b.count,10)||3), size=b.heartW||36, gap=(b.gap==null?6:b.gap);
+      const l=healthLocal(b), total=count*size+(count-1)*gap;
+      let x=CW/2+l.x-total/2, y=CH/2+l.y-size/2;
+      for(let i=0;i<count;i++){
+        ctx.save();
+        ctx.globalAlpha=i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha);
+        const im=b.heartImg;
+        if(imgOk(im))drawTintedImage(ctx,im,x,y,size,size,b.tint||'#ffffff');
+        else{ctx.font=Math.round(size*.86)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=i<this.lives?'#ff6b6b':'#444';ctx.fillText('♥',x+size/2,y+size/2);}
+        ctx.restore();
+        x+=size+gap;
+      }
     }
   }
 
