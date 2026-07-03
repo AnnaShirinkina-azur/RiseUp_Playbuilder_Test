@@ -1026,16 +1026,19 @@ const LE=(function(){
     ctx.save();
     ctx.globalAlpha=.82;
     if(imageReady(im)){
+      // Match playable Ball._paint() exactly at the gameplay line, with t=0.
+      // Rope is drawn first, so it stays visually behind the balloon.
       const iw=im.naturalWidth||im.width||1,ih=im.naturalHeight||im.height||1;
       const h=r*4.15,w=h*(iw/ih);
-      drawTintedImage(im,c.x-w/2,c.y-r*.43,w,h,$('cfg-playerSpriteColor')?.value||'#ffffff');
-      ctx.strokeStyle='rgba(255,255,255,.45)';
+      const bx=c.x,by=c.y+r*.15;
+      ctx.strokeStyle=$('cfg-playerRopeColor')?.value||$('cfg-playerOutline')?.value||'#ffffff';
       ctx.lineWidth=Math.max(1,r*.045);
       ctx.lineCap='round';
       ctx.beginPath();
-      ctx.moveTo(c.x,c.y+r*1.17);
-      ctx.bezierCurveTo(c.x-r*.04,c.y+r*1.75,c.x+r*.04,c.y+r*2.45,c.x,c.y+r*3.35);
+      ctx.moveTo(bx,by+r*1.02);
+      ctx.bezierCurveTo(bx,by+r*1.75,bx,by+r*2.5,bx,by+r*3.25);
       ctx.stroke();
+      drawTintedImage(im,bx-w/2,by-h*.58,w,h,$('cfg-playerSpriteColor')?.value||'#ffffff');
     }else{
       const g=ctx.createRadialGradient(c.x-r*.3,c.y-r*.3,r*.1,c.x,c.y,r);
       g.addColorStop(0,$('cfg-playerColor')?.value||'#ffffff');g.addColorStop(1,'rgba(255,255,255,.65)');

@@ -399,10 +399,9 @@ class Ball{
       ctx.translate(x+sway,y+r*.15);
       ctx.rotate(rot);
       ctx.scale(sx,sy);
-      drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
       // Rope lives in the same local transform as the balloon and uses exactly
-      // the same rotation/sway/squash values. Its top point is fixed to the
-      // balloon neck, so it cannot drift away as a separate object.
+      // the same rotation/sway/squash values. Draw it BEFORE the sprite so the
+      // string is visually behind the balloon body.
       ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.9);
       ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
       const ropeTopY=r*1.02;
@@ -412,6 +411,7 @@ class Ball{
       ctx.moveTo(0,ropeTopY);
       ctx.bezierCurveTo(bend*.35,r*1.75,bend*.65,r*2.5,bend,ropeEndY);
       ctx.stroke();
+      drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
       ctx.restore();
       return;
     }
