@@ -30,9 +30,20 @@ function drawTintedImage(ctx,img,x,y,w,h,color){
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
-function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
-function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
-function activeSq(){return Math.min(CW,CH);}
+function activeZone(){var h=390,w=CW;return{x:CW/2-w/2,y:CH/2-h/2,w:w,h:h,cx:CW/2,cy:CH/2};}
+function activeLocal(o){
+  var z=activeZone(),w=Math.max(0,(o&&o.w)||0),h=Math.max(0,(o&&o.h)||0);
+  var xp=(o&&o.xPercent!=null)?parseFloat(o.xPercent):null;
+  var yp=(o&&o.yPercent!=null)?parseFloat(o.yPercent):null;
+  var lx=(xp!=null&&!isNaN(xp))?(-z.w/2+clamp(xp,0,100)*z.w/100):((o&&o.x)||0);
+  var ly=(yp!=null&&!isNaN(yp))?(-z.h/2+clamp(yp,0,100)*z.h/100):((o&&o.y)||0);
+  lx=clamp(lx,-z.w/2+w/2,z.w/2-w/2);
+  ly=clamp(ly,-z.h/2+h/2,z.h/2-h/2);
+  return{x:lx,y:ly};
+}
+function layoutX(o){if(o&&o.coordMode==='active')return activeZone().cx+activeLocal(o).x;return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
+function layoutY(o){if(o&&o.coordMode==='active')return activeZone().cy+activeLocal(o).y;return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
+function activeSq(){return activeZone().h;}
 function anchorBaseLocal(anchor){
   var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),sq=activeSq();
   return {x:ah==='l'?-sq/2:(ah==='r'?sq/2:0),y:av==='t'?-sq/2:(av==='b'?sq/2:0)};
@@ -162,6 +173,7 @@ class Obs{
     this.cfg=o.cfg||{};
     this.coordMode=o.coordMode||'screen';
     this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
+    this.xPercent=o.xPercent;this.yPercent=o.yPercent;
     this.x=layoutX(o);this.y=layoutY(o);
     this.w=o.w||60;this.h=o.h||60;
     this.shape=o.shape||'rect';
@@ -1000,8 +1012,8 @@ class Game{
       st.bgs.forEach(b=>b.relayout());
       for(const o of st.obs){
         if(o.kin&&o.live){
-          o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX});
-          o.iy=layoutY({coordMode:o.coordMode,y:o.layoutLocalY});
+          o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,xPercent:o.xPercent,yPercent:o.yPercent});
+          o.iy=layoutY({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,xPercent:o.xPercent,yPercent:o.yPercent});
           o.x=o.ix;o.y=o.iy;
         }else{o.x*=kx;o.y*=ky;}
       }
