@@ -378,19 +378,19 @@ const LE=(function(){
   let selectedTemplateId=null;
   const lvls=Array.from({length:NS+2},()=>[]);
   const PLAYER_KIND='playerStart';
-  function defaultPlayerLocal(){return {x:0,y:Math.round(GH*.22),anchor:'cc',anchorOffsetX:0,anchorOffsetY:22};}
+  function defaultPlayerLocal(){return {x:0,y:Math.round(GH*.20),anchor:'cc',anchorOffsetX:0,anchorOffsetY:20};}
   function ensurePlayerObject(){
     if(!lvls[0])lvls[0]=[];
     const existing=lvls[0].find(o=>o&&o.kind===PLAYER_KIND);
     if(existing)return existing;
     const d=defaultPlayerLocal();
-    const p={kind:PLAYER_KIND,coordMode:'center',x:d.x,y:d.y,anchor:d.anchor,anchorOffsetX:d.anchorOffsetX,anchorOffsetY:d.anchorOffsetY,locked:false,lockedSingleton:true};
+    const p={kind:PLAYER_KIND,coordMode:'center',x:d.x,y:d.y,anchor:d.anchor,anchorOffsetX:d.anchorOffsetX,anchorOffsetY:d.anchorOffsetY,locked:true,lockedSingleton:true};
     lvls[0].unshift(p);
     if(cur===0){selSet=new Set(Array.from(selSet).map(i=>i+1));if(sel!=null)sel++;}
     return p;
   }
   function playerLocal(o){if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=progressAnchorBaseLocal(o.anchor||'cc');return {x:b.x+(parseFloat(o.anchorOffsetX)||0)*GW/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*GH/100};}return {x:(o&&o.x!=null)?o.x:0,y:(o&&o.y!=null)?o.y:Math.round(GH*.22)};}
-  function ensurePlayerAnchor(o){if(!o||o.kind!==PLAYER_KIND)return;if(!o.anchor)o.anchor='cc';if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y==null?Math.round(GH*.22):o.y},b=progressAnchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}}
+  function ensurePlayerAnchor(o){if(!o||o.kind!==PLAYER_KIND)return;if(!o.anchor)o.anchor='cc';if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y==null?Math.round(GH*.20):o.y},b=progressAnchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}}
   function setPlayerLocalFromOffset(o){if(!o||o.kind!==PLAYER_KIND)return;const l=playerLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
   const cv=$('ec'),ctx=cv.getContext('2d'),wrap=$('ec-wrap');
 
@@ -669,7 +669,7 @@ const LE=(function(){
   $('et-sel').addEventListener('click',()=>{selectedTemplateId=null;renderTemplateList();mode='drag';$('et-sel').classList.add('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-scale').addEventListener('click',()=>{selectedTemplateId=null;renderTemplateList();mode='scale';$('et-scale').classList.add('on');$('et-sel').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));});
   $('et-del').addEventListener('click',()=>{const s=lvls[cur],ids=selectionIndices().filter(i=>!(s[i]&&s[i].kind===PLAYER_KIND));if(!ids.length)return;ids.sort((a,b)=>b-a).forEach(i=>s.splice(i,1));clearSelection();syncProps();draw();});
-  $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=[];clearSelection();syncProps();draw();});
+  $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=lvls[cur].filter(o=>o&&o.kind===PLAYER_KIND);clearSelection();syncProps();draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
   $('le-stage-count')?.addEventListener('input',e=>setStageCount(e.target.value));
   $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
@@ -1154,7 +1154,7 @@ const LE=(function(){
     let no=0,nt=0,nb=0,np=0,nh=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='health')nh++;else if(o.kind==='cta')nc++;else if(o.kind===PLAYER_KIND){}else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nh+' health · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }
   function getLevelData(){ensurePlayerObject();return lvls.map(stage=>{const out=[];stage.forEach(o=>{if(!o||o.kind===PLAYER_KIND)return;if(o.kind==='svgTemplate'){flattenSvgTemplate(o).forEach(x=>out.push({...x,coordMode:'center'}));}else{if(!o.kind)ensureObstacleScale(o);out.push({...o,coordMode:'center'});}});return out;});}
-  function getPlayerStart(){const p=ensurePlayerObject();ensurePlayerAnchor(p);setPlayerLocalFromOffset(p);return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.22):p.y)};}
+  function getPlayerStart(){const p=ensurePlayerObject();ensurePlayerAnchor(p);setPlayerLocalFromOffset(p);return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.20):p.y)};}
 
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';

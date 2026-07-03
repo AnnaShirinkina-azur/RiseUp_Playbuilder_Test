@@ -47,7 +47,7 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
-function playerStartPoint(cfg){const p=cfg&&cfg.playerStart;return p?{x:layoutX(p),y:layoutY(p)}:{x:CW/2,y:CH*.72};}
+function playerStartPoint(cfg){const p=cfg&&cfg.playerStart;return p?{x:layoutX(p),y:layoutY(p)}:{x:CW/2,y:CH*.70};}
 function anchorBaseLocal(anchor){
   var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
   return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
