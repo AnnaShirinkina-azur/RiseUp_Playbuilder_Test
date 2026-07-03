@@ -698,12 +698,20 @@ const LE=(function(){
 
   function resize(keepScroll=false){
     const oldTop=wrap.scrollTop,oldLeft=wrap.scrollLeft;
+    // Keep the editor layout in sync with the visible orientation controls.
+    // Previous builds could leave currentOrientation as landscape while the
+    // Portrait button was visually selected, which made stages look like they
+    // were split horizontally.
+    const activeEditorOr=document.querySelector('#orientation-editor .orbtn.on')?.dataset?.or;
+    const hiddenOr=$('cfg-orientation')?.value;
+    if(activeEditorOr==='portrait'||activeEditorOr==='landscape')currentOrientation=activeEditorOr;
+    else if(hiddenOr==='portrait'||hiddenOr==='landscape')currentOrientation=hiddenOr;
     GH=844;
     const vw=Math.max(1,wrap&&wrap.clientWidth?wrap.clientWidth:1);
     const vh=Math.max(1,wrap&&wrap.clientHeight?wrap.clientHeight:1);
     if(currentOrientation==='landscape'){
       const r=vw/vh;
-      GW=Math.max(390,Math.round(GH*r));
+      GW=Math.max(844,Math.round(GH*r));
     }else{
       GW=390;
     }
@@ -1308,7 +1316,7 @@ const FONT_CSS={
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
-  var ds=textDrawSize(L),size=ds.size,weight=800;
+  var ds=textDrawSize(L),size=Math.max(1,ds.size||0),weight=800;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
