@@ -130,3 +130,8 @@ For the latest changes, keep these files together:
 - `index.html` — contains the UI controls for Gravity modifier and per-level background uploads.
 - `src/builder.js` — reads those UI values and embeds selected images into the exported playable.
 - `src/playable-template.js` — uses `gravityModifier`, `background`, and `background_stage0...background_stage4`.
+
+### Update: SVG obstacle prefabs
+- Added the `● Pyramid` obstacle prefab tool.
+- Custom SVG import now has `Prefab mode`: every supported SVG element (`rect`, `circle`, `ellipse`, `polygon`, `polyline`, `path`) is converted into a separate obstacle, so collisions are calculated per ball/piece instead of one whole SVG bounds.
+- Square SVG `rect` elements are treated as circle obstacles in prefab mode, which matches exported ball pyramids.
