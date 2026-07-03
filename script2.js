@@ -985,18 +985,20 @@ const LE=(function(){
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){
-    const l=textLocal(o);
-    const baseX=(GW/2+l.x)*zoom, baseY=(rowOf(si)*GH+GH/2+l.y)*zoom;
-    // Draw editor text directly in canvas pixels. This avoids transform state leaks
-    // from the level strip/background passes and keeps text visible at every zoom.
-    drawTextLabelScaled(ctx,o,baseX,baseY,zoom);
+    // Render text in the same coordinate system as the rest of the level strip.
+    // The previous pixel-space shortcut made text disappear in the editor on
+    // some zoom/orientation states because measurement and drawing used
+    // different coordinate spaces.
+    const l=textLocal(o),baseX=GW/2+l.x, baseY=rowOf(si)*GH+GH/2+l.y;
+    ctx.save();
+    ctx.setTransform(zoom,0,0,zoom,0,0);
+    drawTextLabel(ctx,o,baseX,baseY);
     if(isSelected(si,i)){
-      const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,l.x,l.y,sz.w,sz.h);
-      ctx.save();
-      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
-      ctx.strokeRect((GW/2+bp.x)*zoom-6,(rowOf(si)*GH+GH/2+bp.y)*zoom-6,sz.w*zoom+12,sz.h*zoom+12);ctx.setLineDash([]);
-      ctx.restore();
+      const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,baseX,baseY,sz.w,sz.h);
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5/zoom;ctx.setLineDash([5/zoom,4/zoom]);
+      ctx.strokeRect(bp.x-6,bp.y-6,sz.w+12,sz.h+12);ctx.setLineDash([]);
     }
+    ctx.restore();
   }
   const progressImgCache={};
   function progressImg(src){if(!src)return null;if(!progressImgCache[src]){const im=new Image();im.src=src;progressImgCache[src]=im;}return progressImgCache[src];}
@@ -1332,6 +1334,7 @@ function drawTextLabelScaled(ctx,L,cx,cy,scale){
   }
   var lh=size*1.18;
   ctx.save();
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
   try{if('letterSpacing' in ctx)ctx.letterSpacing=letterSpacing+'px';}catch(e){}
   var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
