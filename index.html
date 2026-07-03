@@ -225,15 +225,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
-      <div class="row"><label>Fill</label><input type="color" id="cfg-playerColor" value="#f5e642"></div>
+      <div class="row"><label>Fill</label><input type="color" id="cfg-playerColor" value="#ffffff"></div>
       <div class="row"><label>Outline</label><input type="color" id="cfg-playerOutline" value="#ffffff"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
-        <div class="thumb" id="th-player">🎈</div>
+        <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Custom sprite color<small>Tint / override color in playable</small></label><input type="color" id="cfg-playerSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" id="cfg-playerSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" id="cfg-playerRopeColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">
@@ -545,8 +546,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=29"></script>
-<script src="src/builder.js?v=29"></script>
+<script src="src/playable-template.js?v=30"></script>
+<script src="src/builder.js?v=30"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -616,7 +617,7 @@ function loadSpr(key,inp){
 }
 function clearSpr(key){
   RiseBuilder.setSprite(key,null);
-  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'🎈':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
+  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'<img src="Assets/textures/balloon.png" alt="balloon">':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 
@@ -826,7 +827,7 @@ const DEFS={
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
-  'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff',
+  'cfg-playerColor':'#ffffff','cfg-playerOutline':'#ffffff','cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
   'cfg-obstacleColor':'#e05252','cfg-obstacleColorAlt':'#5282e0','cfg-obstacleSpriteColor':'#ffffff',
   'cfg-bgColor':'#1a1a2e','cfg-groundColor':'#2a2a40','cfg-particleColor':'#f5e642','cfg-bgSpriteColor':'#ffffff',

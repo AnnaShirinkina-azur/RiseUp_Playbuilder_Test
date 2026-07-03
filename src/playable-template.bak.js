@@ -370,14 +370,14 @@ class Ball{
       ctx.rotate(rot);
       ctx.scale(sx,sy);
       drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
-      ctx.restore();
-      // Extra animated string layer, visible for custom cropped balloon PNGs too.
-      ctx.save();
-      ctx.strokeStyle=rgba(this.cfg.playerOutlineColor||'#ffffff',.88);
+      // The rope is drawn in the balloon's local transform, so it inherits the
+      // same sway, rotation, squash and stretch instead of behaving like a
+      // separate world-space object. It still has its own tint setting.
+      ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.88);
       ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
       ctx.beginPath();
-      ctx.moveTo(x+sway*.4,y+r*1.35);
-      ctx.bezierCurveTo(x+Math.sin(t*3.1)*r*.18,y+r*2.0,x-Math.sin(t*2.4)*r*.12,y+r*2.75,x+Math.sin(t*2.0)*r*.08,y+r*3.3);
+      ctx.moveTo(0,r*1.2);
+      ctx.bezierCurveTo(Math.sin(t*3.1)*r*.18,r*1.85,-Math.sin(t*2.4)*r*.12,r*2.6,Math.sin(t*2.0)*r*.08,r*3.15);
       ctx.stroke();
       ctx.restore();
       return;
@@ -915,7 +915,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',

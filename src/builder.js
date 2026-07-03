@@ -20,7 +20,7 @@ function readConfig(){
     chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.35:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
-    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),
+    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     obstacleColor:g('cfg-obstacleColor'),obstacleColorAlt:g('cfg-obstacleColorAlt'),obstacleSpriteColor:g('cfg-obstacleSpriteColor'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),backgroundSpriteColor:g('cfg-bgSpriteColor'),
