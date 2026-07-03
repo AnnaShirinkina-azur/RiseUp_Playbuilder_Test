@@ -17,6 +17,8 @@ function readConfig(){
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||5,
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
+    chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
+    scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.35:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),

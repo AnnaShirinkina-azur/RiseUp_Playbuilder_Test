@@ -174,17 +174,22 @@ class Obs{
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
+  // Approximate collision radius for obstacle-vs-obstacle contacts.
+  get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt,gravityModifier=1){
     if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
     if(!this.kin){
-      // Free-body motion after the protector hits the obstacle.
-      // X keeps inertia with damping, Y is pulled down by gravity.
-      this.vy+=.38*gravityModifier;
-      this.x+=this.vx;this.y+=this.vy;
-      this.vx*=.985;this.vy*=.995;
-      this.rot+=this.av;this.av*=.985;
-      if(this.y>3000)this.live=false;
+      // Free-body motion after the protector hits the obstacle
+      // (Unity Rigidbody2D-style: gravity + small linear/angular drag,
+      // integrated per dt so the arc looks the same at any framerate).
+      const f=dt/16.6667;
+      this.vy+=.42*gravityModifier*f;
+      this.x+=this.vx*f;this.y+=this.vy*f;
+      const ld=Math.pow(.992,f);
+      this.vx*=ld;this.vy*=Math.pow(.998,f);
+      this.rot+=this.av*f;this.av*=Math.pow(.992,f);
+      if(this.y>3000||this.y<-4000||this.x<-1200||this.x>CW+1200)this.live=false;
     }
   }
   hits(cx,cy,cr){
@@ -571,6 +576,7 @@ class Game{
     if(st==='playing'||st==='respawning'||st==='won'){
       const fall=this._obstacleFallSpeed();
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
+      this._scatterPhysics();
     }
     this.fx.update();
 
@@ -617,16 +623,24 @@ class Game{
     const len=Math.sqrt(dx*dx+dy*dy)||1;
     const f=this.cfg.obstaclePushForce;
     if(who==='shield'){
-      // Protector collision: impulse goes away from the shield, with a bit of
-      // the shield's current swipe velocity. After that gravity pulls it down.
+      // Luna/Unity-style protector collision: the obstacle inherits the
+      // shield's swipe velocity (fast flick -> flies far, gentle touch ->
+      // small nudge) plus a separation impulse along the contact normal.
+      // No forced downward velocity: hit from below sends the piece UP,
+      // then gravity pulls it back in an arc.
       const svx=this.shield.vx||0,svy=this.shield.vy||0;
-      const awayX=dx/len,awayY=dy/len;
-      const impulse=f*1.25;
-      let vx=awayX*impulse+svx*.55;
-      let vy=awayY*impulse+svy*.55;
-      // Even if the hit comes from below/side, the obstacle should then fall.
-      vy=Math.max(vy,2.2);
-      const spin=clamp((svx*.018)+(awayX*.08),-.22,.22);
+      let nx=dx/len,ny=dy/len;
+      const base=f*.85;                       // minimum kick even on a slow touch
+      const drive=Math.max(0,svx*nx+svy*ny);  // swipe speed towards the obstacle
+      const vx=nx*(base+drive*.7)+svx*.65;
+      const vy=ny*(base+drive*.7)+svy*.65;
+      // Torque from an off-centre contact point (r x J / inertia):
+      // clipping a corner spins the piece hard, a dead-centre hit barely does.
+      const cxp=clamp(hx,obs.x-obs.w/2,obs.x+obs.w/2);
+      const cyp=clamp(hy,(obs.y+top)-obs.h/2,(obs.y+top)+obs.h/2);
+      const rx=cxp-obs.x,ry=cyp-(obs.y+top);
+      const inertia=Math.max(300,(obs.w*obs.w+obs.h*obs.h)/12);
+      const spin=clamp((rx*vy-ry*vx)/(inertia*2),-.28,.28);
       obs.push(vx,vy,spin);
       this.shield.flash=400;
       this.snd.play('shield');
@@ -639,8 +653,51 @@ class Game{
     this.tutDone=true;
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.snd.play('hit');}
-  _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
+  // Chain-reaction scatter physics, matching the Unity original:
+  // a knocked-out obstacle collides with its neighbours — kinematic pieces
+  // get knocked free (momentum transfer), already-flying pieces bounce off
+  // each other with a bit of restitution. One good swipe scatters a cluster.
+  _scatterPhysics(){
+    if(this.cfg.chainReaction===false)return;
+    const list=[];
+    for(let i=0;i<this.stages.length;i++){
+      const st=this.stages[i];if(st.done)continue;
+      const top=this._sst(i);
+      for(const o of st.obs){if(o.live)list.push({o,top});}
+    }
+    const rest=this.cfg.scatterBounciness??.35;
+    for(let a=0;a<list.length;a++){
+      const A=list[a];if(A.o.kin)continue;      // only flying pieces initiate
+      const ar=A.o.cr,ax=A.o.x,ay=A.o.y+A.top;
+      for(let b=0;b<list.length;b++){
+        if(b===a)continue;
+        const B=list[b],br=B.o.cr;
+        const dx=B.o.x-ax,dy=(B.o.y+B.top)-ay,rr=ar+br;
+        if(dx*dx+dy*dy>rr*rr)continue;
+        const d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
+        if(B.o.kin){
+          const sp=Math.hypot(A.o.vx,A.o.vy);
+          if(sp<1.2)continue;                   // too slow to knock anything out
+          B.o.push(A.o.vx*.75+nx*sp*.3,A.o.vy*.75+ny*sp*.3,
+                   clamp(nx*.07+(Math.random()-.5)*.16,-.26,.26));
+          A.o.vx*=.55;A.o.vy*=.55;              // momentum spent on the hit
+          this.fx.burst(B.o.x,B.o.y+B.top,this.cfg.particleColor);
+        }else{
+          // both flying: separate the overlap + exchange impulse
+          const rel=(B.o.vx-A.o.vx)*nx+(B.o.vy-A.o.vy)*ny;
+          if(rel<0){
+            const j=-rel*(1+rest)/2;
+            A.o.vx-=nx*j;A.o.vy-=ny*j;B.o.vx+=nx*j;B.o.vy+=ny*j;
+            A.o.av+=(Math.random()-.5)*.05;B.o.av+=(Math.random()-.5)*.05;
+          }
+          const ov=(rr-d)/2;
+          A.o.x-=nx*ov;A.o.y-=ny*ov;B.o.x+=nx*ov;B.o.y+=ny*ov;
+        }
+      }
+    }
+  }
+
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.snd.play('hit');}  _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
@@ -902,6 +959,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
+  chainReaction:true,scatterBounciness:0.35,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
   playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
