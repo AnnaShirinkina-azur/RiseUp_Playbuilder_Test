@@ -985,16 +985,18 @@ const LE=(function(){
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
   function drawTextItem(o,si,i){
-    const l=textLocal(o),baseX=GW/2+l.x, baseY=rowOf(si)*GH+GH/2+l.y;
-    ctx.save();
-    ctx.setTransform(zoom,0,0,zoom,0,0);
-    drawTextLabel(ctx,o,baseX,baseY);
+    const l=textLocal(o);
+    const baseX=(GW/2+l.x)*zoom, baseY=(rowOf(si)*GH+GH/2+l.y)*zoom;
+    // Draw editor text directly in canvas pixels. This avoids transform state leaks
+    // from the level strip/background passes and keeps text visible at every zoom.
+    drawTextLabelScaled(ctx,o,baseX,baseY,zoom);
     if(isSelected(si,i)){
-      const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,baseX,baseY,sz.w,sz.h);
-      ctx.strokeStyle='#fff';ctx.lineWidth=1.5/zoom;ctx.setLineDash([5/zoom,4/zoom]);
-      ctx.strokeRect(bp.x-6,bp.y-6,sz.w+12,sz.h+12);ctx.setLineDash([]);
+      const sz=textLabelSize(ctx,o),bp=txBox(o.anchor,l.x,l.y,sz.w,sz.h);
+      ctx.save();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+      ctx.strokeRect((GW/2+bp.x)*zoom-6,(rowOf(si)*GH+GH/2+bp.y)*zoom-6,sz.w*zoom+12,sz.h*zoom+12);ctx.setLineDash([]);
+      ctx.restore();
     }
-    ctx.restore();
   }
   const progressImgCache={};
   function progressImg(src){if(!src)return null;if(!progressImgCache[src]){const im=new Image();im.src=src;progressImgCache[src]=im;}return progressImgCache[src];}
@@ -1314,9 +1316,14 @@ const FONT_CSS={
   'mono':'ui-monospace,Menlo,Consolas,monospace'
 };
 function drawTextLabel(ctx,L,cx,cy){
+  drawTextLabelScaled(ctx,L,cx,cy,1);
+}
+function drawTextLabelScaled(ctx,L,cx,cy,scale){
+  scale=(isFinite(scale)&&scale>0)?scale:1;
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
-  var ds=textDrawSize(L),size=Math.max(1,ds.size||0),weight=800;
+  var ds=textDrawSize(L),size=Math.max(1,(ds.size||0)*scale),weight=800;
+  var strokeW=Math.max(0,(ds.strokeW||0)*scale),letterSpacing=(ds.letterSpacing||0)*scale;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
@@ -1326,14 +1333,14 @@ function drawTextLabel(ctx,L,cx,cy){
   var lh=size*1.18;
   ctx.save();
   ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  try{if('letterSpacing' in ctx)ctx.letterSpacing=(ds.letterSpacing||0)+'px';}catch(e){}
+  try{if('letterSpacing' in ctx)ctx.letterSpacing=letterSpacing+'px';}catch(e){}
   var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
   for(li=0;li<lines.length;li++){
     runs=lines[li];by=firstBase+li*lh;lineW=0;
     for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;
     sx=align==='left'?cx:(align==='right'?cx-lineW:cx-lineW/2);
     if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}ctx.restore();}
-    if(ds.strokeW&&ds.strokeW>0){ctx.lineWidth=ds.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
+    if(strokeW&&strokeW>0){ctx.lineWidth=strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
     xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}
   }
   ctx.restore();
