@@ -378,8 +378,8 @@ const LE=(function(){
     }
     doc.querySelectorAll('rect').forEach(r=>{
       const x=parseFloat(r.getAttribute('x')||0),y=parseFloat(r.getAttribute('y')||0),w=parseFloat(r.getAttribute('width')||1),h=parseFloat(r.getAttribute('height')||1);
-      // Square rects are usually exported balls in playable art, so prefab mode treats them as separate circles.
-      addItem(Math.abs(w-h)<=Math.max(w,h)*.08?'circle':'rect',x,y,w,h);
+      // Keep SVG rects as rect obstacles. Prefab mode preserves each element's own shape and its position inside the SVG viewBox.
+      addItem('rect',x,y,w,h);
     });
     doc.querySelectorAll('circle,ellipse').forEach(c=>{
       const cx=parseFloat(c.getAttribute('cx')||0),cy=parseFloat(c.getAttribute('cy')||0),rx=parseFloat(c.getAttribute('r')||c.getAttribute('rx')||1),ry=parseFloat(c.getAttribute('r')||c.getAttribute('ry')||rx);

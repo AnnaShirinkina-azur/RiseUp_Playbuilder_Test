@@ -133,5 +133,9 @@ For the latest changes, keep these files together:
 
 ### Update: SVG obstacle prefabs
 - Added the `● Pyramid` obstacle prefab tool.
-- Custom SVG import now has `Prefab mode`: every supported SVG element (`rect`, `circle`, `ellipse`, `polygon`, `polyline`, `path`) is converted into a separate obstacle, so collisions are calculated per ball/piece instead of one whole SVG bounds.
+- Custom SVG import now has `Prefab mode`: every supported SVG element (`rect`, `circle`, `ellipse`, `polygon`, `polyline`, `path`) is converted into a separate obstacle, preserving the element type and its position inside the original SVG viewBox. Rectangles stay rectangles; circles stay circles.
 - Square SVG `rect` elements are treated as circle obstacles in prefab mode, which matches exported ball pyramids.
+
+
+### SVG prefab import rule
+To keep a pyramid as separate square obstacles, export it as one SVG with separate `<rect>` elements, enable Prefab mode in Custom Obstacles, and set the obstacle group width/height using the SVG viewBox ratio. For the included Frame 1.svg / pyramid (`viewBox=354x334`), use a matching ratio such as W=177, H=167 or W=354, H=334.

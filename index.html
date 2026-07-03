@@ -423,7 +423,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="et" data-shape="circle">● Circle</button>
         <button class="et" data-shape="triangle">▲ Tri</button>
         <button class="et" id="et-custom">✚ Custom</button>
-        <button class="et" id="et-prefab-pyramid" title="Prefab: each ball is a separate obstacle">● Pyramid</button>
+        <button class="et" id="et-prefab-pyramid" title="Prefab: each SVG element is a separate obstacle">▦ Pyramid</button>
         <button class="et" id="et-shape-editor">Edit shapes</button>
         <button class="et" id="et-text">🅣 Text</button>
         <button class="et" id="et-progress">⚗ Progress</button>
@@ -538,7 +538,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <label class="ul-btn">+ SVG<input id="custom-shape-image" type="file" accept="image/svg+xml,.svg" style="display:none"></label>
       <button class="x-btn" id="custom-shape-image-clear" type="button">✕</button>
     </div>
-    <p style="font-size:11px;color:var(--dim);line-height:1.4;margin:-2px 0 8px;">SVG будет отображением формы. Для prefab движок увидит каждый rect/circle/ellipse/path как отдельный объект.</p>
+    <p style="font-size:11px;color:var(--dim);line-height:1.4;margin:-2px 0 8px;">SVG будет отображением формы. Для prefab движок сохранит каждый rect/circle/ellipse/path как отдельный объект и оставит его позицию внутри общей композиции.</p>
     <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:var(--txt);margin:6px 0 4px;"><input id="custom-shape-prefab" type="checkbox" checked> Prefab mode: split SVG into separate obstacles</label>
     <textarea id="custom-shape-points" style="display:none"></textarea><p id="custom-shape-points-info" style="font-size:11px;color:var(--dim);line-height:1.4;margin:6px 0 0;">Коллайдер не создан: загрузите SVG.</p>
     <div class="shape-actions">
@@ -928,8 +928,8 @@ const LE=(function(){
     }
     doc.querySelectorAll('rect').forEach(r=>{
       const x=parseFloat(r.getAttribute('x')||0),y=parseFloat(r.getAttribute('y')||0),w=parseFloat(r.getAttribute('width')||1),h=parseFloat(r.getAttribute('height')||1);
-      // Square rects are usually exported balls in playable art, so prefab mode treats them as separate circles.
-      addItem(Math.abs(w-h)<=Math.max(w,h)*.08?'circle':'rect',x,y,w,h);
+      // Keep SVG rects as rect obstacles. Prefab mode preserves each element's own shape and its position inside the SVG viewBox.
+      addItem('rect',x,y,w,h);
     });
     doc.querySelectorAll('circle,ellipse').forEach(c=>{
       const cx=parseFloat(c.getAttribute('cx')||0),cy=parseFloat(c.getAttribute('cy')||0),rx=parseFloat(c.getAttribute('r')||c.getAttribute('rx')||1),ry=parseFloat(c.getAttribute('r')||c.getAttribute('ry')||rx);
