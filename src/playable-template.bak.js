@@ -308,7 +308,7 @@ class Ball{
     this.y=this.idleY;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
     this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;
-    this.travel=0;this.speed=0;
+    this.travel=0;this.speed=0;this.animT=0;
     this.spr=null;
   }
   get r(){return 20*this.cfg.playerSize;}
@@ -316,11 +316,12 @@ class Ball{
   die(){this.dead=true;this.da=0;}
   respawn(){
     this.dead=false;this.x=CW/2;this.ty=CH*.72;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
-    this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;
+    this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;this.animT=0;
   }
   start(speed,travel=0){this.flying=true;this.finalFly=false;this.speed=speed;this.travel=travel;this.introT=0;}
   flyAway(){this.flying=true;this.finalFly=true;this.fy=0;}
   update(dt){
+    this.animT+=dt;
     if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
@@ -352,7 +353,35 @@ class Ball{
   }
   _paint(ctx,x,y){
     const r=this.r;
-    if(imgOk(this.spr)){drawTintedImage(ctx,this.spr,x-r,y-r,r*2,r*2,this.cfg.playerSpriteColor);return;}
+    if(imgOk(this.spr)){
+      // Default player is now a balloon PNG. It is drawn with its real aspect
+      // ratio and a light Spine-like idle deformation: soft sway, squash and
+      // a wavy string so the playable matches the balloon reference even
+      // without a separate Spine runtime in the exported HTML.
+      const iw=this.spr.naturalWidth||this.spr.width||1,ih=this.spr.naturalHeight||this.spr.height||1;
+      const t=(this.animT||0)/1000;
+      const sway=Math.sin(t*2.2)*r*.075;
+      const rot=Math.sin(t*1.65)*0.035;
+      const sx=1+Math.sin(t*2.4)*0.018;
+      const sy=1-Math.sin(t*2.4)*0.012;
+      const h=r*4.15,w=h*(iw/ih);
+      ctx.save();
+      ctx.translate(x+sway,y+r*.15);
+      ctx.rotate(rot);
+      ctx.scale(sx,sy);
+      drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
+      ctx.restore();
+      // Extra animated string layer, visible for custom cropped balloon PNGs too.
+      ctx.save();
+      ctx.strokeStyle=rgba(this.cfg.playerOutlineColor||'#ffffff',.88);
+      ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(x+sway*.4,y+r*1.35);
+      ctx.bezierCurveTo(x+Math.sin(t*3.1)*r*.18,y+r*2.0,x-Math.sin(t*2.4)*r*.12,y+r*2.75,x+Math.sin(t*2.0)*r*.08,y+r*3.3);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
     const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);
     g.addColorStop(0,this.cfg.playerColor);g.addColorStop(1,rgba(this.cfg.playerColor,.75));
     ctx.fillStyle=g;ctx.strokeStyle=this.cfg.playerOutlineColor;ctx.lineWidth=2.5;
@@ -440,7 +469,7 @@ class Game{
     this.shield=new Shield(this.cfg);
     this.ball=new Ball(this.cfg);
     this.shield.spr=this._spr('shield');
-    this.ball.spr=this._spr('player');
+    this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
     this._resetFallingStages();
     this.completedStages=0;
     if(this._raf)cancelAnimationFrame(this._raf);
@@ -886,7 +915,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#f5e642',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
