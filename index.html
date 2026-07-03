@@ -193,7 +193,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
-      <div class="row"><label>Ball size<small>Scale ×</small></label><input type="number" id="cfg-playerSize" value="1" min="0.5" max="2" step="0.1"></div>
+      <div class="row"><label>Ball size<small>Scale ×</small></label><input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1"></div>
       <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
     </div>
 
@@ -823,7 +823,7 @@ syncInteractButton();
 
 // reset
 const DEFS={
-  'cfg-lives':3,'cfg-playerSize':1,'cfg-shieldSize':1,
+  'cfg-lives':3,'cfg-playerSize':2,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,

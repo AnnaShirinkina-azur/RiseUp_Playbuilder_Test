@@ -124,7 +124,7 @@ $('btn-iact').addEventListener('click',()=>{
 
 // reset
 const DEFS={
-  'cfg-lives':3,'cfg-playerSize':1,'cfg-shieldSize':1,
+  'cfg-lives':3,'cfg-playerSize':2,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-hpBarShowTime':2000,'cfg-tutorialTime':3500,
   'cfg-playerColor':'#f5e642','cfg-playerOutline':'#ffffff',

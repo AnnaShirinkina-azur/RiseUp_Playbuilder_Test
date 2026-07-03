@@ -923,7 +923,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:1.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
