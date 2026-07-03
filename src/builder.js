@@ -22,7 +22,7 @@ function readConfig(){
     chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.35:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
-    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
+    playerColor:g('cfg-playerColor'),playerOutlineColor:g('cfg-playerOutline'),playerSize:g('cfg-playerSize'),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldColor:g('cfg-shieldColor'),shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     bgColor:g('cfg-bgColor'),groundColor:g('cfg-groundColor'),particleColor:g('cfg-particleColor'),backgroundSpriteColor:g('cfg-bgSpriteColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),

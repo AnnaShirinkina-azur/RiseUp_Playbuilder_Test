@@ -390,7 +390,7 @@ class Ball{
   flyAway(){this.flying=true;this.finalFly=true;this.fy=0;}
   update(dt){
     this.animT+=dt;
-    if(this.dead){this.deathT+=dt;this.da=Math.min(1,this.deathT/(this.cfg.playerDeathDuration||900));return;}
+    if(this.dead){this.deathT+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);this.da=Math.min(1,this.deathT/((this.cfg.playerDeathDuration||900)/ds));return;}
     if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
     if(this.flash>0)this.flash-=dt;
     if(this.finalFly){
@@ -427,11 +427,13 @@ class Ball{
     const frames=Math.max(1,parseInt(this.cfg.playerDeathFrames,10)||8);
     const frameW=(sheet.naturalWidth||sheet.width||1)/frames;
     const frameH=sheet.naturalHeight||sheet.height||1;
-    const animDur=this.cfg.playerDeathAnimDuration||720;
-    const fadeStart=this.cfg.playerDeathFadeStart||650;
+    const speed=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);
+    const animDur=(this.cfg.playerDeathAnimDuration||720)/speed;
+    const fadeStart=(this.cfg.playerDeathFadeStart||650)/speed;
+    const fadeDur=260/speed;
     const fi=clamp(Math.floor((this.deathT/animDur)*frames),0,frames-1);
     const h=r*4.15,w=h*(frameW/frameH);
-    const alpha=this.deathT>fadeStart?clamp(1-(this.deathT-fadeStart)/260,0,1):1;
+    const alpha=this.deathT>fadeStart?clamp(1-(this.deathT-fadeStart)/fadeDur,0,1):1;
     const t=(this.animT||0)/1000;
     const sway=Math.sin(t*2.2)*r*.075;
     const rot=Math.sin(t*1.65)*0.035;
@@ -756,7 +758,7 @@ class Game{
     if(st==='playing')this._recycleStages();
 
     // death sequence
-    if(st==='dying'){this.dtimer+=dt;if(this.dtimer>900)this._afterDeath();}
+    if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(this.dtimer>((this.cfg.playerDeathDuration||900)/ds))this._afterDeath();}
 
     // fade
     if(this.fadeDir!==0){
@@ -1178,7 +1180,7 @@ const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   chainReaction:true,scatterBounciness:0.35,
   hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,

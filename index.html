@@ -202,6 +202,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
       <div class="row"><label>Ball size<small>Scale ×</small></label><input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1"></div>
+      <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
+        <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
       <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
     </div>
 
