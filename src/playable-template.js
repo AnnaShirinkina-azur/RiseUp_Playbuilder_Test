@@ -61,12 +61,16 @@ function progressAnchorBaseLocal(anchor){
   return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
 }
 function progressLocal(L){
-  // Progress UI is anchored to the whole screen, not to the square gameplay area.
+  // Anchor point of the UI object. The object's own anchor corner/edge is
+  // attached to this point; the visual center is derived from the responsive
+  // draw size. This keeps editor UI elements glued to their selected anchors
+  // when the runtime canvas is squeezed.
   if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=progressAnchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
   return {x:(L&&L.x)||0,y:(L&&L.y)||0};
 }
 function ctaLocal(L){return progressLocal(L);}
 function healthLocal(L){return progressLocal(L);}
+function anchorBoxLocal(anchor,ax,ay,w,h){var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return{x:ah==='l'?ax:(ah==='r'?ax-w:ax-w/2),y:av==='t'?ay:(av==='b'?ay-h:ay-h/2),w:w,h:h};}
 function uiBaseScale(L){
   var dw=parseFloat(L&&L.designW)||390, dh=parseFloat(L&&L.designH)||844;
   // Objects authored in the level editor keep their design size on the base
@@ -79,6 +83,10 @@ function uiBaseScale(L){
 function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||40)*k,strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k};}
 function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
 function healthDrawSize(L){var k=uiBaseScale(L);return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
+function ctaDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
+function progressBoxLocal(L){var a=progressLocal(L),d=progressDrawSize(L);return anchorBoxLocal(L.anchor||'cl',a.x,a.y,d.w,d.h);}
+function healthBoxLocal(L){var a=healthLocal(L),d=healthDrawSize(L),cnt=L.count||3,w=cnt*d.heartW+(cnt-1)*d.gap;return anchorBoxLocal(L.anchor||'tc',a.x,a.y,w,d.heartW);}
+function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L);return anchorBoxLocal(L.anchor||'bc',a.x,a.y,d.w,d.h);}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -961,8 +969,8 @@ class Game{
     if(st&&!st.done)frac=clamp((st.worldY-firstTop)/(threshold-firstTop),0,1);
     const p=clamp(((this.completedStages||0)+frac)/denom,0,1);
     for(const b of bars){
-      const l=progressLocal(b),ds=progressDrawSize(b),x=CW/2+l.x-ds.w/2,y=CH/2+l.y-ds.h/2;
-      this._drawFlask(ctx,x,y,ds.w,ds.h,p,b.fill,b.line,b);
+      const box=progressBoxLocal(b),x=CW/2+box.x,y=CH/2+box.y;
+      this._drawFlask(ctx,x,y,box.w,box.h,p,b.fill,b.line,b);
     }
   }
 
@@ -972,8 +980,8 @@ class Game{
     if(!bars.length)return;
     for(const b of bars){
       const count=Math.max(1,parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
-      const l=healthLocal(b), total=count*size+(count-1)*gap;
-      let x=CW/2+l.x-total/2, y=CH/2+l.y-size/2;
+      const box=healthBoxLocal(b), total=count*size+(count-1)*gap;
+      let x=CW/2+box.x, y=CH/2+box.y;
       for(let i=0;i<count;i++){
         ctx.save();
         ctx.globalAlpha=i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha);
@@ -1025,8 +1033,8 @@ class Game{
 
 
   _ctaRect(b){
-    const p=ctaLocal(b),w=b.w||260,h=b.h||86;
-    return {x:CW/2+p.x-w/2,y:CH/2+p.y-h/2,w,h,cx:CW/2+p.x,cy:CH/2+p.y};
+    const box=ctaBoxLocal(b);
+    return {x:CW/2+box.x,y:CH/2+box.y,w:box.w,h:box.h,cx:CW/2+box.x+box.w/2,cy:CH/2+box.y+box.h/2};
   }
 
   _pointInCta(x,y){
