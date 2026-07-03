@@ -1317,6 +1317,26 @@ const FONT_CSS={
   'serif':'Georgia,"Times New Roman",serif',
   'mono':'ui-monospace,Menlo,Consolas,monospace'
 };
+
+// Global text sizing helper for editor/playable label renderer.
+// drawTextLabel/drawTextLabelScaled live in the global scope, while the editor
+// has its own scoped textDrawSize(). Without this global fallback, text objects
+// throw ReferenceError during Level Editor rendering and disappear.
+function textDrawSize(L){
+  L=L||{};
+  var or=(document.getElementById('cfg-orientation')&&document.getElementById('cfg-orientation').value)||'portrait';
+  var gw=or==='landscape'?844:390, gh=844;
+  var dw=parseFloat(L.designW)||gw, dh=parseFloat(L.designH)||gh;
+  var k=Math.min(gw/dw, gh/dh);
+  if(!isFinite(k)||k<=0)k=1;
+  k=Math.min(1,k);
+  return {
+    size:(L.baseSize||L.size||64)*k,
+    strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,
+    letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k
+  };
+}
+
 function drawTextLabel(ctx,L,cx,cy){
   drawTextLabelScaled(ctx,L,cx,cy,1);
 }
