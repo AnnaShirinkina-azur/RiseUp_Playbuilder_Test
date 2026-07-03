@@ -547,8 +547,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=25"></script>
-<script src="src/builder.js?v=25"></script>
+<script src="src/playable-template.js?v=26"></script>
+<script src="src/builder.js?v=26"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -674,7 +674,7 @@ function renderStageAssetRows(){
 renderStageAssetRows();
 
 // ── Per-level backgrounds ─────────────────────────────────────────────────
-const BG_GRAD_DEFAULTS=[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
+const BG_GRAD_DEFAULTS=[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']]; // [нижний, верхний]
 function bgStageLabel(i,total){return i===0?'Start':(i===total-1?'Finish':'Mini '+i);}
 function renderBgStageRows(){
   const box=$('bg-stage-rows');if(!box)return;
@@ -690,8 +690,8 @@ function renderBgStageRows(){
       <span style="font-size:12px;color:var(--dim);min-width:48px;">${bgStageLabel(i,total)}</span>
       <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
-      <input type="color" id="cfg-bgg${i}a" value="${a}" title="Верхний цвет градиента">
-      <input type="color" id="cfg-bgg${i}b" value="${b}" title="Нижний цвет градиента">
+      <input type="color" id="cfg-bgg${i}a" value="${a}" title="Нижний цвет градиента">
+      <input type="color" id="cfg-bgg${i}b" value="${b}" title="Верхний цвет градиента">
     </div></div>`;
   }
   box.innerHTML=h;
@@ -1206,7 +1206,7 @@ const LE=(function(){
     // Per-mini-level bands: uploaded image (cover) or a 2-colour gradient,
     // plus the optional seam sprite over every junction — matches the playable.
     const sm=sprMap();
-    const defs=(window.RiseBgUI&&RiseBgUI.BG_GRAD_DEFAULTS)||[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
+    const defs=(window.RiseBgUI&&RiseBgUI.BG_GRAD_DEFAULTS)||[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']];
     const w=GW*zoom,h=GH*zoom;
     for(let si=0;si<totalStages();si++){
       const top=rowOf(si)*h;
@@ -1219,7 +1219,8 @@ const LE=(function(){
       }else{
         const a=$('cfg-bgg'+si+'a'),b=$('cfg-bgg'+si+'b'),d=defs[si%defs.length];
         const g=ctx.createLinearGradient(0,top,0,top+h);
-        g.addColorStop(0,(a&&a.value)||d[0]);g.addColorStop(1,(b&&b.value)||d[1]);
+        // первый пикер = нижний цвет, второй = верхний
+        g.addColorStop(0,(b&&b.value)||d[1]);g.addColorStop(1,(a&&a.value)||d[0]);
         ctx.fillStyle=g;ctx.fillRect(0,top,w,h);
       }
     }

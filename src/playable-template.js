@@ -3,9 +3,9 @@ let CW=390,CH=844;
 function setView(orientation){if(orientation==='landscape'){CW=844;CH=390;}else{CW=390;CH=844;}}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
-// Default per-mini-level background gradients (top,bottom), cycled by stage
+// Default per-mini-level background gradients (bottom,top), cycled by stage
 // index while no bg_stage{i} image is uploaded. Index 0 = Start scene.
-const BG_GRADS=[['#69c5ec','#39a2d8'],['#f97f6f','#ef5350'],['#cc4a05','#b03c02'],['#f9c178','#f0a44c'],['#fa6a4b','#ee4630']];
+const BG_GRADS=[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']];
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
@@ -788,7 +788,8 @@ class Game{
       else{
         const g=grads[v.i%grads.length]||grads[0];
         const lg=ctx.createLinearGradient(0,top,0,bot);
-        lg.addColorStop(0,g[0]);lg.addColorStop(1,g[1]);
+        // pair order: [bottom colour, top colour]
+        lg.addColorStop(0,g[1]);lg.addColorStop(1,g[0]);
         ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
       }
     }
