@@ -109,16 +109,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .level-toolbar input[type=number]{width:58px;font-size:12px;padding:4px 6px;}
 .level-toolbar input[type=range]{width:110px;}
 .level-note{font-size:11px;color:var(--dim);opacity:.85;}
-.level-bg-panel{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:#10101a;border-bottom:1px solid var(--brd);flex-wrap:wrap;}
-.level-bg-box{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--brd);border-radius:10px;background:var(--surf);}
-.level-bg-title{font-size:12px;font-weight:700;color:var(--txt);min-width:86px;}
-.level-bg-list{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.level-bg-list .sp-up{background:rgba(255,255,255,.025);border:1px solid var(--brd);border-radius:10px;padding:5px;}
-.img-lib-item{position:relative;width:44px;height:44px;border:2px solid var(--brd);border-radius:8px;background:var(--surf2);overflow:hidden;cursor:pointer;flex-shrink:0;}
-.img-lib-item img{width:100%;height:100%;object-fit:contain;display:block;}
-.img-lib-item.on{border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,108,245,.35);}
-.img-lib-item .rm{position:absolute;top:0;right:0;width:15px;height:15px;line-height:13px;font-size:10px;text-align:center;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:0 0 0 6px;cursor:pointer;padding:0;}
-.img-lib-item .rm:hover{background:var(--red);}
 .shape-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;align-items:center;justify-content:center;padding:24px;}
 .shape-modal.on{display:flex;}
 .shape-card{width:min(560px,94vw);background:var(--surf);border:1px solid var(--brd);border-radius:18px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,.65);}
@@ -420,20 +410,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="et on" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
         <div class="esep"></div>
       </div>
-      <div class="level-bg-panel" id="le-bg-panel">
-        <div class="level-bg-box" id="le-bg-common">
-          <span class="level-bg-title">One image</span>
-          <div class="thumb" id="th-background-level">🖼️</div>
-          <label class="ul-btn">+ Image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
-          <button class="x-btn" onclick="clearSpr('background')">✕</button>
-        </div>
-        <div class="level-bg-box" id="le-bg-lib" style="flex:1;min-width:260px;">
-          <span class="level-bg-title">Images</span>
-          <div class="level-bg-list" id="le-img-lib"></div>
-          <label class="ul-btn">+ Upload image<input type="file" id="le-img-upload" accept="image/*" multiple style="display:none"></label>
-          <span class="level-note" id="le-img-hint">Загрузите картинки, кликните по одной и ставьте её на уровень кликом. Drag / Scale / Del работают как с препятствиями, Color = tint.</span>
-        </div>
-      </div>
       <div class="orbar" id="orientation-editor" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="editor-phone"><div class="ec-wrap" id="ec-wrap"><canvas id="ec"></canvas></div></div></div>
       <div class="etbar">
@@ -547,8 +523,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=26"></script>
-<script src="src/builder.js?v=26"></script>
+<script src="src/playable-template.js?v=27"></script>
+<script src="src/builder.js?v=27"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -709,8 +685,14 @@ function setBgMode(m){
   if(ps)ps.style.display=m==='perStage'?'':'none';
   if(sg)sg.style.display=m==='common'?'':'none';
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
+  // авто-обновляем превью, чтобы смена режима была видна сразу
+  const pb=$('btn-prev');if(pb&&!pb.disabled)pb.click();
 }
-document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-bgmode]');if(b)setBgMode(b.dataset.bgmode);});
+// прямые слушатели на кнопки + делегирование (на случай перерисовки панели)
+document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.addEventListener('click',()=>setBgMode(b.dataset.bgmode)));
+document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-bgmode]');if(b&&!b.__bgBound)setBgMode(b.dataset.bgmode);});
+document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.__bgBound=true);
+setBgMode(getBgMode()); // синхронизируем видимость блоков при загрузке
 window.RiseBgUI={getBgMode,renderBgStageRows,BG_GRAD_DEFAULTS};
 $('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
@@ -949,49 +931,8 @@ const LE=(function(){
   $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
   $('le-zones')?.addEventListener('click',()=>{showZones=!showZones;$('le-zones').classList.toggle('on',showZones);draw();});
 
-  // ── Background image library ─────────────────────────────────────────────
-  // Upload images into the project (embedded into the exported HTML as
-  // sprites bgimg_*), then click one and stamp it onto the level. Placed
-  // instances are regular items: Drag / Scale / Del work, Color acts as tint.
-  let bgLib=[],bgLibSeq=0,selImgId=null;
+  // ── Tool buttons helper ───────────────────────────────────────────────────
   function clearToolButtons(){document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));$('et-sel').classList.remove('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');}
-  function renderImgLib(){
-    const box=$('le-img-lib');if(!box)return;
-    const sm=sprMap();
-    box.innerHTML=bgLib.map(it=>`<div class="img-lib-item${(mode==='bgimg'&&selImgId===it.id)?' on':''}" data-img="${it.id}" title="${it.name} — кликни и ставь на уровень"><img src="${sm['bgimg_'+it.id]||''}"><button class="rm" data-rm="${it.id}" title="Удалить из библиотеки">✕</button></div>`).join('')||'<span class="level-note">Пока пусто — загрузите картинки</span>';
-  }
-  $('le-img-upload')?.addEventListener('change',e=>{
-    [...(e.target.files||[])].forEach(f=>{
-      const r=new FileReader();
-      r.onload=ev=>{
-        const id='img'+(++bgLibSeq)+'_'+Date.now().toString(36);
-        RiseBuilder.setSprite('bgimg_'+id,ev.target.result);
-        getEditorImage(ev.target.result);
-        bgLib.push({id,name:f.name});
-        selImgId=id;mode='bgimg';clearToolButtons();
-        renderImgLib();
-      };
-      r.readAsDataURL(f);
-    });
-    e.target.value='';
-  });
-  $('le-img-lib')?.addEventListener('click',e=>{
-    const rm=e.target.closest('[data-rm]');
-    if(rm){
-      const id=rm.dataset.rm;
-      if(!confirm('Удалить картинку из библиотеки? Все её копии на уровнях тоже будут удалены.'))return;
-      bgLib=bgLib.filter(x=>x.id!==id);
-      RiseBuilder.setSprite('bgimg_'+id,null);
-      for(let si=0;si<lvls.length;si++)lvls[si]=lvls[si].filter(o=>!(o&&o.kind==='bg'&&o.imgId===id));
-      if(selImgId===id){selImgId=null;if(mode==='bgimg'){mode='drag';$('et-sel').classList.add('on');}}
-      sel=null;renderImgLib();syncProps();draw();
-      return;
-    }
-    const item=e.target.closest('[data-img]');
-    if(item){selImgId=item.dataset.img;mode='bgimg';clearToolButtons();renderImgLib();}
-  });
-  // any tool click in the toolbar leaves bgimg mode → refresh lib highlight
-  document.querySelector('.etbar')?.addEventListener('click',()=>renderImgLib());
   $('le-zoom')?.addEventListener('input',e=>{
     const oldZoom=zoom;
     const cx=(wrap.scrollLeft+wrap.clientWidth/2)/Math.max(.0001,oldZoom);
@@ -1087,13 +1028,6 @@ const LE=(function(){
       const x=Math.round(g.x),y=Math.round(localY),base=progressAnchorBaseLocal('bc');
       const C={kind:'cta',coordMode:'screen',x,y,w:260,h:86,anchor:'bc',anchorOffsetX:Math.round(((x-base.x)/GW)*1000)/10,anchorOffsetY:Math.round(((y-base.y)/GH)*1000)/10,bgTint:'#ffffff',textTint:'#ffffff',bgSrc:null,textSrc:null};
       lvls[si].push(C);sel=lvls[si].length-1;syncProps();draw();return;
-    }
-    if(mode==='bgimg'&&selImgId){
-      const sm=sprMap();const im=getEditorImage(sm['bgimg_'+selImgId]);
-      let w=260,h=260;
-      if(imageReady(im)){const k=Math.min(1,340/Math.max(im.naturalWidth,im.naturalHeight));w=Math.max(20,Math.round(im.naturalWidth*k));h=Math.max(20,Math.round(im.naturalHeight*k));}
-      lvls[si].push({kind:'bg',imgId:selImgId,coordMode:'center',x:Math.round(g.x),y:Math.round(localY),w,h,tint:'#ffffff'});
-      sel=lvls[si].length-1;syncProps();draw();return;
     }
     if(mode==='drag'||mode==='scale'){
       const idx=obsAt(si,g.x,localY);sel=idx>=0?idx:null;
@@ -1461,7 +1395,7 @@ const LE=(function(){
   $('cta-bg-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.bgSrc=null;draw();}});
   $('cta-text-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.textSrc=null;draw();}});
 
-  setStageCount(NS);renderImgLib();sv('le-zoom-v',Math.round(zoom*100)+'%');
+  setStageCount(NS);sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});
   return{resize,getLevelData,draw,setStageCount};
 })();
