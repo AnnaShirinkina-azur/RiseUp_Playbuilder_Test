@@ -242,7 +242,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="row"><label>Color</label><input type="color" id="cfg-shieldColor" value="#4fc3f7"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
-        <div class="thumb" id="th-shield">🛡️</div>
+        <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
@@ -546,8 +546,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=30"></script>
-<script src="src/builder.js?v=30"></script>
+<script src="src/playable-template.js?v=31"></script>
+<script src="src/builder.js?v=31"></script>
 <script>
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
@@ -617,7 +617,7 @@ function loadSpr(key,inp){
 }
 function clearSpr(key){
   RiseBuilder.setSprite(key,null);
-  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'<img src="Assets/textures/balloon.png" alt="balloon">':key==='shield'?'🛡️':key.indexOf('background')===0?'🖼️':'⬛';});
+  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'<img src="Assets/textures/balloon.png" alt="balloon">':key==='shield'?'<img src="Assets/textures/controller.png" alt="controller">':key.indexOf('background')===0?'🖼️':'⬛';});
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 

@@ -284,7 +284,12 @@ class Shield{
   }
   _paint(ctx,x,y){
     const r=this.r;
-    if(imgOk(this.spr)){drawTintedImage(ctx,this.spr,x-r,y-r,r*2,r*2,this.cfg.shieldSpriteColor);return;}
+    if(imgOk(this.spr)){
+      const iw=this.spr.naturalWidth||this.spr.width||1, ih=this.spr.naturalHeight||this.spr.height||1;
+      const h=r*2.25, w=h*(iw/ih);
+      drawTintedImage(ctx,this.spr,x-w/2,y-h/2,w,h,this.cfg.shieldSpriteColor);
+      return;
+    }
     // glow ring
     ctx.strokeStyle=rgba(this.cfg.shieldColor,.55);ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.stroke();
@@ -370,14 +375,17 @@ class Ball{
       ctx.rotate(rot);
       ctx.scale(sx,sy);
       drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
-      // The rope is drawn in the balloon's local transform, so it inherits the
-      // same sway, rotation, squash and stretch instead of behaving like a
-      // separate world-space object. It still has its own tint setting.
-      ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.88);
+      // Rope lives in the same local transform as the balloon and uses exactly
+      // the same rotation/sway/squash values. Its top point is fixed to the
+      // balloon neck, so it cannot drift away as a separate object.
+      ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.9);
       ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
+      const ropeTopY=r*1.02;
+      const ropeEndY=r*3.25;
+      const bend=Math.sin(t*2.2)*r*.10;
       ctx.beginPath();
-      ctx.moveTo(0,r*1.2);
-      ctx.bezierCurveTo(Math.sin(t*3.1)*r*.18,r*1.85,-Math.sin(t*2.4)*r*.12,r*2.6,Math.sin(t*2.0)*r*.08,r*3.15);
+      ctx.moveTo(0,ropeTopY);
+      ctx.bezierCurveTo(bend*.35,r*1.75,bend*.65,r*2.5,bend,ropeEndY);
       ctx.stroke();
       ctx.restore();
       return;
@@ -468,7 +476,7 @@ class Game{
     this.fx=new FX();
     this.shield=new Shield(this.cfg);
     this.ball=new Ball(this.cfg);
-    this.shield.spr=this._spr('shield');
+    this.shield.spr=this._spr('shield')||makeImg(this.cfg.defaultShieldSrc);
     this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
     this._resetFallingStages();
     this.completedStages=0;
