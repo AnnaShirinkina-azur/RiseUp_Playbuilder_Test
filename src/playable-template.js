@@ -67,6 +67,18 @@ function progressLocal(L){
 }
 function ctaLocal(L){return progressLocal(L);}
 function healthLocal(L){return progressLocal(L);}
+function uiBaseScale(L){
+  var dw=parseFloat(L&&L.designW)||390, dh=parseFloat(L&&L.designH)||844;
+  // Objects authored in the level editor keep their design size on the base
+  // 390x844 canvas, but shrink proportionally if the runtime canvas is
+  // compressed below that authored size. Never auto-grow in wider layouts.
+  var k=Math.min(CW/dw,CH/dh);
+  if(!isFinite(k)||k<=0)k=1;
+  return Math.min(1,k);
+}
+function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||40)*k,strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k};}
+function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
+function healthDrawSize(L){var k=uiBaseScale(L);return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -83,7 +95,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 function drawTextLabel(ctx,L,cx,cy){
   var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
   var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
-  var size=L.size||40,weight=800;
+  var ds=textDrawSize(L),size=ds.size,weight=800;
   var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
   var lines=[[]],s,p,col,parts;
   for(s=0;s<segs.length;s++){
@@ -93,14 +105,14 @@ function drawTextLabel(ctx,L,cx,cy){
   var lh=size*1.18;
   ctx.save();
   ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
+  try{if('letterSpacing' in ctx)ctx.letterSpacing=(ds.letterSpacing||0)+'px';}catch(e){}
   var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
   for(li=0;li<lines.length;li++){
     runs=lines[li];by=firstBase+li*lh;lineW=0;
     for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;
     sx=align==='left'?cx:(align==='right'?cx-lineW:cx-lineW/2);
     if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}ctx.restore();}
-    if(L.strokeW&&L.strokeW>0){ctx.lineWidth=L.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
+    if(ds.strokeW&&ds.strokeW>0){ctx.lineWidth=ds.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
     xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}
   }
   ctx.restore();
@@ -949,8 +961,8 @@ class Game{
     if(st&&!st.done)frac=clamp((st.worldY-firstTop)/(threshold-firstTop),0,1);
     const p=clamp(((this.completedStages||0)+frac)/denom,0,1);
     for(const b of bars){
-      const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
-      this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line,b);
+      const l=progressLocal(b),ds=progressDrawSize(b),x=CW/2+l.x-ds.w/2,y=CH/2+l.y-ds.h/2;
+      this._drawFlask(ctx,x,y,ds.w,ds.h,p,b.fill,b.line,b);
     }
   }
 
@@ -959,7 +971,7 @@ class Game{
     const bars=(this.healthBars&&this.healthBars.length)?this.healthBars:[];
     if(!bars.length)return;
     for(const b of bars){
-      const count=Math.max(1,parseInt(b.count,10)||3), size=b.heartW||36, gap=(b.gap==null?6:b.gap);
+      const count=Math.max(1,parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
       const l=healthLocal(b), total=count*size+(count-1)*gap;
       let x=CW/2+l.x-total/2, y=CH/2+l.y-size/2;
       for(let i=0;i<count;i++){
