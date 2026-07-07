@@ -98,7 +98,7 @@ function loadSpr(key,inp){
 }
 function clearSpr(key){
   RiseBuilder.setSprite(key,null);
-  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'<img src="Assets/textures/balloon.png" alt="balloon">':key==='shield'?'<img src="Assets/textures/controller.png" alt="controller">':key.indexOf('background')===0?'🖼️':'⬛';});
+  document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{th.innerHTML=key==='player'?'<img src="Assets/textures/balloon.png" alt="balloon">':key==='shield'?'<img src="Assets/textures/controller.png" alt="controller">':key.indexOf('background')===0?'🖼️':key.indexOf('bg_seam')===0?'〰️':'⬛';});
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 
@@ -156,6 +156,38 @@ renderStageAssetRows();
 // ── Per-level backgrounds ─────────────────────────────────────────────────
 const BG_GRAD_DEFAULTS=[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']]; // [нижний, верхний]
 function bgStageLabel(i,total){return i===0?'Start':(i===total-1?'Finish':'Mini '+i);}
+
+function seamBoundaryLabel(i,total){
+  const left=bgStageLabel(i,total),right=bgStageLabel(i+1,total);
+  return left+' → '+right;
+}
+function isSeamMulti(){const e=$('cfg-seamMulti');return !!(e&&e.checked);}
+function seamKeyForBoundary(i){return 'bg_seam_'+i;}
+function renderSeamRows(){
+  const box=$('seam-multi-box');if(!box)return;
+  const total=getStageCount()+2;
+  let h='';
+  for(let i=0;i<total-1;i++){
+    const k=seamKeyForBoundary(i);
+    h+=`<div class="sp-row seam-row"><div class="sp-up">
+      <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">〰️</div>
+      <span class="seam-label">${seamBoundaryLabel(i,total)}</span>
+      <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
+      <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
+    </div></div>`;
+  }
+  box.innerHTML=h;
+  const sp=RiseBuilder.getSprites();
+  for(let i=0;i<total-1;i++){const k=seamKeyForBoundary(i);if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
+}
+function syncSeamMode(){
+  const multi=isSeamMulti();
+  const one=$('seam-single-box'),many=$('seam-multi-box');
+  if(one)one.style.display=multi?'none':'';
+  if(many)many.style.display=multi?'':'none';
+  if(multi)renderSeamRows();
+  if(window.RiseLevelEditor)RiseLevelEditor.draw();
+}
 function renderBgStageRows(){
   const box=$('bg-stage-rows');if(!box)return;
   const total=getStageCount()+2; // Start + minis + Finish
@@ -202,6 +234,7 @@ function updateBgStagePreviews(){
   }
 }
 renderBgStageRows();
+renderSeamRows();
 bindHexColorInputs(document);
 function getBgMode(){const e=$('cfg-backgroundMode');return (e&&e.value)||'perStage';}
 function setBgMode(m){
@@ -219,8 +252,10 @@ document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.addEventListener('
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-bgmode]');if(b&&!b.__bgBound)setBgMode(b.dataset.bgmode);});
 document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.__bgBound=true);
 setBgMode(getBgMode()); // синхронизируем видимость блоков при загрузке
-window.RiseBgUI={getBgMode,renderBgStageRows,BG_GRAD_DEFAULTS};
+window.RiseBgUI={getBgMode,renderBgStageRows,renderSeamRows,isSeamMulti,seamKeyForBoundary,BG_GRAD_DEFAULTS};
 $('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
+$('cfg-seamMulti')?.addEventListener('change',syncSeamMode);
+syncSeamMode();
 $('cfg-playerSize')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 ['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
@@ -376,7 +411,7 @@ $('btn-stop').addEventListener('click',()=>{
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
+  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,'cfg-seamMulti':false,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square',
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
@@ -506,6 +541,8 @@ const LE=(function(){
     if(cur>=total)cur=total-1;
     renderStageAssetRows();
     renderBgStageRows();
+    renderSeamRows();
+    syncSeamMode();
 bindHexColorInputs(document);
     ensurePlayerObject();clearSelection();resize(true);
   }
@@ -1105,13 +1142,20 @@ bindHexColorInputs(document);
         drawCoverImageFade(im,0,top,w,h,0,(te&&te.value)||'#ffffff');
       }
     }
-    const seam=getEditorImage(sm.bg_seam);
-    if(imageReady(seam)){
-      const sc=parseFloat($('cfg-seamScale')?.value)||1;
+  }
+  function drawSeamOverlays(){
+    if(!(window.RiseBgUI&&RiseBgUI.getBgMode()==='perStage'))return;
+    const sm=sprMap();
+    const w=GW*zoom,h=GH*zoom;
+    const sc=parseFloat($('cfg-seamScale')?.value)||1;
+    const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
+    for(let r=1;r<totalStages();r++){
+      const key=multi?(RiseBgUI.seamKeyForBoundary?RiseBgUI.seamKeyForBoundary(r-1):('bg_seam_'+(r-1))):'bg_seam';
+      const seam=getEditorImage(sm[key]);
+      if(!imageReady(seam))continue;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // seams sit on the boundary between neighbouring rows
-      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+      ctx.drawImage(seam,0,r*h-sh/2,w,sh);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
@@ -1368,6 +1412,7 @@ bindHexColorInputs(document);
       (lvls[si]||[]).forEach((o,i)=>{if(!o||o.kind==='bg')return;if(o.kind==='text')drawTextItem(o,si,i);else if(o.kind==='progress')drawProgressItem(o,si,i);else if(o.kind==='health')drawHealthItem(o,si,i);else if(o.kind==='cta')drawCtaItem(o,si,i);else if(o.kind==='tutorial')drawTutorialItem(o,si,i);else if(o.kind===PLAYER_KIND)drawPlayerItem(o,si,i);else drawObstacle(o,si,i);});
       drawActiveZone(top,w,h,midX,midY);
     }
+    drawSeamOverlays();
     
     let no=0,nt=0,nb=0,np=0,nh=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='health')nh++;else if(o.kind==='cta')nc++;else if(o.kind===PLAYER_KIND){}else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nh+' health · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
   }

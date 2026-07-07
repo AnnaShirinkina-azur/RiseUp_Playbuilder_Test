@@ -962,17 +962,28 @@ class Game{
         this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint);
       }
     }
-    // seam sprite over each junction between neighbouring bands
-    const seam=this._spr('bg_seam');
-    if(imgOk(seam)){
-      const sc=this.cfg.seamScale||1;
+  }
+
+  _drawSeamOverlays(ctx){
+    if(this.cfg.backgroundMode==='common')return;
+    const vis=[];
+    for(let i=0;i<this.stages.length;i++){
+      const s=this.stages[i];if(s.done)continue;
+      vis.push({i,top:s.worldY,H:s.H});
+    }
+    if(vis.length<2)return;
+    vis.sort((a,b)=>a.top-b.top);
+    const sc=this.cfg.seamScale||1;
+    const multi=!!this.cfg.seamMulti;
+    for(let k=1;k<vis.length;k++){
+      const key=multi?('bg_seam_'+(vis[k].i-1)):'bg_seam';
+      const seam=this._spr(key);
+      if(!imgOk(seam))continue;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
-      for(let k=1;k<vis.length;k++){
-        const y=vis[k].top;
-        if(y<-sh||y>CH+sh)continue;
-        ctx.drawImage(seam,0,y-sh/2,CW,sh);
-      }
+      const y=vis[k].top;
+      if(y<-sh||y>CH+sh)continue;
+      ctx.drawImage(seam,0,y-sh/2,CW,sh);
     }
   }
 
@@ -991,6 +1002,7 @@ class Game{
     this._drawCtas(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
+    this._drawSeamOverlays(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
@@ -1327,7 +1339,7 @@ const DEF={
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,bgStageTint:'#ffffff',stageBgTints:null,
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,seamMulti:false,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
