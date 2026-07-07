@@ -1166,21 +1166,24 @@ bindHexColorInputs(document);
     const w=GW*zoom,h=GH*zoom;
     const sc=parseFloat($('cfg-seamScale')?.value)||1;
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
-    const drawBottom=(seam,r)=>{
+    const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // Attach overlay to the bottom edge of the level, not to the top/seam center.
-      ctx.drawImage(seam,0,(r+1)*h-sh,w,sh);
+      // Start has no previous background, so it is attached flush to the
+      // bottom of the Start band. All other level overlays begin over the
+      // last 20% of the previous band, matching the playable transition.
+      const y=r===0?((r+1)*h-sh):(r*h-h*0.20);
+      ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){
       for(let r=0;r<totalStages();r++){
         const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
-        drawBottom(getEditorImage(sm[key]),r);
+        drawOverlay(getEditorImage(sm[key]),r);
       }
     }else{
       const seam=getEditorImage(sm.bg_seam);
-      for(let r=0;r<totalStages();r++)drawBottom(seam,r);
+      for(let r=0;r<totalStages();r++)drawOverlay(seam,r);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
