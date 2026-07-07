@@ -795,22 +795,22 @@ class Game{
       // then gravity pulls it back in an arc.
       const svx=this.shield.vx||0,svy=this.shield.vy||0;
       let nx=dx/len,ny=dy/len;
-      const base=f*.85;                       // minimum kick even on a slow touch
+      const base=f*.55;                       // softer minimum kick, closer to Luna preview
       const drive=Math.max(0,svx*nx+svy*ny);  // swipe speed towards the obstacle
-      const vx=nx*(base+drive*.7)+svx*.65;
-      const vy=ny*(base+drive*.7)+svy*.65;
+      const vx=nx*(base+drive*.35)+svx*.35;
+      const vy=ny*(base+drive*.35)+svy*.35;
       // Torque from an off-centre contact point (r x J / inertia):
       // clipping a corner spins the piece hard, a dead-centre hit barely does.
       const cxp=clamp(hx,obs.x-obs.w/2,obs.x+obs.w/2);
       const cyp=clamp(hy,(obs.y+top)-obs.h/2,(obs.y+top)+obs.h/2);
       const rx=cxp-obs.x,ry=cyp-(obs.y+top);
       const inertia=Math.max(300,(obs.w*obs.w+obs.h*obs.h)/12);
-      const spin=clamp((rx*vy-ry*vx)/(inertia*2),-.28,.28);
+      const spin=clamp((rx*vy-ry*vx)/(inertia*3.8),-.16,.16);
       obs.push(vx,vy,spin);
       this.shield.flash=400;
       this.snd.play('shield');
     } else {
-      obs.push(dx/len*f,dy/len*f-2,clamp(dx*.01,-.18,.18));
+      obs.push(dx/len*f*.65,dy/len*f*.65-1.1,clamp(dx*.006,-.10,.10));
       this.ball.flash=400;
       this._die();
     }
@@ -830,7 +830,7 @@ class Game{
       const top=this._sst(i);
       for(const o of st.obs){if(o.live)list.push({o,top});}
     }
-    const rest=this.cfg.scatterBounciness??.35;
+    const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
       const A=list[a];if(A.o.kin)continue;      // only flying pieces initiate
       const ar=A.o.cr,ax=A.o.x,ay=A.o.y+A.top;
@@ -842,10 +842,10 @@ class Game{
         const d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
         if(B.o.kin){
           const sp=Math.hypot(A.o.vx,A.o.vy);
-          if(sp<1.2)continue;                   // too slow to knock anything out
-          B.o.push(A.o.vx*.75+nx*sp*.3,A.o.vy*.75+ny*sp*.3,
-                   clamp(nx*.07+(Math.random()-.5)*.16,-.26,.26));
-          A.o.vx*=.55;A.o.vy*=.55;              // momentum spent on the hit
+          if(sp<3.2)continue;                   // too slow to knock anything out
+          B.o.push(A.o.vx*.28+nx*sp*.10,A.o.vy*.28+ny*sp*.10,
+                   clamp(nx*.025+(Math.random()-.5)*.06,-.10,.10));
+          A.o.vx*=.78;A.o.vy*=.78;              // light momentum transfer
           this.fx.burst(B.o.x,B.o.y+B.top,this.cfg.particleColor);
         }else{
           // both flying: separate the overlap + exchange impulse
@@ -853,9 +853,9 @@ class Game{
           if(rel<0){
             const j=-rel*(1+rest)/2;
             A.o.vx-=nx*j;A.o.vy-=ny*j;B.o.vx+=nx*j;B.o.vy+=ny*j;
-            A.o.av+=(Math.random()-.5)*.05;B.o.av+=(Math.random()-.5)*.05;
+            A.o.av+=(Math.random()-.5)*.015;B.o.av+=(Math.random()-.5)*.015;
           }
-          const ov=(rr-d)/2;
+          const ov=(rr-d)*.35;
           A.o.x-=nx*ov;A.o.y-=ny*ov;B.o.x+=nx*ov;B.o.y+=ny*ov;
         }
       }

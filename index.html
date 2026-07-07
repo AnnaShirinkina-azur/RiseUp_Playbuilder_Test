@@ -240,9 +240,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
-      <div class="row"><label>Chain reaction<small>Разлетающиеся куски сбивают соседние</small></label><input type="checkbox" id="cfg-chainReaction" checked></div>
+      <div class="row"><label>Chain reaction<small>Разлетающиеся куски сбивают соседние</small></label><input type="checkbox" id="cfg-chainReaction"></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
-        <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.35" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.35</span></div></div>
+        <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.08" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.08</span></div></div>
     </div>
 
     <div class="pnl" id="panel-timing" data-title="Timing">
@@ -285,12 +285,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="circle"><div class="thumb"><img src="Assets/textures/shape_circle.svg"></div><div><div class="tpl-name">Circle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
         <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="triangle"><div class="thumb"><img src="Assets/textures/shape_triangle.svg"></div><div><div class="tpl-name">Triangle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
       </div>
-      <div class="sec">Templates from SVG</div>
-      <div class="row wide"><label>Custom SVG templates<small>Каждый rect/circle/ellipse/polygon/path в SVG сразу вставляется как отдельный obstacle. После вставки вся группа автоматически выделена вместе.</small></label></div>
+      <div class="sec">Templates import</div>
+      <div class="row wide"><label>Custom templates<small>Можно загрузить SVG, PNG или Unity .unitypackage. SVG и Unity prefab раскладываются на отдельные obstacle-объекты; PNG вставляется как один obstacle с прямоугольным коллайдером.</small></label></div>
       <div class="sp-row"><div class="sp-up">
-        <label class="ul-btn">+ SVG template<input id="tpl-svg-upload" type="file" accept="image/svg+xml,.svg" style="display:none" multiple></label>
+        <label class="ul-btn">+ Template<input id="tpl-svg-upload" type="file" accept="image/svg+xml,.svg,image/png,.png,.unitypackage,application/gzip,application/x-gzip" style="display:none" multiple></label>
       </div></div>
-      <div id="tpl-list" class="tpl-list"><div class="tpl-empty">No templates yet. Upload SVG files here.</div></div>
+      <div id="tpl-list" class="tpl-list"><div class="tpl-empty">No templates yet. Upload SVG, PNG or Unity packages here.</div></div>
     </div>
 
     <div class="pnl" id="panel-environment" data-title="Environment">
@@ -473,6 +473,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
           <span class="etg-label">Изменения</span>
           <button class="et" id="et-sel">✥ Drag</button>
           <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
+          <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
+          <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
           <button class="et" id="et-del">🗑 Del</button>
           <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
         </div>
