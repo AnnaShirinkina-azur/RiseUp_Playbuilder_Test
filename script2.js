@@ -106,7 +106,7 @@ function clearSpr(key){
 }
 
 // ── Sounds ──────────────────────────────────────────────────────────────────
-const SND_DEFAULTS={bgm:'Assets/audio/bgm.wav',win:'Assets/audio/sfx_win.wav',lose:'Assets/audio/sfx_lose.wav',hit:'Assets/audio/sfx_wrong.wav',shield:'Assets/audio/sfx_correct.wav'};
+const SND_DEFAULTS={bgm:'Assets/audio/bgm.mp3',win:'Assets/audio/sfx_win.mp3',lose:'Assets/audio/sfx_lose.mp3',hit:'Assets/audio/sfx_wrong.mp3',shield:'Assets/audio/sfx_correct.mp3'};
 const SND_ICON={bgm:'🎵',win:'🏆',lose:'💀',hit:'💥',shield:'🛡️'};
 let sndPreview=null;
 function loadSnd(key,inp){

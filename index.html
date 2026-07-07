@@ -151,10 +151,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .ep{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);}
 .ep input[type=number]{width:50px;font-size:12px;padding:3px 5px;}
 .ep .hex-color{width:86px;height:24px;}
-/* ── Fonts (for label previews in the editor) ── */
-@font-face{font-family:'Baloo2';font-weight:700;src:url('Assets/fonts/Baloo2-Bold.ttf')}
-@font-face{font-family:'Kameron';font-weight:600;src:url('Assets/fonts/Kameron-SemiBold.ttf')}
-@font-face{font-family:'LiberationSans';src:url('Assets/fonts/LiberationSans.ttf')}
+/* ── Fonts: exported playable uses system fonts unless a custom font is imported ── */
 /* ── Labels editor ── */
 .lblbar{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;background:var(--surf);}
 .lblbar .lp{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);font-weight:600;}
@@ -682,8 +679,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=37"></script>
-<script src="src/builder.js?v=36"></script>
+<script src="src/playable-template.js?v=38"></script>
+<script src="src/builder.js?v=37"></script>
 <script src="script2.js?v=endcard-toggle"></script>
 
 </body>

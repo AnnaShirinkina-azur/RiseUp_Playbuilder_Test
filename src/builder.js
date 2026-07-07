@@ -71,22 +71,62 @@ function googleFontFamilyFromUrl(url){url=String(url||'').trim();if(!url)return 
 function googleFontCssUrl(url,family){url=String(url||'').trim();family=String(family||'').trim();if(!url&&family)url='https://fonts.googleapis.com/css2?family='+encodeURIComponent(family).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap';try{const u=new URL(url);if(u.hostname==='fonts.google.com'){const fam=family||googleFontFamilyFromUrl(url);return fam?'https://fonts.googleapis.com/css2?family='+encodeURIComponent(fam).replace(/%20/g,'+')+':wght@400;500;600;700;800&display=swap':'';}if(u.hostname==='fonts.googleapis.com')return url;}catch(e){}return url;}
 function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'\"'+name.replace(/\"/g,'')+'\",sans-serif':name+',sans-serif';}
 
-// ── Бандл ассетов ─────────────────────────────────────────────────────────
-const BUNDLE=[
-  'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
-  'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
-  'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
-  'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
-  'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
-];
-async function loadBundle(base,onP){
+// ── Runtime bundle pruning ────────────────────────────────────────────────
+// The editor may contain importers, helper UI, previews and source assets, but
+// the exported playable should only inline assets that are actually used at run
+// time. Defaults are loaded only when the user has not provided a replacement.
+const DEFAULT_SPRITES={
+  heart:'textures/heart.png',
+  player:'textures/balloon.png',
+  player_death:'textures/balloon_death.png',
+  shield:'textures/controller.png'
+};
+const DEFAULT_AUDIO={
+  bgm:'audio/bgm.mp3',
+  win:'audio/sfx_win.mp3',
+  lose:'audio/sfx_lose.mp3',
+  hit:'audio/sfx_wrong.mp3',
+  shield:'audio/sfx_correct.mp3'
+};
+function levelNeedsDefaultHeart(cfg){
+  const arr=(cfg&&cfg.levelData&&cfg.levelData.objects)||[];
+  return arr.some(o=>o&&o.kind==='health'&&!o.heartSrc);
+}
+function pickBundle(cfg,sprMap){
+  const out=[];
+  if(!sprMap.player)out.push(DEFAULT_SPRITES.player);
+  if(!sprMap.player_death)out.push(DEFAULT_SPRITES.player_death);
+  if(!sprMap.shield)out.push(DEFAULT_SPRITES.shield);
+  if(levelNeedsDefaultHeart(cfg))out.push(DEFAULT_SPRITES.heart);
+  if(cfg.soundEnabled!==false){
+    const vols=cfg.soundVolumes||{};
+    Object.keys(DEFAULT_AUDIO).forEach(k=>{
+      if(sprMap['audio_'+k])return;
+      if(vols[k]===0)return;
+      out.push(DEFAULT_AUDIO[k]);
+    });
+  }
+  return Array.from(new Set(out));
+}
+async function loadBundle(base,cfg,sprMap,onP){
+  const list=pickBundle(cfg||{},sprMap||{});
   const m={};let done=0;
-  await Promise.allSettled(BUNDLE.map(async p=>{
+  if(!list.length){onP&&onP(1);return m;}
+  await Promise.allSettled(list.map(async p=>{
     try{m[p]=await fetchB64(`${base}/${p}`);}catch(e){m[p]=null;}
-    onP&&onP(++done/BUNDLE.length);
+    onP&&onP(++done/list.length);
   }));
   return m;
+}
+function pruneSprites(cfg,sprMap){
+  const src=sprMap||{}, out={};
+  Object.keys(src).forEach(k=>{
+    if(k==='custom_font'&&!src[k])return;
+    if(k.indexOf('audio_')===0 && cfg.soundEnabled===false)return;
+    if(k.indexOf('endcard_')===0 && !(cfg.endCard&&cfg.endCard.enabled))return;
+    out[k]=src[k];
+  });
+  return out;
 }
 
 // ── Пользовательские спрайты ──────────────────────────────────────────────
@@ -96,10 +136,10 @@ function getSprites(){return Object.assign({},SPRS);}
 
 // ── Собираем итоговый HTML ────────────────────────────────────────────────
 function buildHTML(cfg,assetMap,sprMap,gameSrc){
-  if(assetMap['textures/heart.png'])cfg.defaultHeartSrc=assetMap['textures/heart.png'];
-  if(assetMap['textures/balloon.png'])cfg.defaultPlayerSrc=assetMap['textures/balloon.png'];
-  if(assetMap['textures/balloon_death.png'])cfg.defaultPlayerDeathSrc=assetMap['textures/balloon_death.png'];
-  if(assetMap['textures/controller.png'])cfg.defaultShieldSrc=assetMap['textures/controller.png'];
+  if(assetMap[DEFAULT_SPRITES.heart])cfg.defaultHeartSrc=assetMap[DEFAULT_SPRITES.heart];
+  if(assetMap[DEFAULT_SPRITES.player])cfg.defaultPlayerSrc=assetMap[DEFAULT_SPRITES.player];
+  if(assetMap[DEFAULT_SPRITES.player_death])cfg.defaultPlayerDeathSrc=assetMap[DEFAULT_SPRITES.player_death];
+  if(assetMap[DEFAULT_SPRITES.shield])cfg.defaultShieldSrc=assetMap[DEFAULT_SPRITES.shield];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);
@@ -109,9 +149,6 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   const localFontCss=(sprMap.custom_font&&localFamily)?fontCssFamily(localFamily):'';
   const localFontJs=localFontCss?('RiseFontCSS['+JSON.stringify(localFamily)+']='+JSON.stringify(localFontCss)+';') : '';
   const ff=[
-    assetMap['fonts/Baloo2-Bold.ttf']?`@font-face{font-family:'Baloo2';font-weight:700;src:url('${assetMap['fonts/Baloo2-Bold.ttf']}')}`:'',
-    assetMap['fonts/Kameron-SemiBold.ttf']?`@font-face{font-family:'Kameron';font-weight:600;src:url('${assetMap['fonts/Kameron-SemiBold.ttf']}')}`:'',
-    assetMap['fonts/LiberationSans.ttf']?`@font-face{font-family:'LiberationSans';src:url('${assetMap['fonts/LiberationSans.ttf']}')}`:'',
     localFontCss?`@font-face{font-family:'${localFamily.replace(/'/g,'')}';src:url('${sprMap.custom_font}')}`:'',
   ].filter(Boolean).join('\n');
 
@@ -159,11 +196,11 @@ var cfg=${JSON.stringify(cfg)};
   root.className=cfg.orientation;
   // Audio: custom sounds from the builder (sp.audio_*) win over bundled defaults.
   cfg.audioSources={
-    bgm:sp.audio_bgm||a['audio/bgm.wav']||null,
-    win:sp.audio_win||a['audio/sfx_win.wav']||null,
-    lose:sp.audio_lose||a['audio/sfx_lose.wav']||null,
-    hit:sp.audio_hit||a['audio/sfx_wrong.wav']||null,
-    shield:sp.audio_shield||a['audio/sfx_correct.wav']||null
+    bgm:sp.audio_bgm||a[DEFAULT_AUDIO.bgm]||null,
+    win:sp.audio_win||a[DEFAULT_AUDIO.win]||null,
+    lose:sp.audio_lose||a[DEFAULT_AUDIO.lose]||null,
+    hit:sp.audio_hit||a[DEFAULT_AUDIO.hit]||null,
+    shield:sp.audio_shield||a[DEFAULT_AUDIO.shield]||null
   };
   var game=null;
   function onOrient(){
@@ -240,9 +277,10 @@ async function buildAndDownload(opts){
     onProgress&&onProgress(.05,'Loading engine…');
     const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>r.text());
     onProgress&&onProgress(.1,'Loading assets…');
-    const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(.1+p*.8,`Assets ${Math.round(p*100)}%…`));
+    const sprites=pruneSprites(cfg,getSprites());
+    const map=await loadBundle(assetsBase,cfg,sprites,p=>onProgress&&onProgress(.1+p*.8,`Assets ${Math.round(p*100)}%…`));
     onProgress&&onProgress(.92,'Building HTML…');
-    const html=buildHTML(cfg,map,getSprites(),src);
+    const html=buildHTML(cfg,map,sprites,src);
     const kb=Math.round(html.length/1024);
     dlHTML(html,`rise_playable_${Date.now()}.html`);
     onProgress&&onProgress(1,`Done — ${kb} KB`);
@@ -256,8 +294,9 @@ async function buildPreview(iframe,opts){
     onProgress&&onProgress(0,'Building preview…');
     const cfg=readConfig();
     const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>r.text());
-    const map=await loadBundle(assetsBase,p=>onProgress&&onProgress(p*.9,`${Math.round(p*100)}%…`));
-    const html=buildHTML(cfg,map,getSprites(),src);
+    const sprites=pruneSprites(cfg,getSprites());
+    const map=await loadBundle(assetsBase,cfg,sprites,p=>onProgress&&onProgress(p*.9,`${Math.round(p*100)}%…`));
+    const html=buildHTML(cfg,map,sprites,src);
     iframe.srcdoc=html;
     onProgress&&onProgress(1,'Ready');
   }catch(e){console.error(e);onError&&onError(e.message);}
