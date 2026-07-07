@@ -541,6 +541,7 @@ class Game{
     this.progressBars=[];
     this.healthBars=[];
     this.ctaButtons=[];
+    this.tutorialObj=null;
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
     // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
     const ld=c.levelData;
@@ -554,6 +555,7 @@ class Game{
           if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
           if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
+          if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -1084,8 +1086,19 @@ class Game{
   // (1.5,4.16) growing to (-1.05,5.71) scaleX 0->1@0.75 alpha .4 fade@.75-.92.
   // Blocks are interactive: the shield smashes them with scatter physics.
   _tutInit(){
-    const S=Math.min(CW,CH)*0.14;                        // px per Unity unit
-    const ax=CW/2,ay=clamp(this.shield.y-this.shield.r-120,CH*0.16,CH*0.5);
+    const T=this.tutorialObj;
+    let S,ax,ay;
+    if(T){
+      // позиция/масштаб из объекта Level Editor (anchor + offset; центр композиции = uy 4.28)
+      S=Math.min(CW,CH)*0.14*(parseFloat(T.scale)||1);
+      const b=progressAnchorBaseLocal(T.anchor||'cc');
+      const cx=CW/2+b.x+(parseFloat(T.anchorOffsetX)||0)*CW/100;
+      const cy=CH/2+b.y+(parseFloat(T.anchorOffsetY)||0)*CH/100;
+      ax=cx;ay=cy-(4.28-4.6)*S;
+    }else{
+      S=Math.min(CW,CH)*0.14;
+      ax=CW/2;ay=clamp(this.shield.y-this.shield.r-120,CH*0.16,CH*0.5);
+    }
     this._tutAnchor={ax,ay,S};
     const U=(ux,uy)=>({x:ax+ux*S,y:ay-(uy-4.6)*S});
     const bs=0.5224*S;
@@ -1136,12 +1149,14 @@ class Game{
     const p=((this.tutT||0)/1000)%1;                     // 1s loop (WrapMode 2)
     const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
     // blocks (interactive)
-    const shape=this.cfg.tutorialObstacleShape||'square';
+    const T=this.tutorialObj;
+    const shape=(T&&T.blockShape)||this.cfg.tutorialObstacleShape||'square';
+    const blockColor=(T&&T.blockColor)||'#373843';
     for(const b of this.tutBlocks){
       if(b.a<=0)continue;
       ctx.save();ctx.globalAlpha*=b.a;
       ctx.translate(b.x,b.y);ctx.rotate(b.rot);
-      ctx.fillStyle='#373843';
+      ctx.fillStyle=blockColor;
       this._tutShape(ctx,0,0,b.s,shape);
       ctx.restore();
     }
@@ -1175,10 +1190,13 @@ class Game{
       }
     }
     // text
-    ctx.fillStyle='rgba(255,255,255,.92)';ctx.font='bold 18px sans-serif';ctx.textAlign='center';
-    const ty=this._tutU(0,2.9).y;
-    ctx.fillText('Move the circle',CW/2,ty);
-    ctx.fillText('to break the block',CW/2,ty+23);
+    const fs=Math.max(6,((T&&parseFloat(T.textSize))||18)*(S/(Math.min(CW,CH)*0.14)));
+    ctx.fillStyle=(T&&T.textColor)||'rgba(255,255,255,.92)';
+    ctx.font='bold '+fs+'px sans-serif';ctx.textAlign='center';
+    const lines=String((T&&T.text!=null)?T.text:'Move the circle\nto break the block').split('\n');
+    let ty=this._tutU(0,2.9).y;
+    const tx=this._tutAnchor.ax;
+    for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=fs*1.25;}
   }
 
   _tutShape(ctx,x,y,s,shape){
