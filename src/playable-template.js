@@ -892,8 +892,9 @@ class Game{
     this.si=n;
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
-  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.state='endcard';this.isWin=false;this.snd.stopBgm();this.snd.play('lose');this.cb.onLose&&this.cb.onLose();}
+  _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
+  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{if(this._endCardsEnabled()){this.state='endcard';}else{this.state='finished';}this.cb.onWin&&this.cb.onWin();},1400);}
+  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');if(this._endCardsEnabled()){this.state='endcard';}else{this.state='lost';}this.cb.onLose&&this.cb.onLose();}
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;
@@ -1404,7 +1405,7 @@ const DEF={
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{scale:1,x:0,y:0,overlay:.55,showCta:true,ctaText:'PLAY NOW',ctaY:74},
+  endCard:{enabled:true,scale:1,x:0,y:0,overlay:.55,showCta:true,ctaText:'PLAY NOW',ctaY:74},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};

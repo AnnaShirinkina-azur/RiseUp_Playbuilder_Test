@@ -198,12 +198,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 <div class="ws">
   <aside class="sb">
     <div class="tabs">
-      <button class="acc-head on" data-acc="gameplay">Gameplay changes</button>
+      <button class="acc-head on" data-acc="gameplay">Gameplay</button>
       <div class="acc-body on" id="acc-gameplay">
         <button class="tab on" data-panel="player">Player</button>
         <button class="tab" data-panel="speed">Speed</button>
         <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
         <button class="tab" data-panel="timing">Timing</button>
+        <button class="tab" data-panel="endcard-gameplay">End Card</button>
       </div>
       <button class="acc-head on" data-acc="visuals">Visual changes</button>
       <div class="acc-body on" id="acc-visuals">
@@ -255,6 +256,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="sec">Tutorial animation</div>
       <div class="row"><label>Enable animation<small>Рука + пирамида + надпись. Позиция и вид настраиваются объектом Tutorial в Level Editor</small></label><input type="checkbox" id="cfg-tutorialAnimEnabled" checked></div>
       <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
+    </div>
+
+    <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
+      <div class="sec">End Card</div>
+      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
@@ -676,9 +682,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   </div>
 </div>
 
-<script src="src/playable-template.js?v=36"></script>
-<script src="src/builder.js?v=35"></script>
-<script src="script2.js?v=seam-half-boundary-editor-fixed"></script>
+<script src="src/playable-template.js?v=37"></script>
+<script src="src/builder.js?v=36"></script>
+<script src="script2.js?v=endcard-toggle"></script>
 
 </body>
 </html>

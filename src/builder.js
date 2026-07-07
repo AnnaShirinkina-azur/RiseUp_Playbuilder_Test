@@ -52,6 +52,7 @@ function readConfig(){
     },
     levelData,
     endCard:{
+      enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
       y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),

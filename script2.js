@@ -385,7 +385,7 @@ try{
   async function handleImport(file){if(!file)return;let src;if(/\.unitypackage$/i.test(file.name))src=await importUnityPackage(file);else src=await readFileAsDataUrl(file);if(state==='win'){RiseBuilder.setSprite('endcard_win',src);imgs.win.src=src;}else{RiseBuilder.setSprite('endcard_lose_bg',src);imgs.loseBg.src=src;}draw();markPreviewDirty();}
   $('end-state-win')&&$('end-state-win').addEventListener('click',()=>setState('win'));
   $('end-state-lose')&&$('end-state-lose').addEventListener('click',()=>setState('lose'));
-  ['end-zoom','cfg-endCardScale','cfg-endCardX','cfg-endCardY','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardCtaText','cfg-endCardCtaY'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
+  ['end-zoom','cfg-endCardEnabled','cfg-endCardScale','cfg-endCardX','cfg-endCardY','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardCtaText','cfg-endCardCtaY'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
   $('end-import')&&$('end-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0]).catch(err=>alert('End card import failed: '+err.message)));
   Object.values(imgs).forEach(im=>{im.onload=draw;});
   window.RiseEndCardEditor={resize,draw,setState};
@@ -471,7 +471,7 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-chainReaction':false,'cfg-scatterBounciness':0.08,'cfg-seamScale':1,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
-  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square',
+  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',
