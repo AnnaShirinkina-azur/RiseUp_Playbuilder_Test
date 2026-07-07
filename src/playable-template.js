@@ -585,6 +585,7 @@ class Game{
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
     this.endA=0;this.isWin=false;
     this.tutA=1;this.tutT=0;this.tutDone=false;
+    this.tutBlocks=null;this._tutAnchor=null;this._tutSmashed=false;
     this.hpA=0;this.hpT=0;
     this.fx=new FX();
     this.shield=new Shield(this.cfg);
@@ -744,6 +745,7 @@ class Game{
     // tutorial
     if(st==='playing'&&!this.tutDone){
       this.tutT+=dt;
+      this._updateTutorial(dt);
       if(this.tutT>this.cfg.tutorialDisplayTime)this.tutDone=true;
       const fs=this.cfg.tutorialDisplayTime-600;
       if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
@@ -1080,52 +1082,103 @@ class Game{
   // block pyramid (Obstacle y=4.68), Hand pos (1.48,3.58)->(-1.23,5.61)
   // rot -25.4deg->+18deg alpha 0->1@0.42 hold 1->0@1, Swipe streak from
   // (1.5,4.16) growing to (-1.05,5.71) scaleX 0->1@0.75 alpha .4 fade@.75-.92.
+  // Blocks are interactive: the shield smashes them with scatter physics.
+  _tutInit(){
+    const S=Math.min(CW,CH)*0.14;                        // px per Unity unit
+    const ax=CW/2,ay=clamp(this.shield.y-this.shield.r-120,CH*0.16,CH*0.5);
+    this._tutAnchor={ax,ay,S};
+    const U=(ux,uy)=>({x:ax+ux*S,y:ay-(uy-4.6)*S});
+    const bs=0.5224*S;
+    this.tutBlocks=[[-0.674,4.651],[0,4.651],[0.649,4.651],[-0.338,5.28],[0.338,5.28],[0,5.882]]
+      .map(c=>{const q=U(c[0],c[1]);return{x:q.x,y:q.y,s:bs,hit:false,vx:0,vy:0,rot:0,vr:0,a:1};});
+    this._tutSmashed=false;
+  }
+  _tutU(ux,uy){const a=this._tutAnchor;return{x:a.ax+ux*a.S,y:a.ay-(uy-4.6)*a.S};}
+  _updateTutorial(dt){
+    if(this.cfg.tutorialAnimEnabled===false)return;
+    if(!this.tutBlocks)this._tutInit();
+    const sh=this.shield,g=900*(parseFloat(this.cfg.gravityModifier)||1);
+    let alive=0;
+    for(const b of this.tutBlocks){
+      if(!b.hit){
+        alive++;
+        const dx=b.x-sh.x,dy=b.y-sh.y,rr=sh.r+b.s*0.62;
+        if(!sh.dead&&dx*dx+dy*dy<rr*rr){
+          const len=Math.sqrt(dx*dx+dy*dy)||1,f=(this.cfg.obstaclePushForce||7)*26;
+          b.hit=true;
+          b.vx=sh.vx*0.9+dx/len*f;
+          b.vy=sh.vy*0.9+dy/len*f-120;
+          b.vr=(Math.random()*8-4);
+          this.fx.burst(b.x,b.y,this.cfg.particleColor);
+          this.snd&&this.snd.play('shield');
+          alive--;
+        }
+      }else if(b.a>0){
+        b.x+=b.vx*dt/1000;b.y+=b.vy*dt/1000;
+        b.vy+=g*dt/1000;b.rot+=b.vr*dt/1000;
+        if(b.y>CH+b.s)b.a=0;
+      }
+    }
+    // pyramid destroyed -> wrap the tutorial up early (start the fade)
+    if(alive===0&&!this._tutSmashed){
+      this._tutSmashed=true;
+      const fs=this.cfg.tutorialDisplayTime-600;
+      if(this.tutT<fs)this.tutT=fs;
+    }
+  }
   _drawTutAnim(ctx){
     if(!this._tutHand){
       const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#ffffff" stroke="#1c2030" stroke-width="0.8" stroke-linejoin="round" d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>';
       this._tutHand=makeImg('data:image/svg+xml,'+encodeURIComponent(svg));
     }
-    const S=Math.min(CW,CH)*0.082;                       // px per Unity unit
-    const ax=CW/2,ay=clamp(this.shield.y-this.shield.r-95,CH*0.16,CH*0.5);
-    const U=(ux,uy)=>({x:ax+ux*S,y:ay-(uy-4.6)*S});      // Unity y-up -> canvas
+    if(!this.tutBlocks)this._tutInit();
+    const S=this._tutAnchor.S;
     const p=((this.tutT||0)/1000)%1;                     // 1s loop (WrapMode 2)
     const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
-    // block pyramid
-    const bs=0.5224*S,shape=this.cfg.tutorialObstacleShape||'square';
-    ctx.fillStyle='#373843';
-    [[-0.674,4.651],[0,4.651],[0.649,4.651],[-0.338,5.28],[0.338,5.28],[0,5.882]]
-      .forEach(c=>{const q=U(c[0],c[1]);this._tutShape(ctx,q.x,q.y,bs,shape);});
-    // swipe streak
-    const A=U(1.5,4.16),E=U(-1.05,5.71);
-    const g=ss(Math.min(1,p/0.75));
-    const sa=p<0.75?0.4:(p<0.92?0.4*(1-(p-0.75)/0.17):0);
-    if(sa>0&&g>0.03){
-      const bx=A.x+(E.x-A.x)*g,by=A.y+(E.y-A.y)*g;
-      const len=Math.hypot(bx-A.x,by-A.y);
-      ctx.save();ctx.globalAlpha*=sa;
-      ctx.translate(A.x,A.y);ctx.rotate(Math.atan2(by-A.y,bx-A.x));
-      const gr=ctx.createLinearGradient(0,0,len,0);
-      gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,1)');
-      ctx.fillStyle=gr;
-      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(len,-0.19*S);ctx.lineTo(len,0.19*S);ctx.closePath();ctx.fill();
+    // blocks (interactive)
+    const shape=this.cfg.tutorialObstacleShape||'square';
+    for(const b of this.tutBlocks){
+      if(b.a<=0)continue;
+      ctx.save();ctx.globalAlpha*=b.a;
+      ctx.translate(b.x,b.y);ctx.rotate(b.rot);
+      ctx.fillStyle='#373843';
+      this._tutShape(ctx,0,0,b.s,shape);
       ctx.restore();
     }
-    // hand
-    const ha=p<0.42?p/0.42:(p<0.58?1:Math.max(0,1-(p-0.58)/0.42));
-    if(ha>0&&imgOk(this._tutHand)){
-      const H=U(1.48+(-1.23-1.48)*ss(p),3.58+(5.61-3.58)*ss(p));
-      const rot=-((-25.4+(18+25.4)*ss(p))*Math.PI/180);  // Unity CCW -> canvas
-      const hw=1.6*S;
-      ctx.save();ctx.globalAlpha*=ha;
-      ctx.translate(H.x,H.y);ctx.rotate(rot);
-      ctx.drawImage(this._tutHand,-hw*0.48,-hw*0.12,hw,hw); // fingertip at pivot
-      ctx.restore();
+    const smashed=this._tutSmashed;
+    // swipe streak (hidden once the pyramid is destroyed)
+    if(!smashed){
+      const A=this._tutU(1.5,4.16),E=this._tutU(-1.05,5.71);
+      const gr8=ss(Math.min(1,p/0.75));
+      const sa=p<0.75?0.4:(p<0.92?0.4*(1-(p-0.75)/0.17):0);
+      if(sa>0&&gr8>0.03){
+        const bx=A.x+(E.x-A.x)*gr8,by=A.y+(E.y-A.y)*gr8;
+        const len=Math.hypot(bx-A.x,by-A.y);
+        ctx.save();ctx.globalAlpha*=sa;
+        ctx.translate(A.x,A.y);ctx.rotate(Math.atan2(by-A.y,bx-A.x));
+        const gr=ctx.createLinearGradient(0,0,len,0);
+        gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,1)');
+        ctx.fillStyle=gr;
+        ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(len,-0.19*S);ctx.lineTo(len,0.19*S);ctx.closePath();ctx.fill();
+        ctx.restore();
+      }
+      // hand
+      const ha=p<0.42?p/0.42:(p<0.58?1:Math.max(0,1-(p-0.58)/0.42));
+      if(ha>0&&imgOk(this._tutHand)){
+        const H=this._tutU(1.48+(-1.23-1.48)*ss(p),3.58+(5.61-3.58)*ss(p));
+        const rot=-((-25.4+(18+25.4)*ss(p))*Math.PI/180);// Unity CCW -> canvas
+        const hw=1.7*S;
+        ctx.save();ctx.globalAlpha*=ha;
+        ctx.translate(H.x,H.y);ctx.rotate(rot);
+        ctx.drawImage(this._tutHand,-hw*0.48,-hw*0.12,hw,hw); // fingertip at pivot
+        ctx.restore();
+      }
     }
     // text
-    ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
-    const ty=U(0,3.0).y;
+    ctx.fillStyle='rgba(255,255,255,.92)';ctx.font='bold 18px sans-serif';ctx.textAlign='center';
+    const ty=this._tutU(0,2.9).y;
     ctx.fillText('Move the circle',CW/2,ty);
-    ctx.fillText('to break the block',CW/2,ty+19);
+    ctx.fillText('to break the block',CW/2,ty+23);
   }
 
   _tutShape(ctx,x,y,s,shape){

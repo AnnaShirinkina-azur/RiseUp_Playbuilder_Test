@@ -653,6 +653,27 @@ const LE=(function(){
     if(btn)btn.click();
     const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();
   }));
+  // Tutorial pyramid: builtin prefab template (6 obstacles inserted as a group)
+  (function(){
+    const card=document.getElementById('builtin-tutorial-pyramid');
+    if(!card)return;
+    let cached=null;
+    function arm(t){
+      customShape={name:'tutorial_pyramid',prefab:true,items:t.items,imageSrc:t.imageSrc};
+      shape='custom';mode='add';selectedTemplateId=null;
+      document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
+      renderTemplateList();
+      const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();
+    }
+    card.addEventListener('click',()=>{
+      if(cached){arm(cached);return;}
+      fetch('Assets/textures/tutorial_pyramid.svg').then(r=>{if(!r.ok)throw new Error(r.status);return r.text();}).then(txt=>{
+        const items=parseSvgPrefabItems(txt);
+        const imageSrc=templateDataUrl(txt);getEditorImage(imageSrc);
+        cached={items,imageSrc};arm(cached);
+      }).catch(e=>alert('Не удалось загрузить шаблон пирамиды: '+e.message));
+    });
+  })();
   $('et-custom').addEventListener('click',()=>{$('shape-modal').classList.add('on');});
   $('et-shape-editor').addEventListener('click',()=>{$('shape-modal').classList.add('on');});
   $('custom-shape-image').addEventListener('change',e=>{
