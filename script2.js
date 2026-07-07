@@ -1170,10 +1170,12 @@ bindHexColorInputs(document);
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // Start has no previous background, so it is attached flush to the
-      // bottom of the Start band. All other level overlays begin over the
-      // last 20% of the previous band, matching the playable transition.
-      const y=r===0?((r+1)*h-sh):(r*h-h*0.20);
+      // The editor strip is visually flipped: Start is the bottom row and
+      // Finish is the top row. Start sits flush on its own bottom edge. Every
+      // later level is anchored to its bottom edge but drawn DOWN, covering
+      // the top of the previous level.
+      const top=rowOf(r)*h;
+      const y=(r===0)?(top+h-sh):(top+h);
       ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){

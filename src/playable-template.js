@@ -987,18 +987,18 @@ class Game{
       const iw=seam&&(seam.naturalWidth||seam.width)||1;
       const ih=seam&&(seam.naturalHeight||seam.height)||1;
       const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
-      // Start has no previous band, so its overlay is pinned flush to the
-      // visible bottom edge. This removes the start-screen gap.
-      if(v.i===0){
-        let bottom=v.top+v.H;
+      const stageBottom=v.top+v.H;
+      const isStartLevel=v.i===0;
+      if(isStartLevel){
+        // Start has no previous level below it, so its overlay sits flush on
+        // the visible bottom of the first band/screen.
+        let bottom=stageBottom;
         if(k===vis.length-1)bottom=Math.max(bottom,CH);
         return bottom-sh;
       }
-      // Other level overlays mark the transition into this level: place the
-      // sprite so it starts over the last 20% of the previous background band.
-      const prev=this.stages[v.i-1];
-      const prevH=(prev&&prev.H)||v.H;
-      return v.top-prevH*0.20;
+      // For every next mini-level the overlay is anchored to that level's
+      // bottom edge and drawn DOWN over the top of the previous level.
+      return stageBottom;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
