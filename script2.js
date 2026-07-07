@@ -385,7 +385,12 @@ try{
   async function handleImport(file){if(!file)return;let src;if(/\.unitypackage$/i.test(file.name))src=await importUnityPackage(file);else src=await readFileAsDataUrl(file);if(state==='win'){RiseBuilder.setSprite('endcard_win',src);imgs.win.src=src;}else{RiseBuilder.setSprite('endcard_lose_bg',src);imgs.loseBg.src=src;}draw();markPreviewDirty();}
   $('end-state-win')&&$('end-state-win').addEventListener('click',()=>setState('win'));
   $('end-state-lose')&&$('end-state-lose').addEventListener('click',()=>setState('lose'));
-  ['end-zoom','cfg-endCardEnabled','cfg-endCardScale','cfg-endCardX','cfg-endCardY','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardCtaText','cfg-endCardCtaY'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
+  function syncEndCardControls(srcId){
+    const pairs=[['cfg-endCardCtaLeft','cfg-endCardCta'],['cfg-endCardCtaTextLeft','cfg-endCardCtaText'],['cfg-endCardCtaYLeft','cfg-endCardCtaY']];
+    pairs.forEach(([a,b])=>{const A=$(a),B=$(b);if(!A||!B)return;if(srcId===a){if(A.type==='checkbox')B.checked=A.checked;else B.value=A.value;}else if(srcId===b){if(B.type==='checkbox')A.checked=B.checked;else A.value=B.value;}else{if(a.indexOf('Left')>0){if(A.type==='checkbox')B.checked=A.checked;else B.value=A.value;}}});
+  }
+  ['end-zoom','cfg-endCardEnabled','cfg-endCardScale','cfg-endCardX','cfg-endCardY','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardCtaText','cfg-endCardCtaY','cfg-endCardCtaLeft','cfg-endCardCtaTextLeft','cfg-endCardCtaYLeft','cfg-storeUrl'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{syncEndCardControls(id);resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{syncEndCardControls(id);resize();markPreviewDirty();});});
+  syncEndCardControls();
   $('end-import')&&$('end-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0]).catch(err=>alert('End card import failed: '+err.message)));
   Object.values(imgs).forEach(im=>{im.onload=draw;});
   window.RiseEndCardEditor={resize,draw,setState};
@@ -471,7 +476,7 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-chainReaction':false,'cfg-scatterBounciness':0.08,'cfg-seamScale':1,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
-  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,
+  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-endCardCtaLeft':true,'cfg-endCardCtaTextLeft':'PLAY NOW','cfg-endCardCtaYLeft':74,'cfg-storeUrl':'',
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',

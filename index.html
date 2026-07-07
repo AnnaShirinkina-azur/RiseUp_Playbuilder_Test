@@ -257,7 +257,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
-      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="row"><label>Enable End Card<small>Показывать win / lose end card после результата</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="sec">CTA</div>
+      <div class="row"><label>Show CTA<small>Показывать кнопку на end card</small></label><input type="checkbox" id="cfg-endCardCtaLeft" checked></div>
+      <div class="row"><label>CTA text<small>Текст кнопки</small></label><input type="text" id="cfg-endCardCtaTextLeft" value="PLAY NOW"></div>
+      <div class="row"><label>CTA Y%<small>Позиция кнопки на экране</small></label><input type="number" id="cfg-endCardCtaYLeft" value="74" min="0" max="100" step="1"></div>
+      <div class="row wide"><label>Store URL<small>Ссылка, куда ведёт клик по CTA / end card</small></label><input type="url" id="cfg-storeUrl" placeholder="https://apps.apple.com/... or https://play.google.com/..." style="width:100%"></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">

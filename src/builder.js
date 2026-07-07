@@ -51,15 +51,16 @@ function readConfig(){
       shield:(g('cfg-vol-shield')!=null?g('cfg-vol-shield'):0.9),
     },
     levelData,
+    storeUrl:val('cfg-storeUrl','').trim(),
     endCard:{
-      enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
+      enabled:checked('cfg-endCardEnabled',true),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
       y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
-      showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
-      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
-      ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})()
+      showCta:checked('cfg-endCardCtaLeft',checked('cfg-endCardCta',true)),
+      ctaText:val('cfg-endCardCtaTextLeft',val('cfg-endCardCtaText','PLAY NOW'))||'PLAY NOW',
+      ctaY:(function(){var v=g('cfg-endCardCtaYLeft');if(isNaN(v))v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})()
     },
   };
 }
@@ -225,8 +226,8 @@ var cfg=${JSON.stringify(cfg)};
     var go=function(){
       onOrient();
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
-        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
+        onCTA:function(){try{var u=(cfg.storeUrl||'').trim();if(!u)return;if(typeof mraid!=='undefined'&&mraid.open)mraid.open(u);else window.open(u,'_blank');}catch(e){}},
+        onWin:function(){},
         onLose:function(){},onStageChange:function(){}
       });
       window.RiseGame=game;
