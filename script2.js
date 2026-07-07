@@ -165,21 +165,41 @@ function renderBgStageRows(){
   for(let i=0;i<total;i++){
     const k='bg_stage'+i,d=BG_GRAD_DEFAULTS[i%BG_GRAD_DEFAULTS.length];
     const a=keep['cfg-bgg'+i+'a']||d[0],b=keep['cfg-bgg'+i+'b']||d[1],t=keep['cfg-bgt'+i]||'#ffffff';
-    h+=`<div class="sp-row" style="padding:3px 0;"><div class="sp-up">
+    h+=`<div class="sp-row bg-stage-row"><div class="sp-up">
       <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">🖼️</div>
-      <span style="font-size:12px;color:var(--dim);min-width:48px;">${bgStageLabel(i,total)}</span>
+      <span class="bg-label">${bgStageLabel(i,total)}</span>
       <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
-      <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}a" value="${normalizeHexColor(a).toUpperCase()}" title="Нижний цвет градиента">
-      <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}b" value="${normalizeHexColor(b).toUpperCase()}" title="Верхний цвет градиента">
-      <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgt${i}" value="${normalizeHexColor(t).toUpperCase()}" title="Тинт картинки уровня (белый = без тинта)" style="margin-left:6px;">
+    </div><div class="bg-colors">
+      <div class="bg-gradient-preview" id="bg-grad-prev-${i}" title="Превью градиента"></div>
+      <label class="bg-hex-wrap" title="Нижний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}a"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}a" value="${normalizeHexColor(a).toUpperCase()}"></label>
+      <label class="bg-hex-wrap" title="Верхний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}b"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}b" value="${normalizeHexColor(b).toUpperCase()}"></label>
+      <label class="bg-hex-wrap" title="Тинт картинки уровня (белый = без тинта)"><span class="bg-color-preview" id="bg-chip-${i}t"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgt${i}" value="${normalizeHexColor(t).toUpperCase()}"></label>
     </div></div>`;
   }
   box.innerHTML=h;
   // restore uploaded thumbnails
   const sp=RiseBuilder.getSprites();
   for(let i=0;i<total;i++){const k='bg_stage'+i;if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
-  bindHexColorInputs(box);box.querySelectorAll('input.hex-color').forEach(e=>{const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+  bindHexColorInputs(box);
+  updateBgStagePreviews();
+  box.querySelectorAll('input.hex-color').forEach(e=>{
+    const redraw=()=>{updateBgStagePreviews();if(window.RiseLevelEditor)RiseLevelEditor.draw();};
+    e.addEventListener('input',redraw);e.addEventListener('change',redraw);e.addEventListener('blur',redraw);
+  });
+}
+function updateBgStagePreviews(){
+  const total=getStageCount()+2;
+  for(let i=0;i<total;i++){
+    const a=normalizeHexColor($('cfg-bgg'+i+'a')?.value,BG_GRAD_DEFAULTS[i%BG_GRAD_DEFAULTS.length][0]).toUpperCase();
+    const b=normalizeHexColor($('cfg-bgg'+i+'b')?.value,BG_GRAD_DEFAULTS[i%BG_GRAD_DEFAULTS.length][1]).toUpperCase();
+    const t=normalizeHexColor($('cfg-bgt'+i)?.value,'#ffffff').toUpperCase();
+    const ca=$('bg-chip-'+i+'a'),cb=$('bg-chip-'+i+'b'),ct=$('bg-chip-'+i+'t'),gp=$('bg-grad-prev-'+i);
+    if(ca)ca.style.background=a;
+    if(cb)cb.style.background=b;
+    if(ct)ct.style.background=t;
+    if(gp)gp.style.background='linear-gradient(180deg,'+b+','+a+')';
+  }
 }
 renderBgStageRows();
 bindHexColorInputs(document);
