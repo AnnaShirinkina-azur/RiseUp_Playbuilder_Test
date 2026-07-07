@@ -325,8 +325,8 @@ const DEFS={
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
-  'cfg-playerColor':'#ffffff','cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
-  'cfg-shieldColor':'#4fc3f7','cfg-shieldSpriteColor':'#ffffff',
+  'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
+  'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',
   'cfg-stage0':'#e05252','cfg-stage1':'#52a0e0','cfg-stage2':'#52e08a',
   'cfg-stage3':'#e07d52','cfg-stage4':'#c052e0','cfg-stageAccents':true,'cfg-stageCount':5,'cfg-orientation':'portrait','cfg-googleFontUrl':'','cfg-googleFontFamily':'','cfg-localFontFamily':'CustomFont',
@@ -1162,7 +1162,7 @@ const LE=(function(){
       }
     }else{
       const g=ctx.createRadialGradient(c.x-r*.3,c.y-r*.3,r*.1,c.x,c.y,r);
-      g.addColorStop(0,$('cfg-playerColor')?.value||'#ffffff');g.addColorStop(1,'rgba(255,255,255,.65)');
+      g.addColorStop(0,'#ffffff');g.addColorStop(1,'rgba(255,255,255,.65)');
       ctx.fillStyle=g;ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
       ctx.beginPath();ctx.arc(c.x,c.y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
       if(isSelected(si,i)){ctx.strokeStyle='#fff';ctx.setLineDash([5,4]);ctx.strokeRect(c.x-r-6,c.y-r-6,r*2+12,r*2+12);ctx.setLineDash([]);}

@@ -236,7 +236,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
-      <div class="row"><label>Fill</label><input type="color" id="cfg-playerColor" value="#ffffff"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
@@ -249,14 +248,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div class="pnl" id="panel-shield" data-title="Shield">
       <div class="sec">Shield (защитник)</div>
-      <div class="row"><label>Color</label><input type="color" id="cfg-shieldColor" value="#4fc3f7"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Custom sprite color</label><input type="color" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="color" id="cfg-shieldSpriteColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
