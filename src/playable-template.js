@@ -303,6 +303,12 @@ class Stage{
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
   hit(px,py,pr,top){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
+  hits(px,py,pr,top){
+    if(this.done)return [];
+    const out=[];
+    for(const o of this.obs){if(o.hits(px,py-top,pr))out.push(o);}
+    return out;
+  }
 }
 
 //── Shield — двигается по X и Y за пальцем, защищает шарик ──────────────────
@@ -755,12 +761,16 @@ class Game{
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
-    // collisions: shield blocks obstacles; if shield misses, ball also checks
+    // collisions: the protector pushes every obstacle it touches; the ball
+    // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead){
+      for(let i=0;i<this.stages.length;i++){
+        const top=this._sst(i);
+        const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top):[];
+        for(const sh of hits)this._hit(sh,top,'shield');
+      }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
-        const sh=this.stages[i].hit(this.shield.x,this.shield.y,this.shield.r,top);
-        if(sh){this._hit(sh,top,'shield');break outer;}
         const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top);
         if(bh){this._hit(bh,top,'ball');break outer;}
       }
@@ -810,9 +820,15 @@ class Game{
       this.shield.flash=400;
       this.snd.play('shield');
     } else {
-      obs.push(dx/len*f*.65,dy/len*f*.65-1.1,clamp(dx*.006,-.10,.10));
+      // Ball contact is damage, not a new physics impulse: the balloon pops,
+      // one life is consumed after the death animation, and shield/level reset
+      // continues unless lives reach zero.
       this.ball.flash=400;
+      this.fx.burst(this.ball.x,this.ball.y,this.cfg.particleColor);
+      this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
       this._die();
+      this.tutDone=true;
+      return;
     }
     this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
     this.tutDone=true;
@@ -1377,7 +1393,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
-  chainReaction:true,scatterBounciness:0.35,
+  chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:3500,tutorialAnimEnabled:true,tutorialObstacleShape:'square',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
