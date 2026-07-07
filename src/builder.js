@@ -22,6 +22,8 @@ function readConfig(){
     chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.35:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
+    tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialAnimEnabled');return e?e.checked:true;})(),
+    tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
     playerSize:g('cfg-playerSize'),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     backgroundSpriteColor:g('cfg-bgSpriteColor'),

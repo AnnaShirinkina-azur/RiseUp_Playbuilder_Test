@@ -324,7 +324,7 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.35,'cfg-seamScale':1,
-  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,
+  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square',
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',
