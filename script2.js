@@ -645,7 +645,7 @@ const LE=(function(){
   document.querySelectorAll('.et[data-shape]').forEach(b=>{
     b.addEventListener('click',()=>{
       document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on');shape=b.dataset.shape;mode='add';selectedTemplateId=null;renderTemplateList();$('et-sel').classList.remove('on');$('et-text').classList.remove('on');$('et-progress')&&$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');$('et-scale').classList.remove('on');
+      b.classList.add('on');shape=b.dataset.shape;mode='add';selectedTemplateId=null;customShape=null;renderTemplateList();$('et-sel').classList.remove('on');$('et-text').classList.remove('on');$('et-progress')&&$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');$('et-scale').classList.remove('on');$('et-pyramid')&&$('et-pyramid').classList.remove('on');
     });
   });
   document.querySelectorAll('[data-shape-pick]').forEach(card=>card.addEventListener('click',()=>{
@@ -653,26 +653,36 @@ const LE=(function(){
     if(btn)btn.click();
     const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();
   }));
-  // Tutorial pyramid: builtin prefab template (6 obstacles inserted as a group)
+  // Tutorial pyramid: builtin prefab template (6 obstacles inserted as a group).
+  // SVG встроен в код, чтобы работать и при открытии index.html с диска (без fetch).
   (function(){
-    const card=document.getElementById('builtin-tutorial-pyramid');
-    if(!card)return;
+    const PYRAMID_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 170">'
+      +'<rect x="15.2" y="114.1" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'<rect x="69.1" y="114.1" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'<rect x="121" y="114.1" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'<rect x="42.1" y="66.1" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'<rect x="96.1" y="66.1" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'<rect x="69.1" y="17.9" width="41.8" height="41.8" fill="#373843" stroke="#9aa0b4" stroke-width="2"/>'
+      +'</svg>';
     let cached=null;
-    function arm(t){
+    function pyramidTemplate(){
+      if(cached)return cached;
+      const items=parseSvgPrefabItems(PYRAMID_SVG);
+      const imageSrc=templateDataUrl(PYRAMID_SVG);getEditorImage(imageSrc);
+      cached={items,imageSrc};
+      return cached;
+    }
+    function armPyramid(){
+      const t=pyramidTemplate();
       customShape={name:'tutorial_pyramid',prefab:true,items:t.items,imageSrc:t.imageSrc};
       shape='custom';mode='add';selectedTemplateId=null;
-      document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
+      clearToolButtons();
+      const pb=$('et-pyramid');if(pb)pb.classList.add('on');
       renderTemplateList();
-      const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();
     }
-    card.addEventListener('click',()=>{
-      if(cached){arm(cached);return;}
-      fetch('Assets/textures/tutorial_pyramid.svg').then(r=>{if(!r.ok)throw new Error(r.status);return r.text();}).then(txt=>{
-        const items=parseSvgPrefabItems(txt);
-        const imageSrc=templateDataUrl(txt);getEditorImage(imageSrc);
-        cached={items,imageSrc};arm(cached);
-      }).catch(e=>alert('Не удалось загрузить шаблон пирамиды: '+e.message));
-    });
+    $('et-pyramid')?.addEventListener('click',armPyramid);
+    const card=document.getElementById('builtin-tutorial-pyramid');
+    if(card)card.addEventListener('click',()=>{armPyramid();const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();});
   })();
   $('et-custom').addEventListener('click',()=>{$('shape-modal').classList.add('on');});
   $('et-shape-editor').addEventListener('click',()=>{$('shape-modal').classList.add('on');});
@@ -715,7 +725,7 @@ const LE=(function(){
   $('le-grid')?.addEventListener('change',e=>{showGrid=!!e.target.checked;draw();});
 
   // ── Tool buttons helper ───────────────────────────────────────────────────
-  function clearToolButtons(){document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));$('et-sel').classList.remove('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');}
+  function clearToolButtons(){document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));$('et-sel').classList.remove('on');$('et-scale').classList.remove('on');$('et-text').classList.remove('on');$('et-progress').classList.remove('on');$('et-health')&&$('et-health').classList.remove('on');$('et-cta')&&$('et-cta').classList.remove('on');$('et-pyramid')&&$('et-pyramid').classList.remove('on');}
   $('le-zoom')?.addEventListener('input',e=>{
     autoFitZoom=false;
     const oldZoom=zoom;
