@@ -182,11 +182,19 @@ function renderSeamRows(){
 }
 function syncSeamMode(){
   const multi=isSeamMulti();
-  const one=$('seam-single-box'),many=$('seam-multi-box');
+  const one=$('seam-single-box'),many=$('seam-multi-box'),bar=$('seam-mode-bar');
+  if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.seammode===(multi?'multi':'single')));
   if(one)one.style.display=multi?'none':'';
   if(many)many.style.display=multi?'':'none';
   if(multi)renderSeamRows();
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
+}
+function setSeamMode(m){
+  const multi=m==='multi';
+  const e=$('cfg-seamMulti');
+  if(e)e.checked=multi;
+  syncSeamMode();
+  const pb=$('btn-prev');if(pb&&!pb.disabled)pb.click();
 }
 function renderBgStageRows(){
   const box=$('bg-stage-rows');if(!box)return;
@@ -254,6 +262,9 @@ document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.__bgBound=true);
 setBgMode(getBgMode()); // синхронизируем видимость блоков при загрузке
 window.RiseBgUI={getBgMode,renderBgStageRows,renderSeamRows,isSeamMulti,seamKeyForBoundary,BG_GRAD_DEFAULTS};
 $('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
+document.querySelectorAll('.orbtn[data-seammode]').forEach(b=>b.addEventListener('click',()=>setSeamMode(b.dataset.seammode)));
+document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-seammode]');if(b&&!b.__seamBound)setSeamMode(b.dataset.seammode);});
+document.querySelectorAll('.orbtn[data-seammode]').forEach(b=>b.__seamBound=true);
 $('cfg-seamMulti')?.addEventListener('change',syncSeamMode);
 syncSeamMode();
 $('cfg-playerSize')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});

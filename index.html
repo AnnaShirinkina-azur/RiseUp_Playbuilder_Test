@@ -302,7 +302,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
       <div id="bg-perstage-box">
         <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык между уровнями (например, облака). Рисуется поверх всех слоёв. Можно использовать один общий оверлей или разные оверлеи для каждого стыка.</small></label></div>
-        <div class="row wide seam-mode-row"><label><input type="checkbox" id="cfg-seamMulti"> Много разных оверлеев<small>Выкл. = один оверлей на все стыки. Вкл. = отдельный PNG для каждого стыка между уровнями.</small></label></div>
+        <div class="row wide seam-mode-row"><label>Overlay mode<small>One overlay: один общий PNG на все стыки. Per seam: отдельный PNG для каждого стыка между уровнями.</small></label>
+          <div class="orbar" id="seam-mode-bar"><button class="orbtn on" data-seammode="single">One overlay</button><button class="orbtn" data-seammode="multi">Per seam</button></div>
+          <input type="checkbox" id="cfg-seamMulti" style="display:none"></div>
         <div id="seam-single-box" class="sp-row"><div class="sp-up">
           <div class="thumb" id="th-bg_seam">〰️</div>
           <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
