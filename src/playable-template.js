@@ -988,17 +988,17 @@ class Game{
       const ih=seam&&(seam.naturalHeight||seam.height)||1;
       const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
       const stageBottom=v.top+v.H;
-      const isStartLevel=v.i===0;
-      if(isStartLevel){
-        // Start has no previous level below it, so its overlay sits flush on
-        // the visible bottom of the first band/screen.
+      if(v.i===0){
+        // Start has no previous level below it, so its overlay stays fully
+        // inside the start band and is flush with the visible bottom edge.
         let bottom=stageBottom;
         if(k===vis.length-1)bottom=Math.max(bottom,CH);
         return bottom-sh;
       }
-      // For every next mini-level the overlay is anchored to that level's
-      // bottom edge and drawn DOWN over the top of the previous level.
-      return stageBottom;
+      // Every later level owns the overlay on its lower junction. Center the
+      // image on the boundary: 50% stays on this/new level, 50% drops onto
+      // the previous level below.
+      return stageBottom-sh*0.5;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){

@@ -1171,12 +1171,13 @@ bindHexColorInputs(document);
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
       // The editor strip is visually flipped: Start is the bottom row and
-      // Finish is the top row. Start sits flush on its own bottom edge. Every
-      // later level is anchored to its own bottom edge, with exactly 20% of
-      // the overlay dropping onto the previous level below.
+      // Finish is the top row. Start has no previous level, so its overlay is
+      // fully inside Start and flush to the bottom. Every later level draws
+      // its overlay centered on its lower boundary: half on this/new level,
+      // half on the previous level below.
       const top=rowOf(r)*h;
       const bottom=top+h;
-      const y=(r===0)?(bottom-sh):(bottom-sh*0.8);
+      const y=(r===0)?(bottom-sh):(bottom-sh*0.5);
       ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){
