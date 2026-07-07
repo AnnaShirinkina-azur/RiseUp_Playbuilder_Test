@@ -975,20 +975,21 @@ class Game{
     vis.sort((a,b)=>a.top-b.top);
     const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
-    const draw=(seam,y)=>{
+    const draw=(seam,bottom)=>{
       if(!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
-      if(y<-sh||y>CH+sh)return;
-      ctx.drawImage(seam,0,y-sh/2,CW,sh);
+      if(bottom<-sh||bottom>CH+sh)return;
+      // Each seam/overlay sprite is anchored to the bottom of its own level.
+      ctx.drawImage(seam,0,bottom-sh,CW,sh);
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
-        draw(this._spr('bg_seam_stage'+vis[k].i),vis[k].top);
+        draw(this._spr('bg_seam_stage'+vis[k].i),vis[k].top+vis[k].H);
       }
     }else{
       const seam=this._spr('bg_seam');
-      for(let k=1;k<vis.length;k++)draw(seam,vis[k].top);
+      for(let k=0;k<vis.length;k++)draw(seam,vis[k].top+vis[k].H);
     }
   }
 

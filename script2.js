@@ -181,23 +181,24 @@ function renderSeamRows(){
   const sp=RiseBuilder.getSprites();
   for(let i=0;i<total;i++){const k=seamKeyForStage(i);if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
 }
-function syncSeamMode(){
-  const multi=isSeamMulti();
-  const one=$('seam-single-box'),many=$('seam-multi-box'),bar=$('seam-mode-bar'),mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
-  if(mode)mode.value=multi?'perStage':'common';
+function syncSeamMode(forcedMode){
+  const mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
+  let m=forcedMode||(mode&&mode.value)||((legacy&&legacy.checked)?'perStage':'common');
+  if(m==='multi')m='perStage';
+  if(m!=='perStage'&&m!=='common')m='perStage';
+  const multi=m==='perStage';
+  const one=$('seam-single-box'),many=$('seam-multi-box'),bar=$('seam-mode-bar');
+  if(mode)mode.value=m;
   if(legacy)legacy.checked=multi;
-  if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.seammode===(multi?'perStage':'common')));
+  if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.seammode===m));
   if(one)one.style.display=multi?'none':'';
   if(many)many.style.display=multi?'':'none';
   if(multi)renderSeamRows();
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 function setSeamMode(m){
-  const multi=(m==='perStage'||m==='multi');
-  const mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
-  if(mode)mode.value=multi?'perStage':'common';
-  if(legacy)legacy.checked=multi;
-  syncSeamMode();
+  m=(m==='perStage'||m==='multi')?'perStage':'common';
+  syncSeamMode(m);
   const pb=$('btn-prev');if(pb&&!pb.disabled)pb.click();
 }
 function renderBgStageRows(){
@@ -1165,21 +1166,21 @@ bindHexColorInputs(document);
     const w=GW*zoom,h=GH*zoom;
     const sc=parseFloat($('cfg-seamScale')?.value)||1;
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
-    if(multi){
-      for(let r=0;r<totalStages();r++){
-        const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
-        const seam=getEditorImage(sm[key]);
-        if(!imageReady(seam))continue;
-        const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-        const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-        ctx.drawImage(seam,0,r*h-sh/2,w,sh);
-      }
-    }else{
-      const seam=getEditorImage(sm.bg_seam);
+    const drawBottom=(seam,r)=>{
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+      // Attach overlay to the bottom edge of the level, not to the top/seam center.
+      ctx.drawImage(seam,0,(r+1)*h-sh,w,sh);
+    };
+    if(multi){
+      for(let r=0;r<totalStages();r++){
+        const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
+        drawBottom(getEditorImage(sm[key]),r);
+      }
+    }else{
+      const seam=getEditorImage(sm.bg_seam);
+      for(let r=0;r<totalStages();r++)drawBottom(seam,r);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
