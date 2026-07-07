@@ -157,42 +157,46 @@ renderStageAssetRows();
 const BG_GRAD_DEFAULTS=[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']]; // [нижний, верхний]
 function bgStageLabel(i,total){return i===0?'Start':(i===total-1?'Finish':'Mini '+i);}
 
-function seamBoundaryLabel(i,total){
-  const left=bgStageLabel(i,total),right=bgStageLabel(i+1,total);
-  return left+' → '+right;
+function isSeamMulti(){
+  const mode=$('cfg-seamOverlayMode');
+  if(mode)return mode.value==='perStage';
+  const e=$('cfg-seamMulti');return !!(e&&e.checked);
 }
-function isSeamMulti(){const e=$('cfg-seamMulti');return !!(e&&e.checked);}
-function seamKeyForBoundary(i){return 'bg_seam_'+i;}
+function seamKeyForStage(i){return 'bg_seam_stage'+i;}
+function seamKeyForBoundary(i){return seamKeyForStage(i+1);} // legacy helper: boundary uses the incoming level overlay
 function renderSeamRows(){
   const box=$('seam-multi-box');if(!box)return;
   const total=getStageCount()+2;
   let h='';
-  for(let i=0;i<total-1;i++){
-    const k=seamKeyForBoundary(i);
+  for(let i=0;i<total;i++){
+    const k=seamKeyForStage(i);
     h+=`<div class="sp-row seam-row"><div class="sp-up">
       <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">〰️</div>
-      <span class="seam-label">${seamBoundaryLabel(i,total)}</span>
+      <span class="seam-label">${bgStageLabel(i,total)}</span>
       <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
     </div></div>`;
   }
   box.innerHTML=h;
   const sp=RiseBuilder.getSprites();
-  for(let i=0;i<total-1;i++){const k=seamKeyForBoundary(i);if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
+  for(let i=0;i<total;i++){const k=seamKeyForStage(i);if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
 }
 function syncSeamMode(){
   const multi=isSeamMulti();
-  const one=$('seam-single-box'),many=$('seam-multi-box'),bar=$('seam-mode-bar');
-  if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.seammode===(multi?'multi':'single')));
+  const one=$('seam-single-box'),many=$('seam-multi-box'),bar=$('seam-mode-bar'),mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
+  if(mode)mode.value=multi?'perStage':'common';
+  if(legacy)legacy.checked=multi;
+  if(bar)bar.querySelectorAll('.orbtn').forEach(b=>b.classList.toggle('on',b.dataset.seammode===(multi?'perStage':'common')));
   if(one)one.style.display=multi?'none':'';
   if(many)many.style.display=multi?'':'none';
   if(multi)renderSeamRows();
   if(window.RiseLevelEditor)RiseLevelEditor.draw();
 }
 function setSeamMode(m){
-  const multi=m==='multi';
-  const e=$('cfg-seamMulti');
-  if(e)e.checked=multi;
+  const multi=(m==='perStage'||m==='multi');
+  const mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
+  if(mode)mode.value=multi?'perStage':'common';
+  if(legacy)legacy.checked=multi;
   syncSeamMode();
   const pb=$('btn-prev');if(pb&&!pb.disabled)pb.click();
 }
@@ -260,7 +264,7 @@ document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.addEventListener('
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-bgmode]');if(b&&!b.__bgBound)setBgMode(b.dataset.bgmode);});
 document.querySelectorAll('.orbtn[data-bgmode]').forEach(b=>b.__bgBound=true);
 setBgMode(getBgMode()); // синхронизируем видимость блоков при загрузке
-window.RiseBgUI={getBgMode,renderBgStageRows,renderSeamRows,isSeamMulti,seamKeyForBoundary,BG_GRAD_DEFAULTS};
+window.RiseBgUI={getBgMode,renderBgStageRows,renderSeamRows,isSeamMulti,seamKeyForStage,seamKeyForBoundary,BG_GRAD_DEFAULTS};
 $('cfg-seamScale')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
 document.querySelectorAll('.orbtn[data-seammode]').forEach(b=>b.addEventListener('click',()=>setSeamMode(b.dataset.seammode)));
 document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-seammode]');if(b&&!b.__seamBound)setSeamMode(b.dataset.seammode);});
@@ -422,7 +426,7 @@ $('btn-stop').addEventListener('click',()=>{
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,'cfg-seamMulti':false,
+  'cfg-scatterBounciness':0.35,'cfg-seamScale':1,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square',
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
@@ -434,6 +438,7 @@ const DEFS={
 $('btn-reset').addEventListener('click',()=>{
   Object.entries(DEFS).forEach(([id,v])=>{const e=$(id);if(!e)return;if(e.type==='checkbox'){e.checked=!!v;e.dispatchEvent(new Event('change'));}else{e.value=v;e.dispatchEvent(new Event('input'));}});
   setOrientation('portrait');
+  syncSeamMode();
   ['bgm','win','lose','hit','shield'].forEach(clearSnd);
   const l=document.getElementById('google-font-link'); if(l)l.remove();
 });
@@ -1160,13 +1165,21 @@ bindHexColorInputs(document);
     const w=GW*zoom,h=GH*zoom;
     const sc=parseFloat($('cfg-seamScale')?.value)||1;
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
-    for(let r=1;r<totalStages();r++){
-      const key=multi?(RiseBgUI.seamKeyForBoundary?RiseBgUI.seamKeyForBoundary(r-1):('bg_seam_'+(r-1))):'bg_seam';
-      const seam=getEditorImage(sm[key]);
-      if(!imageReady(seam))continue;
+    if(multi){
+      for(let r=0;r<totalStages();r++){
+        const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
+        const seam=getEditorImage(sm[key]);
+        if(!imageReady(seam))continue;
+        const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
+        const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
+        ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+      }
+    }else{
+      const seam=getEditorImage(sm.bg_seam);
+      if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h-sh/2,w,sh);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}

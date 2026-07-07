@@ -301,16 +301,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
         <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
       <div id="bg-perstage-box">
-        <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык между уровнями (например, облака). Рисуется поверх всех слоёв. Можно использовать один общий оверлей или разные оверлеи для каждого стыка.</small></label></div>
-        <div class="row wide seam-mode-row"><label>Overlay mode<small>One overlay: один общий PNG на все стыки. Per seam: отдельный PNG для каждого стыка между уровнями.</small></label>
-          <div class="orbar" id="seam-mode-bar"><button class="orbtn on" data-seammode="single">One overlay</button><button class="orbtn" data-seammode="multi">Per seam</button></div>
-          <input type="checkbox" id="cfg-seamMulti" style="display:none"></div>
-        <div id="seam-single-box" class="sp-row"><div class="sp-up">
+        <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык/край мини-уровня (например, облака). Рисуется поверх всех слоёв. Можно использовать одну общую картинку или отдельную картинку для каждого уровня: Start, Mini и Finish.</small></label></div>
+        <div class="row wide seam-mode-row"><label>Mode<small>Per level: у каждого мини-уровня свой PNG-оверлей. Single image: один общий PNG для всех стыков.</small></label>
+          <div class="orbar" id="seam-mode-bar"><button class="orbtn on" data-seammode="perStage">Per level</button><button class="orbtn" data-seammode="common">Single image</button></div>
+          <input type="hidden" id="cfg-seamOverlayMode" value="perStage"><input type="checkbox" id="cfg-seamMulti" style="display:none" checked></div>
+        <div id="seam-single-box" class="sp-row" style="display:none"><div class="sp-up">
           <div class="thumb" id="th-bg_seam">〰️</div>
           <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
           <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
         </div></div>
-        <div id="seam-multi-box" class="seam-list" style="display:none"></div>
+        <div id="seam-multi-box" class="seam-list"></div>
         <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
           <div class="rr"><input type="range" id="cfg-seamScale" value="1" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">1.00</span></div></div>
         <div class="sec">Per-level backgrounds</div>
