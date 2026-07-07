@@ -496,6 +496,19 @@ const LE=(function(){
   function scaleUiValues(){return {scale:clampScale($('os')?.value),scaleX:clampScale($('osx')?.value),scaleY:clampScale($('osy')?.value)};}
   function makeBuiltInObstacle(kind,x,y){const b=BUILTIN_SHAPES[kind]||BUILTIN_SHAPES.rect,v=scaleUiValues();const o={x,y,coordMode:'center',shape:'custom',customName:b.name,points:b.points.map(p=>({x:p.x,y:p.y})),imageSrc:b.imageSrc,baseW:b.baseW,baseH:b.baseH,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc')?.value||'#ffffff',moveX:parseInt($('om')?.value)||0,moveSpeed:1800,anchor:'cc'};applyObstacleScale(o);writeObstacleAnchorOffsetFromPoint(o,x,y);return o;}
   const svgTemplates=[];
+  const DEFAULT_SVG_TEMPLATES=[
+    {id:'unity_obstacle_1',name:'Unity package: Obstacle 1',svg:"<svg width=\"193.26\" height=\"252.78\" viewBox=\"0 0 193.26 252.78\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"12.00\" y=\"39.90\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"151.50\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"12.00\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"39.90\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"67.80\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"179.40\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"207.30\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"235.20\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"123.60\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"123.60\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"12.00\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"235.20\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"95.70\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"95.70\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"151.50\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"67.80\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"207.30\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"179.40\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/></svg>"},
+    {id:'unity_obstacle_2',name:'Unity package: Obstacle 2',svg:"<svg width=\"195.95\" height=\"369.57\" viewBox=\"0 0 195.95 369.57\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"162.80\" y=\"14.00\" width=\"19.15\" height=\"329.09\" fill=\"#464232\"/><rect x=\"14.00\" y=\"25.33\" width=\"19.15\" height=\"330.24\" fill=\"#464232\"/><polygon points=\"160.56,162.03 160.56,179.43 138.06,170.73\" fill=\"#ffffff\"/><polygon points=\"160.56,135.99 160.56,153.39 138.06,144.69\" fill=\"#ffffff\"/><polygon points=\"35.28,57.28 35.28,74.68 57.78,65.98\" fill=\"#ffffff\"/><polygon points=\"160.56,292.98 160.56,310.38 138.06,301.68\" fill=\"#ffffff\"/><polygon points=\"35.28,109.36 35.28,126.76 57.78,118.06\" fill=\"#ffffff\"/><polygon points=\"35.28,187.48 35.28,204.88 57.78,196.18\" fill=\"#ffffff\"/><polygon points=\"160.56,57.87 160.56,75.27 138.06,66.57\" fill=\"#ffffff\"/><polygon points=\"160.56,266.57 160.56,283.97 138.06,275.27\" fill=\"#ffffff\"/><polygon points=\"160.56,83.91 160.56,101.31 138.06,92.61\" fill=\"#ffffff\"/><polygon points=\"160.56,240.15 160.56,257.55 138.06,248.85\" fill=\"#ffffff\"/><polygon points=\"160.56,109.95 160.56,127.35 138.06,118.65\" fill=\"#ffffff\"/><polygon points=\"35.28,161.44 35.28,178.84 57.78,170.14\" fill=\"#ffffff\"/><polygon points=\"160.56,214.11 160.56,231.51 138.06,222.81\" fill=\"#ffffff\"/><polygon points=\"160.56,188.07 160.56,205.47 138.06,196.77\" fill=\"#ffffff\"/><polygon points=\"35.28,213.52 35.28,230.92 57.78,222.22\" fill=\"#ffffff\"/><polygon points=\"160.56,320.51 160.56,337.91 138.06,329.21\" fill=\"#ffffff\"/><polygon points=\"35.28,239.56 35.28,256.96 57.78,248.26\" fill=\"#ffffff\"/><polygon points=\"35.28,292.38 35.28,309.78 57.78,301.08\" fill=\"#ffffff\"/><polygon points=\"35.20,31.24 35.20,48.64 57.70,39.94\" fill=\"#ffffff\"/><polygon points=\"35.28,265.97 35.28,283.37 57.78,274.67\" fill=\"#ffffff\"/><polygon points=\"35.28,319.91 35.28,337.31 57.78,328.61\" fill=\"#ffffff\"/><polygon points=\"35.28,135.40 35.28,152.80 57.78,144.10\" fill=\"#ffffff\"/><polygon points=\"35.28,83.32 35.28,100.72 57.78,92.02\" fill=\"#ffffff\"/><polygon points=\"160.49,31.83 160.49,49.23 137.99,40.53\" fill=\"#ffffff\"/></svg>"}
+  ];
+  function registerDefaultSvgTemplates(){
+    DEFAULT_SVG_TEMPLATES.forEach(t=>{
+      try{
+        const items=parseSvgPrefabItems(t.svg);
+        const imageSrc=templateDataUrl(t.svg);getEditorImage(imageSrc);
+        if(!svgTemplates.some(x=>x.id===t.id))svgTemplates.push({id:t.id,name:t.name,items,imageSrc,lockedDefault:true});
+      }catch(e){console.warn('Default SVG template failed',t.name,e);}
+    });
+  }
   let selectedTemplateId=null;
   const lvls=Array.from({length:NS+2},()=>[]);
   const PLAYER_KIND='playerStart';
@@ -711,6 +724,7 @@ bindHexColorInputs(document);
     });
     e.target.value='';
   });
+  registerDefaultSvgTemplates();
   renderTemplateList();
   function addPrefabObstacles(stageIndex,cx,cy,prefab){
     const sv=scaleUiValues(),groupW=Math.round(180*sv.scale*sv.scaleX),groupH=Math.round(170*sv.scale*sv.scaleY),color=$('oc').value,moveX=parseInt($('om').value)||0;
