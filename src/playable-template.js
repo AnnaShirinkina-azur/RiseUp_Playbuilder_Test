@@ -1294,24 +1294,43 @@ class Game{
   }
 
   _drawEnd(ctx){
+    const ec=this.cfg.endCard||{};
     const finishBg=this._spr('background_finish');
-    if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
+    const W=CW,H=CH;
     ctx.save();ctx.globalAlpha=this.endA;
-    ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(0,0,CW,CH);
-    const cw=300,ch=360,cx=(CW-cw)/2,cy=(CH-ch)/2;
-    ctx.fillStyle=this.isWin?'#172117':'#211717';
-    ctx.strokeStyle=this.isWin?'#52e08a':this.cfg.obstacleColor;ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.rect(cx,cy,cw,ch);ctx.fill();ctx.stroke();
-    ctx.font='56px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(this.isWin?'🎉':'😔',CW/2,cy+80);
-    ctx.fillStyle='#fff';ctx.font='bold 26px sans-serif';ctx.fillText(this.isWin?'You Win!':'Game Over',CW/2,cy+150);
-    ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='14px sans-serif';ctx.fillText(this.isWin?'Amazing!':'Better luck next time',CW/2,cy+182);
-    if(this.ctaButtons&&this.ctaButtons.length){for(let i=0;i<this.ctaButtons.length;i++)this._drawCustomCta(ctx,this.ctaButtons[i]);}
-    else{const bw=200,bh=50,bx2=(CW-bw)/2,by2=cy+ch-72;
-    const bg=ctx.createLinearGradient(bx2,0,bx2+bw,0);
-    bg.addColorStop(0,this.cfg.obstacleColor);bg.addColorStop(1,this.cfg.obstacleColorAlt||'#5282e0');
-    ctx.fillStyle=bg;ctx.beginPath();ctx.rect(bx2,by2,bw,bh);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.fillText('PLAY NOW',CW/2,by2+bh/2);}
+    if(this.isWin){
+      if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,W,H,0,this.cfg.backgroundSpriteColor);
+      else{ctx.fillStyle='#111827';ctx.fillRect(0,0,W,H);}
+      const frame=this._spr('endcard_win_frame');
+      if(imgOk(frame)){ctx.globalAlpha=this.endA*.55;this._drawCover(ctx,frame,0,0,W,H);ctx.globalAlpha=this.endA;}
+      ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
+      const card=this._spr('endcard_win');
+      if(imgOk(card)){
+        const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;
+        const bw=W*.88*sc,bh=H*.38*sc,cs=Math.min(bw/card.naturalWidth,bh/card.naturalHeight),dw=card.naturalWidth*cs,dh=card.naturalHeight*cs;
+        ctx.drawImage(card,cx-dw/2,cy-dh/2,dw,dh);
+      }else{
+        ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.fillText('YOU WIN!',W/2,H*.35);
+      }
+    }else{
+      const bg=this._spr('endcard_lose_bg');
+      if(imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle='#10252e';ctx.fillRect(0,0,W,H);}
+      ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
+      const logo=this._spr('endcard_lose_logo');
+      if(imgOk(logo)){
+        const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.28+(ec.y||0)*H/100;
+        const bw=W*.78*sc,bh=H*.28*sc,ls=Math.min(bw/logo.naturalWidth,bh/logo.naturalHeight),dw=logo.naturalWidth*ls,dh=logo.naturalHeight*ls;
+        ctx.drawImage(logo,cx-dw/2,cy-dh/2,dw,dh);
+      }
+      ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.fillText('TRY AGAIN',W/2+(ec.x||0)*W/100,H*.47+(ec.y||0)*H/100);
+    }
+    if(ec.showCta!==false){
+      const bw=220,bh=54,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100;
+      const btn=this._spr('endcard_lose_button');
+      if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');
+      else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
+      ctx.fillStyle='#fff';ctx.font='800 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ec.ctaText||'PLAY NOW',W/2,by+bh/2);
+    }
     ctx.restore();
   }
 
@@ -1369,6 +1388,7 @@ const DEF={
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
+  endCard:{scale:1,x:0,y:0,overlay:.55,showCta:true,ctaText:'PLAY NOW',ctaY:74},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};

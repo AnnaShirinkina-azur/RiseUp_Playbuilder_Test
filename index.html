@@ -114,6 +114,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .editor-stage{flex:1;display:flex;align-items:center;justify-content:center;background:#080810;overflow:hidden;padding:0;box-sizing:border-box;min-height:0;min-width:0;}
 .editor-phone{width:80%;height:80%;border-radius:32px;border:1.5px solid var(--brd);box-shadow:0 18px 40px rgba(0,0,0,.5);background:#0d0d14;padding:12px;display:flex;box-sizing:border-box;min-width:0;min-height:0;}
 .editor-phone.landscape{width:80%;height:80%;border-radius:26px;}
+.end-pane{display:none;flex-direction:column;min-height:0;overflow:hidden;}
+.end-pane.on{display:flex;}
+#end-canvas{display:block;background:#080810;}
 .ec-wrap{flex:1;position:relative;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
 .ec-wrap canvas{display:block;margin:0 auto;}
 .level-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-wrap:wrap;}
@@ -420,6 +423,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="rtabs">
       <button class="rtab on" data-rt="preview">Preview</button>
       <button class="rtab"    data-rt="levels">Level Editor</button>
+      <button class="rtab"    data-rt="endcard">End Card</button>
     </div>
 
     <div id="rp-preview" class="prev-pane">
@@ -496,6 +500,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
           <div class="ep">Y%<input type="number" id="ob-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor"></div>
         </span>
       </div>
+
       <div class="lblbar" id="playerbar" style="display:none">
         <div class="lp">Player start</div>
         <div class="lp">Scale ×<input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1" title="Размер шара (Scale ×)"></div>
@@ -615,8 +620,41 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       </div>
     </div>
 
+    <div id="rp-endcard" class="ed-pane end-pane">
+      <div class="level-toolbar">
+        <div class="mini">State</div>
+        <button class="et on" id="end-state-win" type="button">Win</button>
+        <button class="et" id="end-state-lose" type="button">Lose</button>
+        <div class="esep"></div>
+        <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
+        <div class="esep"></div>
+        <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
+      </div>
+      <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
+      <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
+      <div class="etbar">
+        <div class="etgroup">
+          <span class="etg-label">End card</span>
+          <label class="et" title="Replace current state image with PNG or preview from Unity package">+ Import<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Position</span>
+          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.2" max="3" step="0.05"></div>
+          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-100" max="100" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-100" max="100" step="1"></div>
+          <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">CTA</span>
+          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:100px"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardCtaY" value="74" min="0" max="100" step="1"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
+
 
 <div class="shape-modal" id="shape-modal">
   <div class="shape-card">

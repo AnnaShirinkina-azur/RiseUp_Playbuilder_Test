@@ -51,6 +51,15 @@ function readConfig(){
       shield:(g('cfg-vol-shield')!=null?g('cfg-vol-shield'):0.9),
     },
     levelData,
+    endCard:{
+      scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
+      x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
+      y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),
+      overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
+      showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
+      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
+      ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})()
+    },
   };
 }
 
