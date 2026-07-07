@@ -8,6 +8,14 @@ function readConfig(){
     if(e.type==='number'||e.type==='range')return parseFloat(e.value);
     return e.value;
   }
+  function val(id, fallback){
+    const e=document.getElementById(id);
+    return e ? String(e.value||'') : String(fallback||'');
+  }
+  function checked(id, fallback){
+    const e=document.getElementById(id);
+    return e ? !!e.checked : !!fallback;
+  }
   // levelData берём из редактора в момент сборки
   let levelData=null;
   let playerStart=null;

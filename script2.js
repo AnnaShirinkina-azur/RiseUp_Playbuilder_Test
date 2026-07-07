@@ -627,7 +627,12 @@ const LE=(function(){
   function syncStageInputs(n){
     n=Math.max(1,Math.min(20,parseInt(n,10)||1));
     const a=$('le-stage-count'),b=$('cfg-stageCount');
-    if(a)a.value=n;if(b){b.value=n;b.dispatchEvent(new Event('input',{bubbles:true}));}
+    // Keep the editor stage input and Gameplay stage input in sync without
+    // dispatching synthetic input events. Dispatching here re-enters
+    // setStageCount through cfg-stageCount's listener and causes an infinite
+    // recursion / Maximum call stack size exceeded.
+    if(a&&String(a.value)!==String(n))a.value=n;
+    if(b&&String(b.value)!==String(n))b.value=n;
     return n;
   }
   function setStageCount(n){
