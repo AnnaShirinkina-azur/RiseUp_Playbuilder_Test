@@ -1172,10 +1172,11 @@ bindHexColorInputs(document);
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
       // The editor strip is visually flipped: Start is the bottom row and
       // Finish is the top row. Start sits flush on its own bottom edge. Every
-      // later level is anchored to its bottom edge but drawn DOWN, covering
-      // the top of the previous level.
+      // later level is anchored to its own bottom edge, with exactly 20% of
+      // the overlay dropping onto the previous level below.
       const top=rowOf(r)*h;
-      const y=(r===0)?(top+h-sh):(top+h);
+      const bottom=top+h;
+      const y=(r===0)?(bottom-sh):(bottom-sh*0.8);
       ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){
