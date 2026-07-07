@@ -198,6 +198,20 @@ var sp={};${sLines}
 var cfg=${JSON.stringify(cfg)};
 (function(){
   var root=document.getElementById('gr');
+  var loader=document.getElementById('loader');
+  var booted=false;
+  function showRuntimeError(err){
+    try{
+      if(loader){
+        loader.style.display='flex';
+        loader.textContent='Preview error: '+String((err&&err.message)||err||'unknown');
+        loader.style.color='#fff';
+        loader.style.background='rgba(120,20,20,.92)';
+      }
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){showRuntimeError(e.error||e.message);});
+  window.addEventListener('unhandledrejection',function(e){showRuntimeError(e.reason||e);});
   // Adaptive: one file serves both orientations (like Luna playground previews).
   // Orientation is detected from the viewport and updated live on rotate/resize.
   function orNow(){return window.innerWidth>window.innerHeight?'landscape':'portrait';}
@@ -205,11 +219,11 @@ var cfg=${JSON.stringify(cfg)};
   root.className=cfg.orientation;
   // Audio: custom sounds from the builder (sp.audio_*) win over bundled defaults.
   cfg.audioSources={
-    bgm:sp.audio_bgm||a[DEFAULT_AUDIO.bgm]||null,
-    win:sp.audio_win||a[DEFAULT_AUDIO.win]||null,
-    lose:sp.audio_lose||a[DEFAULT_AUDIO.lose]||null,
-    hit:sp.audio_hit||a[DEFAULT_AUDIO.hit]||null,
-    shield:sp.audio_shield||a[DEFAULT_AUDIO.shield]||null
+    bgm:sp.audio_bgm||a[${JSON.stringify('audio/bgm.mp3')}]||null,
+    win:sp.audio_win||a[${JSON.stringify('audio/sfx_win.mp3')}]||null,
+    lose:sp.audio_lose||a[${JSON.stringify('audio/sfx_lose.mp3')}]||null,
+    hit:sp.audio_hit||a[${JSON.stringify('audio/sfx_wrong.mp3')}]||null,
+    shield:sp.audio_shield||a[${JSON.stringify('audio/sfx_correct.mp3')}]||null
   };
   var game=null;
   function onOrient(){
@@ -219,7 +233,6 @@ var cfg=${JSON.stringify(cfg)};
   }
   window.addEventListener('resize',onOrient);
   window.addEventListener('orientationchange',onOrient);
-  var loader=document.getElementById('loader');
   var firstBg=sp.background;
   if(!firstBg){
     var bgKeys=Object.keys(sp).filter(function(k){return /^bgimg_/.test(k);}).sort();
@@ -230,8 +243,11 @@ var cfg=${JSON.stringify(cfg)};
   var imgs={};
   var keys=Object.keys(sp).filter(function(k){return !/^audio_/.test(k)&&k!=='custom_font';});
   function boot(){
+    if(booted)return;
+    booted=true;
     if(loader)loader.style.display='none';
     var go=function(){
+      try{
       onOrient();
       game=RisePlayable.init(root,cfg,imgs,{
         onCTA:function(){try{var u=(cfg.storeUrl||'').trim();if(!u)return;if(typeof mraid!=='undefined'&&mraid.open)mraid.open(u);else window.open(u,'_blank');}catch(e){}},
@@ -246,9 +262,12 @@ var cfg=${JSON.stringify(cfg)};
         isPaused:function(){return !!(game&&game.isPaused&&game.isPaused());},
         state:function(){return game&&game.getState?game.getState():null;}
       };
+      }catch(e){showRuntimeError(e);}
     };
     if(document.fonts&&document.fonts.load){
-      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(go).catch(go);
+      var goOnce=function(){if(goOnce.done)return;goOnce.done=true;go();};
+      var fontTimer=setTimeout(goOnce,1200);
+      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(function(){clearTimeout(fontTimer);goOnce();}).catch(function(){clearTimeout(fontTimer);goOnce();});
     }else{go();}
   }
   function loadImage(k){
@@ -263,7 +282,8 @@ var cfg=${JSON.stringify(cfg)};
     });
   }
   if(!keys.length){boot();return;}
-  Promise.all(keys.map(loadImage)).then(boot);
+  var bootTimer=setTimeout(boot,5000);
+  Promise.all(keys.map(loadImage)).then(function(){clearTimeout(bootTimer);boot();}).catch(function(e){clearTimeout(bootTimer);showRuntimeError(e);boot();});
 })();
 </script>
 </body>
