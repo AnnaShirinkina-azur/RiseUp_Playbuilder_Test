@@ -1017,7 +1017,10 @@ class Game{
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
-    // ball below shield
+    // Seam overlays cover the backgrounds/stage content, but the two balls
+    // must always stay above them.
+    this._drawSeamOverlays(ctx);
+    // ball below shield, both above seam overlays
     this.ball.draw(ctx);
     this.shield.draw(ctx);
     // Level progress dots removed: progress indicators should be placed manually in the editor.
@@ -1026,7 +1029,6 @@ class Game{
     this._drawCtas(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
-    this._drawSeamOverlays(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
