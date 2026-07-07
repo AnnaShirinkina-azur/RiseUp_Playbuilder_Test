@@ -144,6 +144,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .et.on{background:var(--acc);color:#fff;border-color:var(--acc);}
 .et:hover:not(.on){border-color:var(--acc);color:var(--acc);}
 .esep{width:1px;height:18px;background:var(--brd);margin:0 1px;}
+.etgroup{display:flex;align-items:center;gap:5px;padding:4px 8px 4px 6px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.02);}
+.etg-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-right:2px;white-space:nowrap;}
 .ep{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);}
 .ep input[type=number]{width:50px;font-size:12px;padding:3px 5px;}
 .ep input[type=color]{width:26px;height:24px;}
@@ -201,7 +203,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
-      <div class="row"><label>Ball size<small>Scale ×</small></label><input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
       <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
@@ -236,7 +237,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
       <div class="row"><label>Fill</label><input type="color" id="cfg-playerColor" value="#ffffff"></div>
-      <div class="row"><label>Outline</label><input type="color" id="cfg-playerOutline" value="#ffffff"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
@@ -278,10 +278,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
       <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
-      <div class="sec">Environment</div>
-      <div class="row"><label>Background</label><input type="color" id="cfg-bgColor" value="#1a1a2e"></div>
-      <div class="row"><label>Grid</label><input type="color" id="cfg-groundColor" value="#2a2a40"></div>
-      <div class="row"><label>Particles</label><input type="color" id="cfg-particleColor" value="#f5e642"></div>
       <div class="sec">Background mode</div>
       <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
@@ -432,20 +428,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
       <div class="orbar" id="orientation-editor" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="editor-phone"><div class="ec-wrap" id="ec-wrap"><canvas id="ec"></canvas></div></div></div>
       <div class="etbar">
-        <span style="font-size:11px;color:var(--dim);font-weight:600;">ADD:</span>
-        <button class="et on" data-shape="rect"><img src="Assets/textures/shape_rectangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Rectangle</button>
-        <button class="et" data-shape="circle"><img src="Assets/textures/shape_circle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Circle</button>
-        <button class="et" data-shape="triangle"><img src="Assets/textures/shape_triangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Triangle</button>
-        <button class="et" id="et-custom">✚ Custom SVG</button>
-        <button class="et" id="et-shape-editor">Edit SVG</button>
-        <button class="et" id="et-text">🅣 Text</button>
-        <button class="et" id="et-progress">⚗ Progress</button>
-        <button class="et" id="et-health">♥ Health</button>
-        <button class="et" id="et-cta">CTA</button>
-        <div class="esep"></div>
-        <button class="et" id="et-sel">✥ Drag</button>
-        <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
-        <button class="et" id="et-del">🗑 Del</button>
+        <div class="etgroup">
+          <span class="etg-label">Препятствия</span>
+          <button class="et on" data-shape="rect"><img src="Assets/textures/shape_rectangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Rectangle</button>
+          <button class="et" data-shape="circle"><img src="Assets/textures/shape_circle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Circle</button>
+          <button class="et" data-shape="triangle"><img src="Assets/textures/shape_triangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Triangle</button>
+          <button class="et" id="et-custom">✚ Custom SVG</button>
+          <button class="et" id="et-shape-editor">Edit SVG</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">UI</span>
+          <button class="et" id="et-text">🅣 Text</button>
+          <button class="et" id="et-progress">⚗ Progress</button>
+          <button class="et" id="et-health">♥ Health</button>
+          <button class="et" id="et-cta">CTA</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Изменения</span>
+          <button class="et" id="et-sel">✥ Drag</button>
+          <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
+          <button class="et" id="et-del">🗑 Del</button>
+          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
+        </div>
         <div class="esep"></div>
         <span id="obs-props" style="display:flex;align-items:center;gap:6px;">
           <div class="ep">Scale<input type="number" id="os" value="1" min="0.05" max="20" step="0.05"></div>
@@ -462,12 +466,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
           </div>
           <div class="ep">X%<input type="number" id="ob-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor"></div>
           <div class="ep">Y%<input type="number" id="ob-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor"></div>
-          <div class="esep"></div>
         </span>
-        <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
       </div>
       <div class="lblbar" id="playerbar" style="display:none">
         <div class="lp">Player start</div>
+        <div class="lp">Scale ×<input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1" title="Размер шара (Scale ×)"></div>
         <button class="et" id="pl-lock" type="button">🔒 Lock</button>
         <button class="et" id="pl-unlock" type="button">🔓 Unlock</button>
         <div class="lp">Anchor

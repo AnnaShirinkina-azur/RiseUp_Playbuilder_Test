@@ -25,22 +25,30 @@ function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);retur
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
 function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
 function makeImg(src){if(!src)return null;const im=new Image();im.src=src;return im;}
-function drawTintedImage(ctx,img,x,y,w,h,color){
-  // Draw custom sprite first, then apply color only inside the sprite alpha.
-  // The tint is composed in an isolated offscreen canvas; using source-atop
-  // directly on the game canvas would also see the already drawn background as
-  // destination and could paint a square behind/around transparent sprites.
-  ctx.drawImage(img,x,y,w,h);
-  if(!color||String(color).toLowerCase()==='#ffffff')return;
-  const ow=Math.max(1,Math.ceil(Math.abs(w))),oh=Math.max(1,Math.ceil(Math.abs(h)));
-  const oc=document.createElement('canvas');oc.width=ow;oc.height=oh;
+const _tintCache=new Map();
+function tintedSprite(img,color){
+  // Full-strength tint: multiply keeps the sprite's shading/highlights while a
+  // white sprite becomes exactly the picked color. destination-in restores the
+  // original alpha so nothing leaks outside the sprite. Cached per img+color.
+  const key=(img.src||'')+'|'+color;
+  const hit=_tintCache.get(key);
+  if(hit)return hit;
+  const w=Math.max(1,img.naturalWidth||1),h=Math.max(1,img.naturalHeight||1);
+  const oc=document.createElement('canvas');oc.width=w;oc.height=h;
   const ox=oc.getContext('2d');
-  ox.drawImage(img,0,0,ow,oh);
-  ox.globalCompositeOperation='source-atop';
+  ox.drawImage(img,0,0,w,h);
+  ox.globalCompositeOperation='multiply';
   ox.fillStyle=color;
-  ox.globalAlpha=.55;
-  ox.fillRect(0,0,ow,oh);
-  ctx.drawImage(oc,x,y,w,h);
+  ox.fillRect(0,0,w,h);
+  ox.globalCompositeOperation='destination-in';
+  ox.drawImage(img,0,0,w,h);
+  if(_tintCache.size>64)_tintCache.clear();
+  _tintCache.set(key,oc);
+  return oc;
+}
+function drawTintedImage(ctx,img,x,y,w,h,color){
+  if(!color||String(color).toLowerCase()==='#ffffff'){ctx.drawImage(img,x,y,w,h);return;}
+  ctx.drawImage(tintedSprite(img,color),x,y,w,h);
 }
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
@@ -884,11 +892,11 @@ class Game{
     const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
     oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
     if(tint&&String(tint).toLowerCase()!=='#ffffff'){
-      oc.globalCompositeOperation='source-atop';
+      oc.globalCompositeOperation='multiply';
       oc.fillStyle=tint;
-      oc.globalAlpha=.45;
       oc.fillRect(0,0,w,h);
-      oc.globalAlpha=1;
+      oc.globalCompositeOperation='destination-in';
+      oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
       oc.globalCompositeOperation='source-over';
     }
     if(fade>0){
