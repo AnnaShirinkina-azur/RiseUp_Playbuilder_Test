@@ -1,6 +1,6 @@
 (function(W){'use strict';
 
-// ── Читаем все настройки из UI ────────────────────────────────────────────
+// Read UI settings.
 function readField(id){
   const e=document.getElementById(id);if(!e)return undefined;
   if(e.type==='checkbox')return e.checked;
@@ -13,9 +13,8 @@ function readValue(id,fallback){
   if(typeof v==='number'&&!Number.isFinite(v))return fallback;
   return v;
 }
-// Backward-compatible helper: some cached/intermediate builder versions called val(...)
-// from readConfig. Keeping it defined prevents the preview from crashing with
-// "ReferenceError: val is not defined".
+// Backward-compatible helper: some cached/intermediate builder versions called val(...).
+// Keeping it defined prevents the preview from crashing with "ReferenceError: val is not defined".
 if(!W.val)W.val=readValue;
 function readConfig(){
   const g=readField;
@@ -29,10 +28,10 @@ function readConfig(){
     if(W.RiseLevelEditor.getPlayerStart)playerStart=W.RiseLevelEditor.getPlayerStart();
   }
   return{
-    lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||5,
+    lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
-    scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.08:v;})(),
+    scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialAnimEnabled');return e?e.checked:true;})(),
     tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
@@ -45,7 +44,7 @@ function readConfig(){
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:(function(){var e=document.getElementById('cfg-backgroundMode');return (e&&e.value)||'perStage';})(),
     stageBgGradients:(function(){var a=[],i=0;for(;;){var x=document.getElementById('cfg-bgg'+i+'a'),y=document.getElementById('cfg-bgg'+i+'b');if(!x||!y)break;a.push([x.value,y.value]);i++;}return a.length?a:null;})(),
-    seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?1:v;})(),
+    seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):0.5;return isNaN(v)?0.5:v;})(),
     seamOverlayMode:(function(){var e=document.getElementById('cfg-seamOverlayMode');return (e&&e.value)||'perStage';})(),
     seamMulti:(function(){var m=document.getElementById('cfg-seamOverlayMode');if(m)return m.value==='perStage';var e=document.getElementById('cfg-seamMulti');return !!(e&&e.checked);})(),
     bgStageTint:(function(){var e=document.getElementById('cfg-bgStageTint');return (e&&e.value)||'#ffffff';})(),

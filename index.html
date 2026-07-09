@@ -235,7 +235,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
-      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="5" min="1" max="20" step="1"></div>
+      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="1" min="1" max="20" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
@@ -246,7 +246,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
       <div class="row"><label>Chain reaction<small>Разлетающиеся куски сбивают соседние</small></label><input type="checkbox" id="cfg-chainReaction"></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
-        <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.08" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.08</span></div></div>
+        <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
     </div>
 
     <div class="pnl" id="panel-timing" data-title="Timing">
@@ -321,7 +321,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         </div></div>
         <div id="seam-multi-box" class="seam-list"></div>
         <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
-          <div class="rr"><input type="range" id="cfg-seamScale" value="1" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">1.00</span></div></div>
+          <div class="rr"><input type="range" id="cfg-seamScale" value="0.5" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">0.50</span></div></div>
         <div class="sec">Per-level backgrounds</div>
         <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов. Пикеры в ряду: нижний цвет градиента · верхний цвет · тинт картинки (окрашивает её по альфе, белый = без тинта).</small></label></div>
         <div id="bg-stage-rows"></div>
@@ -448,7 +448,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 
     <div id="rp-levels" class="ed-pane">
       <div class="level-toolbar">
-        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="5" min="1" max="20" step="1"></div>
+        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="1" min="1" max="20" step="1"></div>
         <button class="et" id="le-generate">Generate level strip</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
@@ -683,8 +683,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 </div>
 
 <script src="src/playable-template.js?v=37"></script>
-<script src="src/builder.js?v=38-valfix"></script>
-<script src="script2.js?v=endcard-toggle"></script>
+<script src="src/builder.js?v=39-defaults"></script>
+<script src="script2.js?v=playable-defaults"></script>
 
 </body>
 </html>
