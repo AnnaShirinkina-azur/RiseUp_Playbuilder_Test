@@ -252,8 +252,12 @@ class Obs{
       if(this.y>3000||this.y<-4000||this.x<-1200||this.x>CW+1200)this.live=false;
     }
   }
-  hits(cx,cy,cr){
-    if(!this.kin||!this.live)return false;
+  hits(cx,cy,cr,includeDynamic=false){
+    // Protector contact turns a kinematic obstacle into a flying body.
+    // The protector should not keep re-hitting that same body every frame,
+    // but the player ball must still be able to collide with it and lose a life.
+    if(!this.live)return false;
+    if(!includeDynamic&&!this.kin)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
     if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>({x:this.x+p.x*this.w,y:this.y+p.y*this.h}));return circlePolyHit(cx,cy,cr,pts);}
     const nx=clamp(cx,this.x-this.w/2,this.x+this.w/2),ny=clamp(cy,this.y-this.h/2,this.y+this.h/2);
@@ -302,11 +306,11 @@ class Stage{
     this.obs.forEach(o=>o.draw(ctx,top));
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
-  hit(px,py,pr,top){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
-  hits(px,py,pr,top){
+  hit(px,py,pr,top,includeDynamic=false){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic))return o;}return null;}
+  hits(px,py,pr,top,includeDynamic=false){
     if(this.done)return [];
     const out=[];
-    for(const o of this.obs){if(o.hits(px,py-top,pr))out.push(o);}
+    for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic))out.push(o);}
     return out;
   }
 }
@@ -766,12 +770,15 @@ class Game{
     if(st==='playing'&&!this.shield.dead){
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
-        const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top):[];
+        const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
         for(const sh of hits)this._hit(sh,top,'shield');
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
-        const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top);
+        // Ball checks include already-pushed / dynamic obstacles too.
+        // A shield bump no longer makes an obstacle harmless; it can still
+        // fly or fall into the player and pop the balloon.
+        const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top,true);
         if(bh){this._hit(bh,top,'ball');break outer;}
       }
     }
