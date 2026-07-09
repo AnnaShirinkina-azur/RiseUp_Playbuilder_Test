@@ -1,13 +1,25 @@
 (function(W){'use strict';
 
 // ── Читаем все настройки из UI ────────────────────────────────────────────
+function readField(id){
+  const e=document.getElementById(id);if(!e)return undefined;
+  if(e.type==='checkbox')return e.checked;
+  if(e.type==='number'||e.type==='range')return parseFloat(e.value);
+  return e.value;
+}
+function readValue(id,fallback){
+  const v=readField(id);
+  if(v===undefined||v===null)return fallback;
+  if(typeof v==='number'&&!Number.isFinite(v))return fallback;
+  return v;
+}
+// Backward-compatible helper: some cached/intermediate builder versions called val(...)
+// from readConfig. Keeping it defined prevents the preview from crashing with
+// "ReferenceError: val is not defined".
+if(!W.val)W.val=readValue;
 function readConfig(){
-  function g(id){
-    const e=document.getElementById(id);if(!e)return undefined;
-    if(e.type==='checkbox')return e.checked;
-    if(e.type==='number'||e.type==='range')return parseFloat(e.value);
-    return e.value;
-  }
+  const g=readField;
+  const val=readValue;
   // levelData берём из редактора в момент сборки
   let levelData=null;
   let playerStart=null;
