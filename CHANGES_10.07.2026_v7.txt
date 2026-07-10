@@ -1,0 +1,7 @@
+Tutorial motion v7
+- Added a visible 1.45 s opening flight after the first tap.
+- Level scenery and obstacle waves move during the flight to create a clear sense of ascent.
+- Added a 1.15 s smooth braking phase; world movement and balloon speed decelerate together.
+- Tutorial prompt and training pyramid now fade in over 0.65 s instead of appearing instantly.
+- The gameplay world freezes only during the learning phase.
+- Existing fail-on-no-hit behavior is preserved.

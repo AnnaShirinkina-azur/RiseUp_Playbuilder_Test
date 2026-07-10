@@ -756,9 +756,20 @@ class Game{
     if(st==='playing'||st==='respawning'){
       this._updateCamera();
     }
-    const tutorialLocksWorld=(st==='playing'&&!this.tutDone);
+    const tutorialLocksWorld=(st==='playing'&&!this.tutDone&&this.tutPhase==='learn');
     if((st==='playing'||st==='respawning'||st==='won')&&!tutorialLocksWorld){
-      const fall=this._obstacleFallSpeed();
+      let fall=this._obstacleFallSpeed();
+      // During the opening flight the level visibly moves past the balloon.
+      // In the brake phase the world speed eases down together with the balloon,
+      // so the tutorial does not pop in over a static scene.
+      if(st==='playing'&&!this.tutDone){
+        if(this.tutPhase==='fly') fall*=0.82;
+        else if(this.tutPhase==='brake'){
+          const bk=clamp(this.tutPhaseT/1150,0,1);
+          const ease=bk*bk*(3-2*bk);
+          fall*=lerp(0.82,0.03,ease);
+        }
+      }
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
       this._scatterPhysics();
     }
@@ -770,18 +781,22 @@ class Game{
       this.tutPhaseT+=dt;
       if(this.tutPhase==='fly'){
         this.tutA=0;
-        if(this.tutPhaseT>=900){this.tutPhase='brake';this.tutPhaseT=0;}
+        if(this.tutPhaseT>=1450){this.tutPhase='brake';this.tutPhaseT=0;}
       }else if(this.tutPhase==='brake'){
-        const k=clamp(this.tutPhaseT/700,0,1);
+        const k=clamp(this.tutPhaseT/1150,0,1);
         this.ball.speed=lerp(this._tutCruiseSpeed,this._tutCruiseSpeed*.08,k*k*(3-2*k));
         if(k>=1){
-          this.tutPhase='learn';this.tutPhaseT=0;this.tutT=0;this.tutA=1;
+          this.tutPhase='learn';this.tutPhaseT=0;this.tutT=0;this.tutA=0;
           this.ball.speed=0;
           this.shield.up();
         }
       }else if(this.tutPhase==='learn'){
         this.ball.speed=0;
         this.tutT+=dt;
+        // Soft reveal like the reference Rise Up playable: the prompt and
+        // training pyramid fade in after the braking motion has settled.
+        const reveal=clamp(this.tutT/650,0,1);
+        this.tutA=reveal*reveal*(3-2*reveal);
         this._updateTutorial(dt);
         if(this.tutT>this.cfg.tutorialDisplayTime){
           if(this.cfg.tutorialFailEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){
