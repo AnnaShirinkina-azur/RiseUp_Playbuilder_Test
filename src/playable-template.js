@@ -598,7 +598,8 @@ class Game{
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
     this.endA=0;this.isWin=false;
-    this.tutA=1;this.tutT=0;this.tutDone=false;
+    this.tutA=0;this.tutT=0;this.tutDone=false;
+    this.tutPhase='wait';this.tutPhaseT=0;this._tutCruiseSpeed=0;
     this.tutBlocks=null;this._tutAnchor=null;this._tutSmashed=false;this._tutorialFailed=false;
     this.hpA=0;this.hpT=0;
     this.fx=new FX();
@@ -626,12 +627,12 @@ class Game{
       if(this.state==='start'){this._start();return;}
       if(this.state==='playing'){
         if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
-        this.shield.down(x,y);
+        if(this.tutDone||this.tutPhase==='learn')this.shield.down(x,y);
       }
       if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
     };
     const move=(x,y)=>{
-      if(this.state==='playing'){this.shield.move(x,y);}
+      if(this.state==='playing'&&(this.tutDone||this.tutPhase==='learn')){this.shield.move(x,y);}
     };
     const up=()=>this.shield.up();
 
@@ -672,7 +673,13 @@ class Game{
     this.completedStages=0;
     this.si=0;
   }
-  _start(){this.state='playing';this.ball.start(this._ballSpeed()*.72,this.camY);this.snd.play('bgm');}
+  _start(){
+    this.state='playing';
+    this.tutPhase='fly';this.tutPhaseT=0;this.tutT=0;this.tutA=0;
+    this._tutCruiseSpeed=this._ballSpeed()*.72;
+    this.ball.start(this._tutCruiseSpeed,this.camY);
+    this.snd.play('bgm');
+  }
 
   _loop(ts){
     if(!this._last)this._last=ts;
@@ -749,30 +756,50 @@ class Game{
     if(st==='playing'||st==='respawning'){
       this._updateCamera();
     }
-    if(st==='playing'||st==='respawning'||st==='won'){
+    const tutorialLocksWorld=(st==='playing'&&!this.tutDone);
+    if((st==='playing'||st==='respawning'||st==='won')&&!tutorialLocksWorld){
       const fall=this._obstacleFallSpeed();
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
       this._scatterPhysics();
     }
     this.fx.update();
 
-    // tutorial
+    // Rise Up intro tutorial: wait for the first tap, fly, brake, then teach the swipe.
+    // No modal/window is shown. The real obstacle waves stay frozen until training ends.
     if(st==='playing'&&!this.tutDone){
-      this.tutT+=dt;
-      this._updateTutorial(dt);
-      if(this.tutT>this.cfg.tutorialDisplayTime){
-        if(this.cfg.tutorialFailEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){this._tutorialFailed=true;this.tutDone=true;this._die();}
-        else this.tutDone=true;
+      this.tutPhaseT+=dt;
+      if(this.tutPhase==='fly'){
+        this.tutA=0;
+        if(this.tutPhaseT>=900){this.tutPhase='brake';this.tutPhaseT=0;}
+      }else if(this.tutPhase==='brake'){
+        const k=clamp(this.tutPhaseT/700,0,1);
+        this.ball.speed=lerp(this._tutCruiseSpeed,this._tutCruiseSpeed*.08,k*k*(3-2*k));
+        if(k>=1){
+          this.tutPhase='learn';this.tutPhaseT=0;this.tutT=0;this.tutA=1;
+          this.ball.speed=0;
+          this.shield.up();
+        }
+      }else if(this.tutPhase==='learn'){
+        this.ball.speed=0;
+        this.tutT+=dt;
+        this._updateTutorial(dt);
+        if(this.tutT>this.cfg.tutorialDisplayTime){
+          if(this.cfg.tutorialFailEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){
+            this._tutorialFailed=true;this.tutDone=true;this._die();
+          }else{
+            this.tutDone=true;this.tutA=0;this.ball.speed=this._ballSpeed();
+          }
+        }
+        const fs=this.cfg.tutorialDisplayTime-600;
+        if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
       }
-      const fs=this.cfg.tutorialDisplayTime-600;
-      if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
     }
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
-    if(st==='playing'&&!this.shield.dead){
+    if(st==='playing'&&!this.shield.dead&&this.tutDone){
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
         const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
@@ -789,7 +816,7 @@ class Game{
     }
 
     // keep falling obstacle waves spawning above the screen
-    if(st==='playing')this._recycleStages();
+    if(st==='playing'&&this.tutDone)this._recycleStages();
 
     // death sequence
     if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(this.dtimer>((this.cfg.playerDeathDuration||900)/ds))this._afterDeath();}
@@ -1056,7 +1083,7 @@ class Game{
     this._drawProgressBars(ctx);
     this._drawHealthBars(ctx);
     this._drawCtas(ctx);
-    if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
+    if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
