@@ -34,6 +34,7 @@ function readConfig(){
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialAnimEnabled');return e?e.checked:true;})(),
+    tutorialFailEnabled:(function(){var e=document.getElementById('cfg-tutorialFailEnabled');return e?e.checked:true;})(),
     tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
     playerSize:g('cfg-playerSize'),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
@@ -64,6 +65,8 @@ function readConfig(){
     levelData,
     endCard:{
       enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
+      tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),
+      tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?1200:v*1000;})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
       y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),

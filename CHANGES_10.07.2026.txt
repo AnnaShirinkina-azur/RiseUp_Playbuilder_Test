@@ -1,0 +1,10 @@
+RiseUp Playbuilder changes — 10.07.2026
+
+- Tutorial starts after the initial click, uses a slower launch speed, and can kill the player if the tutorial pyramid is not destroyed before the configured timeout.
+- Added Fail tutorial toggle and updated tutorial timing default.
+- Added Show Try Again toggle and Try Again delay setting.
+- Fixed End Card editor orientation sizing for landscape.
+- End Card artwork can now be dragged directly on the canvas; active artwork has a dashed selection frame.
+- Disabled active/passive-zone dim overlay by default (the landscape “vignette” effect).
+- Strengthened end-card editing feedback.
+- Restored native color picker controls for balloon and rope colors.

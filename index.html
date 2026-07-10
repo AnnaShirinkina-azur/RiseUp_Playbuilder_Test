@@ -117,7 +117,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .end-pane{display:none;flex-direction:column;min-height:0;overflow:hidden;}
 .end-pane.on{display:flex;}
 #end-canvas{display:block;background:#080810;}
-.ec-wrap{flex:1;position:relative;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
+.ec-wrap{flex:1;position:relative;outline:none;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
 .ec-wrap canvas{display:block;margin:0 auto;}
 .level-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-wrap:wrap;}
 .level-toolbar .mini{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px;font-weight:600;}
@@ -187,6 +187,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .seam-row .sp-up{display:flex;align-items:center;gap:8px;min-width:0;}
 .seam-label{font-size:12px;color:var(--dim);min-width:92px;}
 .lbl-empty{color:var(--dim);font-size:12px;padding:4px 2px;}
+
+/* stronger editing feedback */
+.editor-phone.edit-active{border-color:#52e08a;box-shadow:0 0 0 2px rgba(82,224,138,.28),0 18px 40px rgba(0,0,0,.5)}
+#end-canvas{cursor:move}
+input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;background:var(--surf2);border:1px solid var(--brd)}
 </style>
 </head>
 <body>
@@ -252,7 +257,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl" id="panel-timing" data-title="Timing">
       <div class="sec">Timing</div>
       <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
-      <div class="row"><label>Tutorial (s)<small>Seconds</small></label><input type="number" id="cfg-tutorialTime" value="3.5" min="0.5" max="10" step="0.1"></div>
+      <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
+      <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled" checked></div>
       <div class="sec">Tutorial animation</div>
       <div class="row"><label>Enable animation<small>Рука + пирамида + надпись. Позиция и вид настраиваются объектом Tutorial в Level Editor</small></label><input type="checkbox" id="cfg-tutorialAnimEnabled" checked></div>
       <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
@@ -261,6 +267,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
       <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="row"><label>Show Try Again<small>Показывать экран после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
+      <div class="row"><label>Try Again delay (s)<small>Задержка после смерти</small></label><input type="number" id="cfg-tryAgainDelay" value="1.2" min="0" max="8" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
@@ -271,8 +279,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-playerSpriteColor" value="#ffffff"></div>
-      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-playerRopeColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">

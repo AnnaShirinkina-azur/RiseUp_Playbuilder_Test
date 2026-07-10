@@ -597,7 +597,7 @@ class Game{
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
     this.endA=0;this.isWin=false;
     this.tutA=1;this.tutT=0;this.tutDone=false;
-    this.tutBlocks=null;this._tutAnchor=null;this._tutSmashed=false;
+    this.tutBlocks=null;this._tutAnchor=null;this._tutSmashed=false;this._tutorialFailed=false;
     this.hpA=0;this.hpT=0;
     this.fx=new FX();
     this.shield=new Shield(this.cfg);
@@ -670,7 +670,7 @@ class Game{
     this.completedStages=0;
     this.si=0;
   }
-  _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);this.snd.play('bgm');}
+  _start(){this.state='playing';this.ball.start(this._ballSpeed()*.72,this.camY);this.snd.play('bgm');}
 
   _loop(ts){
     if(!this._last)this._last=ts;
@@ -758,7 +758,10 @@ class Game{
     if(st==='playing'&&!this.tutDone){
       this.tutT+=dt;
       this._updateTutorial(dt);
-      if(this.tutT>this.cfg.tutorialDisplayTime)this.tutDone=true;
+      if(this.tutT>this.cfg.tutorialDisplayTime){
+        if(this.cfg.tutorialFailEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){this._tutorialFailed=true;this.tutDone=true;this._die();}
+        else this.tutDone=true;
+      }
       const fs=this.cfg.tutorialDisplayTime-600;
       if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
     }
@@ -901,7 +904,7 @@ class Game{
   }
   _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
   _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{if(this._endCardsEnabled()){this.state='endcard';}else{this.state='finished';}this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');if(this._endCardsEnabled()){this.state='endcard';}else{this.state='lost';}this.cb.onLose&&this.cb.onLose();}
+  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');const ec=this.cfg.endCard||{};const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;this.state='lost';const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);setTimeout(()=>{if(this.state!=='lost')return;if(show){this.state='endcard';this.endA=0;}this.cb.onLose&&this.cb.onLose();},delay);}
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;
@@ -1402,7 +1405,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   chainReaction:false,scatterBounciness:0.08,
-  hpBarShowTime:2000,tutorialDisplayTime:3500,tutorialAnimEnabled:true,tutorialObstacleShape:'square',
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
