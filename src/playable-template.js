@@ -55,12 +55,13 @@ function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*d
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
-function obstacleDesignWidth(){return 390;}
-function obstacleAnchorBaseLocal(anchor){var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),dw=obstacleDesignWidth();return {x:ah==='l'?-dw/2:(ah==='r'?dw/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};}
+function obstacleDesignSize(){return 844;}
+function obstacleDesignWidth(){return obstacleDesignSize();}
+function obstacleAnchorBaseLocal(anchor){var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),ds=obstacleDesignSize();return {x:ah==='l'?-ds/2:(ah==='r'?ds/2:0),y:av==='t'?-ds/2:(av==='b'?ds/2:0)};}
 function obstacleCenterLocal(o){
   if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){
     var a=o.anchor||'cc',av=a.charAt(0),ah=a.charAt(1),w=parseFloat(o.w)||60,h=parseFloat(o.h)||60;
-    var b=obstacleAnchorBaseLocal(a),ax=b.x+(parseFloat(o.anchorOffsetX)||0)*obstacleDesignWidth()/100,ay=b.y+(parseFloat(o.anchorOffsetY)||0)*CH/100;
+    var b=obstacleAnchorBaseLocal(a),ax=b.x+(parseFloat(o.anchorOffsetX)||0)*obstacleDesignWidth()/100,ay=b.y+(parseFloat(o.anchorOffsetY)||0)*obstacleDesignSize()/100;
     return {x:ah==='l'?ax+w/2:(ah==='r'?ax-w/2:ax),y:av==='t'?ay+h/2:(av==='b'?ay-h/2:ay)};
   }
   return {x:(o&&o.x)||0,y:(o&&o.y)||0};

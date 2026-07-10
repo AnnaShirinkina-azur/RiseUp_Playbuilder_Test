@@ -1054,10 +1054,10 @@ bindHexColorInputs(document);
   });
 
   ['os','osx','osy','oc','om'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;ids.forEach(i=>{const o=lvls[cur][i];if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='health'||o.kind==='cta'||o.kind==='tutorial')return;if(o.kind==='bg'){o.tint=$('oc').value;return;}ensureObstacleAnchor(o);o.scale=clampScale($('os').value);o.scaleX=clampScale($('osx').value);o.scaleY=clampScale($('osy').value);applyObstacleScale(o);o.color=$('oc').value;o.moveX=parseInt($('om').value)||0;});draw();});});
-  document.querySelectorAll('#ob-anchor button').forEach(b=>b.addEventListener('click',()=>{const ids=selectionIndices();if(!ids.length)return;if(hasMultiSelection()){groupAnchorUI.anchor=b.dataset.a;const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor),ox=parseFloat($('ob-offx').value)||0,oy=parseFloat($('ob-offy').value)||0;moveSelectionCenterTo(base.x+ox*obstacleDesignWidth()/100,base.y+oy*GH/100);syncGroupAnchorFields();}
+  document.querySelectorAll('#ob-anchor button').forEach(b=>b.addEventListener('click',()=>{const ids=selectionIndices();if(!ids.length)return;if(hasMultiSelection()){groupAnchorUI.anchor=b.dataset.a;const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor),ox=parseFloat($('ob-offx').value)||0,oy=parseFloat($('ob-offy').value)||0;moveSelectionCenterTo(base.x+ox*obstacleDesignWidth()/100,base.y+oy*obstacleDesignSize()/100);syncGroupAnchorFields();}
     else{const o=selItem();if(!isObstacleItem(o))return;ensureObstacleScale(o);const keep={x:o.x||0,y:o.y||0,w:o.w||60,h:o.h||60};o.anchor=b.dataset.a;const p=obstacleAnchorPointFromCenter(o.anchor,keep.x,keep.y,keep.w,keep.h);writeObstacleAnchorOffsetFromPoint(o,p.x,p.y);setObstacleLocalFromOffset(o);document.querySelectorAll('#ob-anchor button').forEach(x=>x.classList.toggle('on',x===b));}
     draw();}));
-  ['ob-offx','ob-offy'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;if(hasMultiSelection()){const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor||'cc'),ox=parseFloat($('ob-offx').value)||0,oy=parseFloat($('ob-offy').value)||0;moveSelectionCenterTo(base.x+ox*obstacleDesignWidth()/100,base.y+oy*GH/100);}else{const o=selItem();if(!o||o.kind)return;ensureObstacleAnchor(o);o.anchorOffsetX=parseFloat($('ob-offx').value)||0;o.anchorOffsetY=parseFloat($('ob-offy').value)||0;setObstacleLocalFromOffset(o);}draw();});});
+  ['ob-offx','ob-offy'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;if(hasMultiSelection()){const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor||'cc'),ox=parseFloat($('ob-offx').value)||0,oy=parseFloat($('ob-offy').value)||0;moveSelectionCenterTo(base.x+ox*obstacleDesignWidth()/100,base.y+oy*obstacleDesignSize()/100);}else{const o=selItem();if(!o||o.kind)return;ensureObstacleAnchor(o);o.anchorOffsetX=parseFloat($('ob-offx').value)||0;o.anchorOffsetY=parseFloat($('ob-offy').value)||0;setObstacleLocalFromOffset(o);}draw();});});
 
   function resize(keepScroll=false){
     const oldTop=wrap.scrollTop,oldLeft=wrap.scrollLeft;
@@ -1115,8 +1115,9 @@ bindHexColorInputs(document);
     const a=anchor||'cl',av=a.charAt(0),ah=a.charAt(1);
     return {x:ah==='l'?-GW/2:(ah==='r'?GW/2:0),y:av==='t'?-GH/2:(av==='b'?GH/2:0)};
   }
-  function obstacleDesignWidth(){return 390;}
-  function obstacleAnchorBaseLocal(anchor){const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),dw=obstacleDesignWidth();return{x:ah==='l'?-dw/2:(ah==='r'?dw/2:0),y:av==='t'?-GH/2:(av==='b'?GH/2:0)};}
+  function obstacleDesignSize(){return 844;}
+  function obstacleDesignWidth(){return obstacleDesignSize();}
+  function obstacleAnchorBaseLocal(anchor){const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1),ds=obstacleDesignSize();return{x:ah==='l'?-ds/2:(ah==='r'?ds/2:0),y:av==='t'?-ds/2:(av==='b'?ds/2:0)};}
   function obstacleAnchorPointFromCenter(anchor,cx,cy,w,h){
     const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
     return {x:ah==='l'?cx-w/2:(ah==='r'?cx+w/2:cx),y:av==='t'?cy-h/2:(av==='b'?cy+h/2:cy)};
@@ -1129,10 +1130,10 @@ bindHexColorInputs(document);
   function writeObstacleAnchorOffsetFromPoint(o,ax,ay){
     const b=obstacleAnchorBaseLocal(o.anchor||'cc');
     o.anchorOffsetX=Math.round(((ax-b.x)/obstacleDesignWidth())*1000)/10;
-    o.anchorOffsetY=Math.round(((ay-b.y)/GH)*1000)/10;
+    o.anchorOffsetY=Math.round(((ay-b.y)/obstacleDesignSize())*1000)/10;
   }
   function obstacleAnchorPointLocal(o){
-    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=obstacleAnchorBaseLocal(o.anchor||'cc');return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*obstacleDesignWidth()/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*GH/100};}
+    if(o&&o.anchorOffsetX!=null&&o.anchorOffsetY!=null){const b=obstacleAnchorBaseLocal(o.anchor||'cc');return{x:b.x+(parseFloat(o.anchorOffsetX)||0)*obstacleDesignWidth()/100,y:b.y+(parseFloat(o.anchorOffsetY)||0)*obstacleDesignSize()/100};}
     return obstacleAnchorPointFromCenter(o&&o.anchor,o&&o.x||0,o&&o.y||0,o&&o.w||60,o&&o.h||60);
   }
   function ensureObstacleAnchor(o){
@@ -1145,7 +1146,7 @@ bindHexColorInputs(document);
   function setObstacleLocalFromOffset(o){if(!isObstacleItem(o))return;const p=obstacleAnchorPointLocal(o);setObstacleCenterFromAnchorPoint(o,p.x,p.y);}
   function selectionBounds(){const ids=selectionIndices();if(!ids.length)return null;let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;ids.forEach(i=>{const o=lvls[cur][i];let bx,by,bw,bh;if(o.kind==='text'){const l=textLocal(o),sz=textLabelSize(ctx,o),bp=txBox(o.anchor,l.x,l.y,sz.w,sz.h);bx=bp.x;by=bp.y;bw=sz.w;bh=sz.h;}else if(o.kind==='progress'){const b=progressBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='health'){const b=healthBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='cta'){const b=ctaBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='tutorial'){const b=tutorialBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else{const l=itemLocal(o),w=o.kind===PLAYER_KIND?Math.max(40,(20*(parseFloat($('cfg-playerSize')?.value)||2)*4.15)):(o.w||o.heartW||60),h=o.kind===PLAYER_KIND?Math.max(80,(20*(parseFloat($('cfg-playerSize')?.value)||2)*7.4)):(o.h||o.heartW||60);bx=l.x-w/2;by=l.y-h/2;bw=w;bh=h;}minX=Math.min(minX,bx);maxX=Math.max(maxX,bx+bw);minY=Math.min(minY,by);maxY=Math.max(maxY,by+bh);});return {x:(minX+maxX)/2,y:(minY+maxY)/2,w:maxX-minX,h:maxY-minY};}
   function moveSelectionCenterTo(nx,ny){const b=selectionBounds();if(!b)return;const dx=nx-b.x,dy=ny-b.y;selectionIndices().forEach(i=>{const it=lvls[cur][i],l=uiCenterLocal(it);if(it.kind==='progress'||it.kind==='health'||it.kind==='cta'||it.kind==='tutorial')moveUiCenterTo(it,l.x+dx,l.y+dy);else moveItemTo(it,l.x+dx,l.y+dy);});}
-  function syncGroupAnchorFields(){const b=selectionBounds();if(!b)return;const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor||'cc');$('ob-offx').value=Math.round(((b.x-base.x)/obstacleDesignWidth())*1000)/10;$('ob-offy').value=Math.round(((b.y-base.y)/GH)*1000)/10;document.querySelectorAll('#ob-anchor button').forEach(bt=>bt.classList.toggle('on',bt.dataset.a===(groupAnchorUI.anchor||'cc')));}
+  function syncGroupAnchorFields(){const b=selectionBounds();if(!b)return;const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor||'cc');$('ob-offx').value=Math.round(((b.x-base.x)/obstacleDesignWidth())*1000)/10;$('ob-offy').value=Math.round(((b.y-base.y)/obstacleDesignSize())*1000)/10;document.querySelectorAll('#ob-anchor button').forEach(bt=>bt.classList.toggle('on',bt.dataset.a===(groupAnchorUI.anchor||'cc')));}
   function progressLocal(o){
     // Anchor point of the UI object. The object's own anchor corner/edge is
     // attached to this point; the visual center is derived from its current
@@ -1609,14 +1610,13 @@ bindHexColorInputs(document);
   }
 
   // ── Active / passive zones ────────────────────────────────────────────────
-  // The active zone is a centered square whose side equals the SHORT side of the
-  // screen (full width in portrait, full height in landscape). The passive zone
-  // is whatever is left of the mini-level rect — the part that only exists to
-  // stretch the screen to the portrait/landscape aspect ratio.
+  // Obstacles live in one fixed 844x844 design square in both orientations.
+  // Portrait and landscape only change how much of that square is visible; they
+  // never rescale or re-anchor the obstacle layout to the screen rectangle.
   function zoneRect(top,w,h,midX,midY){
-    const aw=GW*zoom,ah=GH*zoom;
-    const x0=midX-aw/2,y0=midY-ah/2;
-    return {sq:Math.min(aw,ah),aw,ah,x0,y0,x1:x0+aw,y1:y0+ah,top,bottom:top+h,w};
+    const side=obstacleDesignSize()*zoom;
+    const x0=midX-side/2,y0=midY-side/2;
+    return {sq:side,aw:side,ah:side,x0,y0,x1:x0+side,y1:y0+side,top,bottom:top+h,w};
   }
   function drawPassiveZone(top,w,h,midX,midY){ // call BEFORE obstacles
     if(!showZones)return;
@@ -1645,7 +1645,7 @@ bindHexColorInputs(document);
     // active label
     if(z.sq>70){
       ctx.fillStyle='#52e08a';ctx.font='600 '+Math.max(10,Math.min(13,11*zoom))+'px system-ui,sans-serif';ctx.textAlign='left';
-      ctx.fillText('ACTIVE '+GW+'×'+GH,z.x0+6,z.y0+15);
+      ctx.fillText('ACTIVE '+obstacleDesignSize()+'×'+obstacleDesignSize(),Math.max(6,z.x0+6),Math.max(top+15,z.y0+15));
     }
     // passive label (only where a band actually exists)
     ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';ctx.textAlign='center';
