@@ -8,3 +8,11 @@ RiseUp Playbuilder changes — 10.07.2026
 - Disabled active/passive-zone dim overlay by default (the landscape “vignette” effect).
 - Strengthened end-card editing feedback.
 - Restored native color picker controls for balloon and rope colors.
+
+End Card editor v3:
+- Portrait/Landscape switch now controls the end-card editor independently.
+- Separate layouts are stored for Win/Lose and Portrait/Landscape.
+- Added independent Background, Image, Text and CTA objects.
+- Image, Text and CTA can be selected, dragged, scaled and anchored to 9 screen anchors.
+- Added background image upload per state and orientation.
+- Exported playable uses the matching orientation layout at runtime.

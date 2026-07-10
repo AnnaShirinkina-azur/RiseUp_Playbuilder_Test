@@ -1322,42 +1322,27 @@ class Game{
   }
 
   _drawEnd(ctx){
-    const ec=this.cfg.endCard||{};
-    const finishBg=this._spr('background_finish');
-    const W=CW,H=CH;
+    const ec=this.cfg.endCard||{}, W=CW, H=CH, orientation=W>H?'landscape':'portrait', state=this.isWin?'win':'lose';
+    const layout=ec.layouts&&ec.layouts[state]&&ec.layouts[state][orientation];
+    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?0:(a[1]==='r'?W:W/2),y:a[0]==='t'?0:(a[0]==='b'?H:H/2)};};
+    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*W/100,y:b.y+((o&&o.y)||0)*H/100};};
+    const contain=(im,cx,cy,bw,bh)=>{if(!imgOk(im))return;const sc=Math.min(bw/im.naturalWidth,bh/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;ctx.drawImage(im,cx-dw/2,cy-dh/2,dw,dh);};
     ctx.save();ctx.globalAlpha=this.endA;
-    if(this.isWin){
-      if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,W,H,0,this.cfg.backgroundSpriteColor);
-      else{ctx.fillStyle='#111827';ctx.fillRect(0,0,W,H);}
-      const frame=this._spr('endcard_win_frame');
-      if(imgOk(frame)){ctx.globalAlpha=this.endA*.55;this._drawCover(ctx,frame,0,0,W,H);ctx.globalAlpha=this.endA;}
-      ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
-      const card=this._spr('endcard_win');
-      if(imgOk(card)){
-        const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;
-        const bw=W*.88*sc,bh=H*.38*sc,cs=Math.min(bw/card.naturalWidth,bh/card.naturalHeight),dw=card.naturalWidth*cs,dh=card.naturalHeight*cs;
-        ctx.drawImage(card,cx-dw/2,cy-dh/2,dw,dh);
-      }else{
-        ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.fillText('YOU WIN!',W/2,H*.35);
-      }
+    let bg=null;
+    if(layout&&layout.background){bg=this._spr('endcard_'+state+'_'+orientation+'_background');}
+    if(!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
+    if(imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+    ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
+    if(layout){
+      const io=layout.image||{}, ip=point(io), art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
+      const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale), ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);
+      contain(art,ip.x,ip.y,iw,ih);
+      const to=layout.text||{},tp=point(to);ctx.fillStyle='#fff';ctx.font='800 '+((orientation==='landscape'?26:28)*(to.scale==null?1:to.scale))+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(to.text||(this.isWin?'YOU WIN!':'TRY AGAIN'),tp.x,tp.y);
+      if(ec.showCta!==false){const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,bw=(orientation==='landscape'?220:W*.56)*cs,bh=54*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_lose_button');if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}ctx.fillStyle='#fff';ctx.font='800 '+(17*cs)+'px sans-serif';ctx.fillText(co.text||ec.ctaText||'PLAY NOW',cp.x,cp.y);}
     }else{
-      const bg=this._spr('endcard_lose_bg');
-      if(imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle='#10252e';ctx.fillRect(0,0,W,H);}
-      ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
-      const logo=this._spr('endcard_lose_logo');
-      if(imgOk(logo)){
-        const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.28+(ec.y||0)*H/100;
-        const bw=W*.78*sc,bh=H*.28*sc,ls=Math.min(bw/logo.naturalWidth,bh/logo.naturalHeight),dw=logo.naturalWidth*ls,dh=logo.naturalHeight*ls;
-        ctx.drawImage(logo,cx-dw/2,cy-dh/2,dw,dh);
-      }
-      ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.fillText('TRY AGAIN',W/2+(ec.x||0)*W/100,H*.47+(ec.y||0)*H/100);
-    }
-    if(ec.showCta!==false){
-      const bw=220,bh=54,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100;
-      const btn=this._spr('endcard_lose_button');
-      if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');
-      else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
-      ctx.fillStyle='#fff';ctx.font='800 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ec.ctaText||'PLAY NOW',W/2,by+bh/2);
+      if(this.isWin){const card=this._spr('endcard_win');if(imgOk(card)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;contain(card,cx,cy,W*.88*sc,H*.38*sc);}else{ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.fillText('YOU WIN!',W/2,H*.35);}}
+      else{const logo=this._spr('endcard_lose_logo');if(imgOk(logo)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.28+(ec.y||0)*H/100;contain(logo,cx,cy,W*.78*sc,H*.28*sc);}ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.fillText('TRY AGAIN',W/2+(ec.x||0)*W/100,H*.47+(ec.y||0)*H/100);}
+      if(ec.showCta!==false){const bw=220,bh=54,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100,btn=this._spr('endcard_lose_button');if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}ctx.fillStyle='#fff';ctx.font='800 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ec.ctaText||'PLAY NOW',W/2,by+bh/2);}
     }
     ctx.restore();
   }

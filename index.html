@@ -648,20 +648,33 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
       <div class="etbar">
         <div class="etgroup">
-          <span class="etg-label">End card</span>
-          <label class="et" title="Replace current state image with PNG or preview from Unity package">+ Import<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
+          <span class="etg-label">Objects</span>
+          <button class="et" id="end-sel-bg" type="button">Background</button>
+          <button class="et on" id="end-sel-image" type="button">Image</button>
+          <button class="et" id="end-sel-text" type="button">Text</button>
+          <button class="et" id="end-sel-cta" type="button">CTA</button>
         </div>
         <div class="etgroup">
-          <span class="etg-label">Position</span>
-          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.2" max="3" step="0.05"></div>
-          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-100" max="100" step="1"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-100" max="100" step="1"></div>
+          <span class="etg-label">Assets</span>
+          <label class="et">+ Background<input type="file" id="end-bg-import" accept=".png,.jpg,.jpeg,.webp,image/*" style="display:none"></label>
+          <label class="et">+ Image<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
+        </div>
+        <div class="etgroup" id="end-transform-group">
+          <span class="etg-label">Transform</span>
+          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.1" max="5" step="0.05"></div>
+          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div></div>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Content</span>
+          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:110px"></div>
           <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
-        </div>
-        <div class="etgroup">
-          <span class="etg-label">CTA</span>
-          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:100px"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardCtaY" value="74" min="0" max="100" step="1"></div>
+          <input type="hidden" id="cfg-endCardCtaY" value="74">
         </div>
       </div>
     </div>
