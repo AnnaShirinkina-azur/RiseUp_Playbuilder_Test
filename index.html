@@ -1,930 +1,803 @@
-(function(W){'use strict';
-let CW=390,CH=844;
-function setView(orientation){CH=844;CW=(orientation==='landscape')?844:390;}
-function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
-function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
-function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
-function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
-function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
-function makeImg(src){if(!src)return null;const im=new Image();im.src=src;return im;}
-function drawTintedImage(ctx,img,x,y,w,h,color){
-  // Draw custom sprite first, then apply color only inside the sprite alpha.
-  // The tint is composed in an isolated offscreen canvas; using source-atop
-  // directly on the game canvas would also see the already drawn background as
-  // destination and could paint a square behind/around transparent sprites.
-  ctx.drawImage(img,x,y,w,h);
-  if(!color||String(color).toLowerCase()==='#ffffff')return;
-  const ow=Math.max(1,Math.ceil(Math.abs(w))),oh=Math.max(1,Math.ceil(Math.abs(h)));
-  const oc=document.createElement('canvas');oc.width=ow;oc.height=oh;
-  const ox=oc.getContext('2d');
-  ox.drawImage(img,0,0,ow,oh);
-  ox.globalCompositeOperation='source-atop';
-  ox.fillStyle=color;
-  ox.globalAlpha=.55;
-  ox.fillRect(0,0,ow,oh);
-  ctx.drawImage(oc,x,y,w,h);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Rise Playable Builder</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d14;--surf:#161622;--surf2:#1e1e2e;
+  --brd:rgba(255,255,255,.07);--acc:#7c6cf5;--red:#e05252;
+  --txt:#e8e8f0;--dim:rgba(232,232,240,.42);
+  --r:10px;--r2:7px;
 }
-function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
-function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
-function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
-function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
-function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
-function anchorBaseLocal(anchor){
-  var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
-  return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
-}
-function textLocal(L){
-  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=anchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
-  return {x:(L&&L.x)||0,y:(L&&L.y)||0};
-}
-function progressAnchorBaseLocal(anchor){
-  var a=anchor||'cl',av=a.charAt(0),ah=a.charAt(1);
-  return {x:ah==='l'?-CW/2:(ah==='r'?CW/2:0),y:av==='t'?-CH/2:(av==='b'?CH/2:0)};
-}
-function progressLocal(L){
-  // Progress UI is anchored to the whole screen, not to the square gameplay area.
-  if(L&&L.anchorOffsetX!=null&&L.anchorOffsetY!=null){var b=progressAnchorBaseLocal(L.anchor);return{x:b.x+(parseFloat(L.anchorOffsetX)||0)*CW/100,y:b.y+(parseFloat(L.anchorOffsetY)||0)*CH/100};}
-  return {x:(L&&L.x)||0,y:(L&&L.y)||0};
-}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+header{padding:12px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;}
+.logo-icon{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--acc),var(--red));display:flex;align-items:center;justify-content:center;font-size:16px;}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(124,108,245,.15);color:var(--acc);border:1px solid rgba(124,108,245,.25);}
+.ws{flex:1;display:grid;grid-template-columns:250px 1fr 340px;overflow:hidden;}
+/* Luna-like left navigation */
+.sb{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;padding:16px 12px;gap:14px;}
+.tabs{display:flex;flex-direction:column;gap:8px;border-bottom:none;padding:0;flex-shrink:0;}
+.param-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:4px 4px 2px;}
+.param-group{display:flex;flex-direction:column;gap:5px;}
+.acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,.035);border:1px solid var(--brd);border-radius:12px;color:var(--txt);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+.acc-head::after{content:"▸";opacity:.55;transition:.15s;}
+.acc-head.on::after{transform:rotate(90deg);}
+.acc-body{display:none;flex-direction:column;gap:5px;padding:2px 0 6px 10px;}
+.acc-body.on{display:flex;}
+.tab{width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:transparent;border:1px solid transparent;border-radius:12px;color:var(--dim);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;text-align:left;}
+.tab::after{content:"›";opacity:.45;}
+.tab:hover{color:var(--txt);background:rgba(255,255,255,.035);}
+.tab.on{color:#fff;background:rgba(124,108,245,.16);border-color:rgba(124,108,245,.35);}
+.pnl{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:3px;}
+.pnl.on{display:flex;}
+.pnl::-webkit-scrollbar{width:3px;}
+.pnl::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);}
+/* fields */
+.sec{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:11px 0 5px;display:flex;align-items:center;gap:5px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--brd);}
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:4px 0;}
+.row.wide{grid-template-columns:1fr;gap:4px;}
+.row label{font-size:13px;display:flex;flex-direction:column;gap:1px;}
+.row label small{font-size:11px;color:var(--dim);}
+input[type=number]{width:64px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;}
+input[type=number]:focus{border-color:var(--acc);}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--surf2);border-radius:4px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--acc);cursor:pointer;border:2px solid var(--bg);}
+.rr{display:grid;grid-template-columns:1fr 42px;gap:8px;align-items:center;}
+.rr span{font-size:13px;font-weight:600;color:var(--acc);text-align:right;}
+.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:3px;}
+.cc{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.cc label{font-size:10px;color:var(--dim);}
+/* sprites */
+.sp-row{padding:4px 0;display:flex;flex-direction:column;gap:5px;}
+.sp-row > label{font-size:13px;}
+.sp-up{display:flex;align-items:center;gap:7px;}
+.thumb{width:36px;height:36px;border:1px solid var(--brd);border-radius:var(--r2);background:var(--surf2);display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:15px;flex-shrink:0;overflow:hidden;}
+.thumb img{width:100%;height:100%;object-fit:contain;}
+.ul-btn{background:var(--surf2);border:1px dashed rgba(255,255,255,.2);border-radius:var(--r2);color:var(--dim);font-size:12px;padding:5px 9px;cursor:pointer;transition:.15s;}
+.ul-btn:hover{border-color:var(--acc);color:var(--acc);}
+.x-btn{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--dim);font-size:11px;padding:4px 6px;cursor:pointer;}
+.x-btn:hover{color:var(--red);}
+.tpl-list{display:flex;flex-direction:column;gap:7px;margin-top:6px;}
+.tpl-empty{font-size:11px;color:var(--dim);line-height:1.35;padding:8px;border:1px dashed rgba(255,255,255,.12);border-radius:var(--r2);}
+.tpl-card{width:100%;display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);padding:6px;color:var(--txt);cursor:pointer;text-align:left;}
+.tpl-card:hover,.tpl-card.on{border-color:var(--acc);background:rgba(124,108,245,.13);}
+.tpl-card .thumb{width:34px;height:34px;}
+.tpl-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpl-meta{font-size:10px;color:var(--dim);margin-top:1px;}
+.tpl-del{background:transparent;border:0;color:var(--dim);font-size:15px;cursor:pointer;padding:2px 5px;}
+.tpl-del:hover{color:var(--red);}
+/* build bar */
+.bbar{padding:12px;border-top:1px solid var(--brd);flex-shrink:0;display:flex;flex-direction:column;gap:7px;}
+.prog{display:none;flex-direction:column;gap:4px;}
+.prog.on{display:flex;}
+.prog-bg{height:3px;background:var(--surf2);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--acc),#9c5df5);border-radius:3px;width:0;transition:width .3s;}
+.prog-msg{font-size:11px;color:var(--dim);}
+.sz{display:none;font-size:12px;color:var(--acc);font-weight:600;}
+.sz.on{display:block;}
+.err{display:none;padding:7px 9px;background:rgba(224,82,82,.15);border:1px solid rgba(224,82,82,.3);border-radius:var(--r2);color:var(--red);font-size:12px;}
+.err.on{display:block;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;}
+.btn-s{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);}
+.btn-s:hover{border-color:var(--acc);color:var(--acc);}
+.btn-dl{background:linear-gradient(135deg,var(--acc),#9c5df5);color:#fff;width:100%;padding:11px;font-size:14px;}
+.btn-dl:hover{opacity:.9;transform:translateY(-1px);}
+.btn-dl:disabled{opacity:.45;pointer-events:none;transform:none;}
+/* center preview + right inspector */
+.inspector{background:var(--surf);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;}
+.inspector-head{padding:14px 16px;border-bottom:1px solid var(--brd);font-size:16px;font-weight:800;}
+.inspector .pnl{padding:14px 16px;}
+.right{display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.rtabs{display:flex;border-bottom:1px solid var(--brd);padding:0 18px;gap:2px;flex-shrink:0;background:var(--bg);}
+.rtab{padding:11px 13px 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;}
+.rtab:hover{color:var(--txt);}
+.rtab.on{color:var(--acc);border-bottom-color:var(--acc);}
+/* preview */
+.prev-pane{flex:1;background:#080810;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:14px 22px 18px;gap:10px;overflow:hidden;min-height:0;}
+.preview-top{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;position:sticky;top:0;z-index:2;padding:2px 0 8px;background:linear-gradient(#080810 75%,rgba(8,8,16,0));}
+.phone{width:min(336px,calc((100vh - 176px)*390/844));height:min(728px,calc(100vh - 176px));border-radius:32px;overflow:hidden;border:1.5px solid var(--brd);box-shadow:0 24px 50px rgba(0,0,0,.6);position:relative;background:#0d0d14;flex-shrink:0;}
+.phone iframe{width:100%;height:100%;display:block;border:none;pointer-events:auto;transform:none;transform-origin:center center;}
+.phone.landscape{width:728px;height:336px;border-radius:26px;}
+.phone.landscape iframe{width:100%;height:100%;transform:none;}
+.orbar{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;}
+.orbtn{padding:5px 10px;border-radius:999px;background:var(--surf2);border:1px solid var(--brd);color:var(--dim);font-size:12px;font-weight:700;cursor:pointer;}
+.orbtn.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+/* Level editor viewport: occupy all free editor space, then keep 10% free
+   on each axis. Important: CSS percentage padding is based on WIDTH,
+   so padding:10% would make portrait too small. Width/height 80% gives
+   10% margins horizontally and vertically independently. */
+.editor-stage{flex:1;display:flex;align-items:center;justify-content:center;background:#080810;overflow:hidden;padding:0;box-sizing:border-box;min-height:0;min-width:0;}
+.editor-phone{width:80%;height:80%;border-radius:32px;border:1.5px solid var(--brd);box-shadow:0 18px 40px rgba(0,0,0,.5);background:#0d0d14;padding:12px;display:flex;box-sizing:border-box;min-width:0;min-height:0;}
+.editor-phone.landscape{width:80%;height:80%;border-radius:26px;}
+.end-pane{display:none;flex-direction:column;min-height:0;overflow:hidden;}
+.end-pane.on{display:flex;}
+#end-canvas{display:block;background:#080810;}
+.ec-wrap{flex:1;position:relative;outline:none;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
+.ec-wrap canvas{display:block;margin:0 auto;}
+.level-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-wrap:wrap;}
+.level-toolbar .mini{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px;font-weight:600;}
+.level-toolbar input[type=number]{width:58px;font-size:12px;padding:4px 6px;}
+.level-toolbar input[type=range]{width:110px;}
+.level-note{font-size:11px;color:var(--dim);opacity:.85;}
+.shape-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;align-items:center;justify-content:center;padding:24px;}
+.shape-modal.on{display:flex;}
+.shape-card{width:min(560px,94vw);background:var(--surf);border:1px solid var(--brd);border-radius:18px;padding:16px;box-shadow:0 24px 80px rgba(0,0,0,.65);}
+.shape-card h3{font-size:16px;margin-bottom:8px;}
+.shape-card textarea{width:100%;min-height:160px;background:#0f0f18;color:var(--txt);border:1px solid var(--brd);border-radius:10px;padding:10px;font-family:monospace;font-size:12px;resize:vertical;}
+.shape-card input{width:100%;margin:8px 0;background:#0f0f18;color:var(--txt);border:1px solid var(--brd);border-radius:10px;padding:8px;}
+.shape-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
+.plabel{font-size:12px;color:var(--dim);text-align:center;}
+.pact{display:flex;gap:8px;}
+/* level editor */
+.ed-pane{flex:1;display:none;flex-direction:column;overflow:hidden;}
+.ed-pane.on{display:flex;}
+.stabs{display:flex;gap:3px;padding:8px 12px 0;flex-shrink:0;background:var(--surf);}
+.stab{padding:5px 11px;border-radius:var(--r2) var(--r2) 0 0;background:var(--surf2);border:1px solid var(--brd);border-bottom:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--dim);transition:.15s;}
+.stab.on{background:var(--bg);color:var(--txt);}
 
-// ── Text labels — level text with per-segment colors (must match index.html) ──
-var FONT_CSS=W.RiseFontCSS={
-  'Baloo2':"'Baloo2',sans-serif",
-  'Kameron':"'Kameron',serif",
-  'LiberationSans':"'LiberationSans',Arial,sans-serif",
-  'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
-  'serif':'Georgia,"Times New Roman",serif',
-  'mono':'ui-monospace,Menlo,Consolas,monospace'
-};
-function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'\"'+name.replace(/\"/g,'')+'\",sans-serif':name+',sans-serif';}
-// Draw a text label centered on (cx,cy). Text is a list of segments {t,color};
-// each segment keeps its own solid color. Newlines split lines.
-function drawTextLabel(ctx,L,cx,cy){
-  var segs=(L.segments&&L.segments.length)?L.segments:[{t:(L.text||''),color:(L.color||'#ffffff')}];
-  var fam=(FONT_CSS[L.font]||fontCssFamily(L.font)||'sans-serif');
-  var size=L.size||40,weight=800;
-  var anchor=L.anchor||'cc',av=anchor.charAt(0),ah=anchor.charAt(1),align=ah==='l'?'left':(ah==='r'?'right':'center');
-  var lines=[[]],s,p,col,parts;
-  for(s=0;s<segs.length;s++){
-    col=segs[s].color||'#ffffff';parts=String(segs[s].t==null?'':segs[s].t).split('\n');
-    for(p=0;p<parts.length;p++){if(p>0)lines.push([]);if(parts[p]!=='')lines[lines.length-1].push({t:parts[p],color:col});}
-  }
-  var lh=size*1.18;
-  ctx.save();
-  ctx.font=weight+' '+size+'px '+fam;ctx.textAlign='left';ctx.textBaseline='alphabetic';
-  try{if('letterSpacing' in ctx)ctx.letterSpacing=(L.letterSpacing||0)+'px';}catch(e){}
-  var totalH=lh*lines.length,ascent=size*0.80,firstBase=(av==='t'?(cy+ascent):(av==='b'?(cy-totalH+ascent):(cy-totalH/2+ascent))),li,r,runs,by,lineW,sx,xx;
-  for(li=0;li<lines.length;li++){
-    runs=lines[li];by=firstBase+li*lh;lineW=0;
-    for(r=0;r<runs.length;r++)lineW+=ctx.measureText(runs[r].t).width;
-    sx=align==='left'?cx:(align==='right'?cx-lineW:cx-lineW/2);
-    if(L.shadow){ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=size*0.14;ctx.shadowOffsetY=size*0.07;xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}ctx.restore();}
-    if(L.strokeW&&L.strokeW>0){ctx.lineWidth=L.strokeW;ctx.strokeStyle=L.stroke||'#000';ctx.lineJoin='round';xx=sx;for(r=0;r<runs.length;r++){ctx.strokeText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}}
-    xx=sx;for(r=0;r<runs.length;r++){ctx.fillStyle=runs[r].color;ctx.fillText(runs[r].t,xx,by);xx+=ctx.measureText(runs[r].t).width;}
-  }
-  ctx.restore();
-}
+#ec{display:block;cursor:crosshair;}
+.etbar{display:flex;align-items:center;gap:6px;padding:7px 12px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;background:var(--surf);}
+.et{padding:4px 9px;border-radius:var(--r2);background:var(--surf2);border:1px solid var(--brd);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
+.et.on{background:var(--acc);color:#fff;border-color:var(--acc);}
+.et:hover:not(.on){border-color:var(--acc);color:var(--acc);}
+.esep{width:1px;height:18px;background:var(--brd);margin:0 1px;}
+.etgroup{display:flex;align-items:center;gap:5px;padding:4px 8px 4px 6px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.02);}
+.etg-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-right:2px;white-space:nowrap;}
+.ep{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);}
+.ep input[type=number]{width:50px;font-size:12px;padding:3px 5px;}
+.ep .hex-color{width:86px;height:24px;}
+/* ── Fonts (for label previews in the editor) ── */
+@font-face{font-family:'Baloo2';font-weight:700;src:url('Assets/fonts/Baloo2-Bold.ttf')}
+@font-face{font-family:'Kameron';font-weight:600;src:url('Assets/fonts/Kameron-SemiBold.ttf')}
+@font-face{font-family:'LiberationSans';src:url('Assets/fonts/LiberationSans.ttf')}
+/* ── Labels editor ── */
+.lblbar{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;background:var(--surf);}
+.lblbar .lp{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);font-weight:600;}
+.lblbar input[type=text],.lblbar textarea{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:4px 7px;font-size:12px;}
+.lblbar textarea{width:150px;height:30px;resize:vertical;line-height:1.2;}
+.lblbar select{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:4px 6px;font-size:12px;}
+.cfg-select{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:var(--r2);padding:5px 7px;font-size:13px;outline:none;}
+.hex-color{width:86px;max-width:100%;height:28px;background:var(--surf2);color:var(--txt);border:1px solid var(--brd);border-radius:var(--r2);padding:4px 8px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase;outline:none;}
+.hex-color:focus{border-color:var(--acc);}
+.hex-color.invalid{border-color:var(--red);color:var(--red);}
+.lblbar input[type=number]{width:56px;font-size:12px;padding:4px 6px;}
+.anchor-grid{display:grid;grid-template-columns:repeat(3,16px);grid-template-rows:repeat(3,16px);gap:2px;}
+.anchor-grid button{width:16px;height:16px;padding:0;border-radius:4px;border:1px solid var(--brd);background:var(--surf2);cursor:pointer;}
+.anchor-grid button.on{background:var(--acc);border-color:var(--acc);}
+.color-list{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.color-list .hex-color{width:86px;height:26px;padding:3px 7px;border:1px solid var(--brd);border-radius:6px;background:var(--surf2);color:var(--txt);font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;outline:none;}
+.color-list .cbtn{width:22px;height:26px;border:1px solid var(--brd);border-radius:6px;background:var(--surf2);color:var(--txt);cursor:pointer;font-size:14px;line-height:1;}
+.bg-stage-row{display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:6px 0;}
+.bg-stage-row .sp-up{display:flex;align-items:center;gap:8px;min-width:0;}
+.bg-stage-row .bg-label{font-size:12px;color:var(--dim);min-width:48px;}
+.bg-colors{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding-left:38px;}
+.bg-gradient-preview{width:44px;height:28px;border:1px solid var(--brd);border-radius:8px;background:linear-gradient(180deg,#69c5ec,#39a2d8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
+.bg-hex-wrap{display:flex;align-items:center;gap:4px;}
+.bg-color-preview{width:20px;height:26px;border:1px solid var(--brd);border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
+.bg-stage-row .hex-color{width:82px;height:26px;}
+.seam-mode-row{align-items:center;}
+.seam-mode-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);}
+.seam-list{display:flex;flex-direction:column;gap:5px;margin:4px 0 8px 0;}
+.seam-row{padding:3px 0;}
+.seam-row .sp-up{display:flex;align-items:center;gap:8px;min-width:0;}
+.seam-label{font-size:12px;color:var(--dim);min-width:92px;}
+.lbl-empty{color:var(--dim);font-size:12px;padding:4px 2px;}
 
-//── Particles ────────────────────────────────────────────────────────────────
-class FX{
-  constructor(){this.p=[];}
-  burst(x,y,col,n=14){
-    for(let i=0;i<n;i++){
-      const a=Math.PI*2*i/n+Math.random()*.5,s=2+Math.random()*5;
-      this.p.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:1,d:.024+Math.random()*.016,r:2+Math.random()*4,col});
+/* stronger editing feedback */
+.editor-phone.edit-active{border-color:#52e08a;box-shadow:0 0 0 2px rgba(82,224,138,.28),0 18px 40px rgba(0,0,0,.5)}
+#end-canvas{cursor:move}
+input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;background:var(--surf2);border:1px solid var(--brd)}
+
+/* Color eyedropper controls */
+.color-picker-wrap{display:inline-flex;align-items:center;gap:5px;max-width:100%;vertical-align:middle}
+.color-picker-wrap>input{min-width:0}
+.color-eyedropper{width:30px;height:30px;min-width:30px;padding:0;border:1px solid var(--line);border-radius:7px;background:var(--surf2);color:var(--txt);font-size:16px;line-height:1;cursor:pointer;display:inline-grid;place-items:center}
+.color-eyedropper:hover{border-color:var(--accent);background:var(--surf3)}
+.color-eyedropper:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.color-eyedropper:disabled{opacity:.38;cursor:not-allowed}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-icon">🎈</div>Rise Playable Builder<span class="badge">v22 Luna UI</span></div>
+  <button class="btn btn-s" id="btn-reset">↺ Reset</button>
+</header>
+
+<div class="ws">
+  <aside class="sb">
+    <div class="tabs">
+      <button class="acc-head on" data-acc="gameplay">Gameplay</button>
+      <div class="acc-body on" id="acc-gameplay">
+        <button class="tab on" data-panel="player">Player</button>
+        <button class="tab" data-panel="speed">Speed</button>
+        <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
+        <button class="tab" data-panel="timing">Timing</button>
+        <button class="tab" data-panel="endcard-gameplay">End Card</button>
+      </div>
+      <button class="acc-head on" data-acc="visuals">Visual changes</button>
+      <div class="acc-body on" id="acc-visuals">
+        <button class="tab" data-panel="main-ball">Main ball</button>
+        <button class="tab" data-panel="shield">Shield</button>
+        <button class="tab" data-panel="obstacles-visual">Obstacles</button>
+        <button class="tab" data-panel="environment">Environment</button>
+        <button class="tab" data-panel="stage-accents">Stage debug colors</button>
+        <button class="tab" data-panel="text-fonts">Text / fonts</button>
+      </div>
+      <button class="acc-head on" data-acc="audio">Audio changes</button>
+      <div class="acc-body on" id="acc-audio">
+        <button class="tab" data-panel="sounds">Sounds</button>
+      </div>
+    </div>
+
+    <div class="pnl on" id="panel-player" data-title="Player">
+      <div class="sec">Player</div>
+      <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
+      <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
+        <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
+      <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
+    </div>
+
+    <div class="pnl" id="panel-speed" data-title="Speed">
+      <div class="sec">Speed</div>
+      <div class="row wide"><label>Game speed<small>Initial scroll px/s</small></label>
+        <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
+      <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
+        <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
+      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="1" min="1" max="20" step="1"></div>
+    </div>
+
+    <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
+      <div class="sec">Obstacles / Physics</div>
+      <div class="row wide"><label>Push force<small>Strength of hit</small></label>
+        <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
+      <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
+        <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
+      <div class="row"><label>Chain reaction<small>Разлетающиеся куски сбивают соседние</small></label><input type="checkbox" id="cfg-chainReaction"></div>
+      <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
+        <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
+    </div>
+
+    <div class="pnl" id="panel-timing" data-title="Timing">
+      <div class="sec">Timing</div>
+      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
+      <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
+      <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled" checked></div>
+      <div class="sec">Tutorial animation</div>
+      <div class="row"><label>Enable animation<small>Рука + пирамида + надпись. Позиция и вид настраиваются объектом Tutorial в Level Editor</small></label><input type="checkbox" id="cfg-tutorialAnimEnabled" checked></div>
+      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
+    </div>
+
+    <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
+      <div class="sec">End Card</div>
+      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="row"><label>Show Try Again<small>Показывать экран после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
+      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="1.2" min="0" max="30" step="0.1"></div>
+      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0" min="0" max="60" step="0.1"></div>
+    </div>
+
+    <div class="pnl" id="panel-main-ball" data-title="Main ball">
+      <div class="sec">Main ball</div>
+      <div class="sec">Custom sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
+        <button class="x-btn" onclick="clearSpr('player')">✕</button>
+      </div></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
+    </div>
+
+    <div class="pnl" id="panel-shield" data-title="Shield">
+      <div class="sec">Shield (защитник)</div>
+      <div class="sec">Custom sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
+        <button class="x-btn" onclick="clearSpr('shield')">✕</button>
+      </div></div>
+      <div class="row"><label>Sprite color</label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+    </div>
+
+    <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
+      <div class="sec">Obstacle templates</div>
+      <div class="row wide"><label>Built-in SVG shapes<small>Базовые препятствия возвращены сюда: Rectangle, Circle и Triangle вставляются как SVG-объекты с собственным коллайдером.</small></label></div>
+      <div id="builtin-obstacle-list" class="tpl-list">
+        <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="rect"><div class="thumb"><img src="Assets/textures/shape_rectangle.svg"></div><div><div class="tpl-name">Rectangle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
+        <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="circle"><div class="thumb"><img src="Assets/textures/shape_circle.svg"></div><div><div class="tpl-name">Circle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
+        <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="triangle"><div class="thumb"><img src="Assets/textures/shape_triangle.svg"></div><div><div class="tpl-name">Triangle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
+      </div>
+      <div class="sec">Templates import</div>
+      <div class="row wide"><label>Custom templates<small>Можно загрузить SVG, PNG или Unity .unitypackage. SVG и Unity prefab раскладываются на отдельные obstacle-объекты; PNG вставляется как один obstacle с прямоугольным коллайдером.</small></label></div>
+      <div class="sp-row"><div class="sp-up">
+        <label class="ul-btn">+ Template<input id="tpl-svg-upload" type="file" accept="image/svg+xml,.svg,image/png,.png,.unitypackage,application/gzip,application/x-gzip" style="display:none" multiple></label>
+      </div></div>
+      <div id="tpl-list" class="tpl-list"><div class="tpl-empty">No templates yet. Upload SVG, PNG or Unity packages here.</div></div>
+    </div>
+
+    <div class="pnl" id="panel-environment" data-title="Environment">
+      <div class="sec">Screen orientation</div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
+      <div class="sec">Background mode</div>
+      <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
+        <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
+        <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
+      <div id="bg-perstage-box">
+        <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык/край мини-уровня (например, облака). Рисуется поверх всех слоёв. Можно использовать одну общую картинку или отдельную картинку для каждого уровня: Start, Mini и Finish.</small></label></div>
+        <div class="row wide seam-mode-row"><label>Mode<small>Per level: у каждого мини-уровня свой PNG-оверлей. Single image: один общий PNG для всех стыков.</small></label>
+          <div class="orbar" id="seam-mode-bar"><button class="orbtn on" data-seammode="perStage">Per level</button><button class="orbtn" data-seammode="common">Single image</button></div>
+          <input type="hidden" id="cfg-seamOverlayMode" value="perStage"><input type="checkbox" id="cfg-seamMulti" style="display:none" checked></div>
+        <div id="seam-single-box" class="sp-row" style="display:none"><div class="sp-up">
+          <div class="thumb" id="th-bg_seam">〰️</div>
+          <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
+          <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
+        </div></div>
+        <div id="seam-multi-box" class="seam-list"></div>
+        <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
+          <div class="rr"><input type="range" id="cfg-seamScale" value="0.5" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">0.50</span></div></div>
+        <div class="sec">Per-level backgrounds</div>
+        <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов. Пикеры в ряду: нижний цвет градиента · верхний цвет · тинт картинки (окрашивает её по альфе, белый = без тинта).</small></label></div>
+        <div id="bg-stage-rows"></div>
+      </div>
+      <div id="bg-single-box" style="display:none">
+      <div class="row wide"><label>Environment image<small>Одна статичная картинка на всю игру. Остальные фоновые картинки размещаются в Level Editor: загрузите их в Images, перетащите на уровень, растяните и задайте тинт.</small></label></div>
+      <div id="env-bg-common" class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-background-visuals">🖼️</div>
+        <label class="ul-btn">+ Background image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
+        <button class="x-btn" onclick="clearSpr('background')">✕</button>
+      </div></div>
+      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgSpriteColor" value="#ffffff"></div>
+      </div>
+    </div>
+
+    <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
+      <div class="sec">Stage debug colors</div>
+      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
+      <div class="cgrid">
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
+      </div>
+    </div>
+
+
+    <div class="pnl" id="panel-text-fonts" data-title="Text / fonts">
+      <div class="sec">Google Fonts</div>
+      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
+      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
+      <div class="sec">Local font</div>
+      <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><label class="ul-btn">+ Upload font from computer<input type="file" id="cfg-localFontFile" accept=".ttf,.otf,.woff,.woff2,font/*" style="display:none"></label><small id="cfg-localFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Поддерживаются ttf/otf/woff/woff2.</small></div>
+    </div>
+
+    <div class="pnl" id="panel-sounds" data-title="Sounds">
+      <div class="sec">Sound</div>
+      <div class="row"><label>Enable sounds<small>Вкл/выкл все звуки в playable</small></label><input type="checkbox" id="cfg-soundEnabled" checked></div>
+      <div class="row wide"><label>Master volume<small>Общая громкость</small></label>
+        <div class="rr"><input type="range" id="cfg-soundVolume" value="0.8" min="0" max="1" step="0.05" oninput="sv('cfg-soundVolume-v',Math.round(this.value*100)+'%')"><span id="cfg-soundVolume-v">80%</span></div></div>
+
+      <div class="sec">Background music</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-bgm">🎵</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('bgm',this)"></label>
+        <button class="x-btn" onclick="clearSnd('bgm')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('bgm')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Фоновая музыка (loop)</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-bgm" value="0.7" min="0" max="1" step="0.05" oninput="sv('cfg-vol-bgm-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-bgm-v">70%</span></div></div>
+
+      <div class="sec">Win sound</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-win">🏆</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('win',this)"></label>
+        <button class="x-btn" onclick="clearSnd('win')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('win')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Звук победы</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-win" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-win-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-win-v">100%</span></div></div>
+
+      <div class="sec">Lose sound</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-lose">💀</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('lose',this)"></label>
+        <button class="x-btn" onclick="clearSnd('lose')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('lose')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Звук поражения</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-lose" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-lose-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-lose-v">100%</span></div></div>
+
+      <div class="sec">Ball hit (collision)</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-hit">💥</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('hit',this)"></label>
+        <button class="x-btn" onclick="clearSnd('hit')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('hit')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Столкновение шара с препятствием (потеря жизни)</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-hit" value="1" min="0" max="1" step="0.05" oninput="sv('cfg-vol-hit-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-hit-v">100%</span></div></div>
+
+      <div class="sec">Shield touch</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-audio-shield">🛡️</div>
+        <label class="ul-btn">+ Custom audio<input type="file" accept="audio/*" style="display:none" onchange="loadSnd('shield',this)"></label>
+        <button class="x-btn" onclick="clearSnd('shield')" title="Сбросить на дефолтный звук">✕</button>
+        <button class="x-btn" onclick="playSnd('shield')" title="Прослушать">▶</button>
+      </div></div>
+      <div class="row wide"><label>Volume<small>Соприкасание шара-защитника и препятствия</small></label>
+        <div class="rr"><input type="range" id="cfg-vol-shield" value="0.9" min="0" max="1" step="0.05" oninput="sv('cfg-vol-shield-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-shield-v">90%</span></div></div>
+    </div>
+
+    <div class="bbar">
+      <div class="prog" id="prog"><div class="prog-bg"><div class="prog-fill" id="pf"></div></div><div class="prog-msg" id="pm"></div></div>
+      <div class="err" id="err"></div>
+      <div class="sz" id="sz"></div>
+      <button class="btn btn-dl" id="btn-dl">⬇ Download Playable HTML</button>
+    </div>
+  </aside>
+
+  <div class="right">
+    <div class="rtabs">
+      <button class="rtab on" data-rt="preview">Preview</button>
+      <button class="rtab"    data-rt="levels">Level Editor</button>
+      <button class="rtab"    data-rt="endcard">End Card</button>
+    </div>
+
+    <div id="rp-preview" class="prev-pane">
+      <div class="preview-top">
+        <div class="orbar" id="orientation-preview"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
+        <div class="pact">
+          <button class="btn btn-s" id="btn-prev">▶ Update Preview</button>
+          <button class="btn btn-s" id="btn-play">▶ Play</button>
+          <button class="btn btn-s" id="btn-pause">⏸ Pause</button>
+          <button class="btn btn-s" id="btn-stop">⏹ Stop</button>
+        </div>
+      </div>
+      <div class="phone" id="phone"><iframe id="pif" title="preview"></iframe></div>
+      <p class="plabel" id="phone-label">390×844 · нажми Update Preview после изменений</p>
+    </div>
+
+    <div id="rp-levels" class="ed-pane">
+      <div class="level-toolbar">
+        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="1" min="1" max="20" step="1"></div>
+        <button class="et" id="le-generate">Generate level strip</button>
+        <div class="esep"></div>
+        <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
+        <div class="esep"></div>
+        <button class="et" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
+        <label class="mini" title="Show/hide editor grid"><input type="checkbox" id="le-grid" checked> Grid</label>
+        <div class="esep"></div>
+      </div>
+      <div class="orbar" id="orientation-editor" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
+      <div class="editor-stage"><div class="editor-phone" id="editor-phone"><div class="ec-wrap" id="ec-wrap"><canvas id="ec"></canvas></div></div></div>
+      <div class="etbar">
+        <div class="etgroup">
+          <span class="etg-label">Препятствия</span>
+          <button class="et on" data-shape="rect"><img src="Assets/textures/shape_rectangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Rectangle</button>
+          <button class="et" data-shape="circle"><img src="Assets/textures/shape_circle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Circle</button>
+          <button class="et" data-shape="triangle"><img src="Assets/textures/shape_triangle.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Triangle</button>
+          <button class="et" id="et-custom">✚ Custom SVG</button>
+          <button class="et" id="et-shape-editor">Edit SVG</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Туториал</span>
+          <button class="et" id="et-tutorial" title="Шаблон туториала: пирамида блоков + анимация руки + надпись. Клик по канвасу вставляет (один на игру)."><img src="Assets/textures/tutorial_pyramid.svg" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">Tutorial</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">UI</span>
+          <button class="et" id="et-text">🅣 Text</button>
+          <button class="et" id="et-progress">⚗ Progress</button>
+          <button class="et" id="et-health">♥ Health</button>
+          <button class="et" id="et-cta">CTA</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Изменения</span>
+          <button class="et" id="et-sel">✥ Drag</button>
+          <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
+          <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
+          <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
+          <button class="et" id="et-del">🗑 Del</button>
+          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
+        </div>
+        <div class="esep"></div>
+        <span id="obs-props" style="display:flex;align-items:center;gap:6px;">
+          <div class="ep">Scale<input type="number" id="os" value="1" min="0.05" max="20" step="0.05"></div>
+          <div class="ep">Scale X<input type="number" id="osx" value="1" min="0.05" max="20" step="0.05"></div>
+          <div class="ep">Scale Y<input type="number" id="osy" value="1" min="0.05" max="20" step="0.05"></div>
+          <div class="ep">Color<input type="text" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
+          <div class="ep">Move±<input type="number" id="om" value="0" min="0" max="180"></div>
+          <div class="ep">Anchor
+            <div class="anchor-grid" id="ob-anchor">
+              <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+              <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
+              <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+            </div>
+          </div>
+          <div class="ep">X%<input type="number" id="ob-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor"></div>
+          <div class="ep">Y%<input type="number" id="ob-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor"></div>
+        </span>
+      </div>
+
+      <div class="lblbar" id="playerbar" style="display:none">
+        <div class="lp">Player start</div>
+        <div class="lp">Scale ×<input type="number" id="cfg-playerSize" value="2" min="0.5" max="4" step="0.1" title="Размер шара (Scale ×)"></div>
+        <button class="et" id="pl-lock" type="button">🔒 Lock</button>
+        <button class="et" id="pl-unlock" type="button">🔓 Unlock</button>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="pl-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="pl-offx" value="0" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="pl-offy" value="20" min="-200" max="200" step="1"></div>
+        <small id="pl-lock-note" style="color:var(--dim);font-size:11px;line-height:1.25;">Locked: стартовая позиция зафиксирована. Нажми Unlock, чтобы двигать шар мышью.</small>
+      </div>
+      <div class="lblbar" id="txtbar" style="display:none">
+        <div class="lp">Text <textarea id="tx-text" placeholder="TAP TO PLAY" rows="3" style="width:170px;min-height:58px;resize:vertical;line-height:1.25"></textarea></div>
+        <div class="lp">Base <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-base" value="#ffffff"></div>
+        <div class="lp">Accent <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-accent" value="#52e08a"></div>
+        <div class="lp"><button class="et" id="tx-paint-acc" title="Покрасить выделенный текст в акцент">Paint accent</button><button class="et" id="tx-paint-base" title="Покрасить выделенный текст в базовый">Base</button></div>
+        <div class="esep"></div>
+        <div class="lp">Font <select id="tx-font">
+          <option value="Baloo2">Baloo 2</option>
+          <option value="Kameron">Kameron</option>
+          <option value="LiberationSans">Liberation Sans</option>
+          <option value="sans">System sans</option>
+          <option value="serif">Serif</option>
+          <option value="mono">Mono</option>
+        </select></div>
+        <div class="lp">Size <input type="number" id="tx-size" value="64" min="6" max="400" step="1"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="tx-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
+        <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
+        <div class="lp">Stroke <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
+        <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
+      </div>
+      <div class="lblbar" id="pbar" style="display:none">
+        <div class="lp">Image progress</div>
+        <label class="ul-btn">+ Flask image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('flask',this)"></label><button class="x-btn" id="pb-flask-clear" type="button">✕</button>
+        <label class="ul-btn">+ Fill image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('fill',this)"></label><button class="x-btn" id="pb-fill-clear" type="button">✕</button>
+        <div class="lp">W<input type="number" id="pb-w" value="64" min="20" max="260" step="1"></div>
+        <div class="lp">H<input type="number" id="pb-h" value="300" min="60" max="900" step="1"></div>
+        <div class="lp">Fill <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
+        <div class="lp">Line <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="pb-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="pb-offx" value="-38" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="pb-offy" value="0" min="-200" max="200" step="1"></div>
+      </div>
+      <div class="lblbar" id="hbar" style="display:none">
+        <div class="lp">Health bar</div>
+        <label class="ul-btn">+ Heart image<input type="file" accept="image/*" style="display:none" onchange="loadHealthPart(this)"></label><button class="x-btn" id="hb-heart-clear" type="button">✕</button>
+        <div class="lp">Size<input type="number" id="hb-size" value="36" min="8" max="180" step="1"></div>
+        <div class="lp">Gap<input type="number" id="hb-gap" value="6" min="-20" max="80" step="1"></div>
+        <div class="lp">Empty α<input type="number" id="hb-empty" value="0.28" min="0" max="1" step="0.05"></div>
+        <div class="lp">Tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="hb-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="hb-offx" value="0" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="hb-offy" value="-44" min="-200" max="200" step="1"></div>
+      </div>
+      <div class="lblbar" id="ctabar" style="display:none">
+        <div class="lp">CTA images</div>
+        <label class="ul-btn">+ Button bg<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('bg',this)"></label><button class="x-btn" id="cta-bg-clear" type="button">✕</button>
+        <label class="ul-btn">+ Text image<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('text',this)"></label><button class="x-btn" id="cta-text-clear" type="button">✕</button>
+        <div class="lp">W<input type="number" id="cta-w" value="260" min="30" max="900" step="1"></div>
+        <div class="lp">H<input type="number" id="cta-h" value="86" min="20" max="400" step="1"></div>
+        <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
+        <div class="lp">Text tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-text-tint" value="#ffffff"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="cta-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="cta-offx" value="0" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="cta-offy" value="34" min="-200" max="200" step="1"></div>
+      </div>
+      <div class="lblbar" id="tutbar" style="display:none">
+        <div class="lp">Tutorial</div>
+        <div class="lp">Text <textarea id="tut-text" rows="2" style="width:180px;min-height:44px;resize:vertical;line-height:1.25"></textarea></div>
+        <div class="lp">Text size <input type="number" id="tut-tsize" value="18" min="8" max="72" step="1"></div>
+        <div class="lp">Text color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
+        <div class="esep"></div>
+        <div class="lp">Blocks <select id="tut-shape"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
+        <div class="lp">Block color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-bcolor" value="#373843"></div>
+        <div class="lp">Scale <input type="number" id="tut-scale" value="1" min="0.3" max="3" step="0.05"></div>
+        <div class="esep"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="tut-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="tut-offx" value="0" min="-200" max="200" step="1"></div>
+        <div class="lp">Y% <input type="number" id="tut-offy" value="0" min="-200" max="200" step="1"></div>
+        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Один туториал на игру. Рука и swipe анимируются в playable; пирамида интерактивная — щит разбивает блоки.</small>
+      </div>
+    </div>
+
+    <div id="rp-endcard" class="ed-pane end-pane">
+      <div class="level-toolbar">
+        <div class="mini">State</div>
+        <button class="et on" id="end-state-win" type="button">Win</button>
+        <button class="et" id="end-state-lose" type="button">Lose</button>
+        <div class="esep"></div>
+        <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
+        <div class="esep"></div>
+        <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
+      </div>
+      <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
+      <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
+      <div class="etbar">
+        <div class="etgroup">
+          <span class="etg-label">Objects</span>
+          <button class="et" id="end-sel-bg" type="button">Background</button>
+          <button class="et on" id="end-sel-image" type="button">Image</button>
+          <button class="et" id="end-sel-text" type="button">Text</button>
+          <button class="et" id="end-sel-cta" type="button">CTA</button>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Assets</span>
+          <label class="et">+ Background<input type="file" id="end-bg-import" accept=".png,.jpg,.jpeg,.webp,image/*" style="display:none"></label>
+          <label class="et">+ Image<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
+          <label class="et">+ CTA background<input type="file" id="end-cta-bg-import" accept=".png,.jpg,.jpeg,.webp,image/*" style="display:none"></label>
+        </div>
+        <div class="etgroup" id="end-transform-group">
+          <span class="etg-label">Transform</span>
+          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.1" max="5" step="0.05"></div>
+          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
+            <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div></div>
+        </div>
+        <div class="etgroup">
+          <span class="etg-label">Content</span>
+          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:110px"></div>
+          <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
+          <div class="ep" id="end-text-color-wrap">Color<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
+          <div class="ep" id="end-stroke-color-wrap">Stroke<input type="color" id="cfg-endCardStrokeColor" value="#000000"></div>
+          <div class="ep" id="end-stroke-width-wrap">Stroke W<input type="number" id="cfg-endCardStrokeWidth" value="0" min="0" max="30" step="0.5" style="width:58px"></div>
+          <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
+          <input type="hidden" id="cfg-endCardCtaY" value="74">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="shape-modal" id="shape-modal">
+  <div class="shape-card">
+    <h3>Custom SVG shape / автоматический коллайдер</h3>
+    <p style="font-size:12px;color:var(--dim);line-height:1.5;margin-bottom:8px;">Загрузите SVG. Редактор может сделать один custom-коллайдер или prefab: каждый элемент SVG станет отдельным препятствием.</p>
+    <input id="custom-shape-name" value="custom_star" placeholder="shape name">
+    <div style="display:flex;gap:8px;align-items:center;margin:8px 0;">
+      <div class="thumb" id="custom-shape-image-preview" style="width:42px;height:42px;font-size:18px;">SVG</div>
+      <label class="ul-btn">+ SVG<input id="custom-shape-image" type="file" accept="image/svg+xml,.svg" style="display:none"></label>
+      <button class="x-btn" id="custom-shape-image-clear" type="button">✕</button>
+    </div>
+    <p style="font-size:11px;color:var(--dim);line-height:1.4;margin:-2px 0 8px;">SVG будет отображением формы. Для prefab движок сохранит каждый rect/circle/ellipse/path как отдельный объект и оставит его позицию внутри общей композиции.</p>
+    <label style="display:flex;gap:7px;align-items:center;font-size:12px;color:var(--txt);margin:6px 0 4px;"><input id="custom-shape-prefab" type="checkbox" checked> Prefab mode: split SVG into separate obstacles</label>
+    <textarea id="custom-shape-points" style="display:none"></textarea><p id="custom-shape-points-info" style="font-size:11px;color:var(--dim);line-height:1.4;margin:6px 0 0;">Коллайдер не создан: загрузите SVG.</p>
+    <div class="shape-actions">
+      <button class="btn btn-s" id="shape-cancel">Cancel</button>
+      <button class="btn btn-s" id="shape-save">Save shape</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const COLOR_SELECTOR = 'input[type="color"], input.hex-color';
+
+  function normalizeHex(value) {
+    const raw = String(value || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
+    if (/^#[0-9a-f]{3}$/i.test(raw)) {
+      return ('#' + raw.slice(1).split('').map(c => c + c).join('')).toLowerCase();
     }
-  }
-  update(){for(let i=this.p.length-1;i>=0;i--){const p=this.p[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.18;p.life-=p.d;if(p.life<=0)this.p.splice(i,1);}}
-  draw(ctx){for(const p of this.p){ctx.globalAlpha=p.life;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
-}
-
-//── Sound manager ────────────────────────────────────────────────────────────
-// Keys: bgm (loop), win, lose, hit (ball × obstacle), shield (protector × obstacle).
-// Sources come from cfg.audioSources (base64 data URLs embedded by the builder).
-class SND{
-  constructor(cfg){
-    this.enabled=cfg.soundEnabled!==false;
-    this.master=cfg.soundVolume==null?1:Math.max(0,Math.min(1,+cfg.soundVolume||0));
-    this.vol=cfg.soundVolumes||{};
-    this.base={};
-    const srcs=cfg.audioSources||{};
-    for(const k in srcs){
-      if(!srcs[k])continue;
-      try{const au=new Audio();au.src=srcs[k];au.preload='auto';this.base[k]=au;}catch(e){}
-    }
-    if(this.base.bgm)this.base.bgm.loop=true;
-  }
-  _v(k){const v=this.vol[k];return clamp(this.master*(v==null?1:+v),0,1);}
-  play(k){
-    if(!this.enabled)return;
-    const b=this.base[k];if(!b)return;
-    try{
-      if(k==='bgm'){b.volume=this._v(k);const p=b.play();if(p&&p.catch)p.catch(function(){});return;}
-      // clone so overlapping sfx (quick shield touches) can play simultaneously
-      const au=b.cloneNode(true);au.volume=this._v(k);
-      const p=au.play();if(p&&p.catch)p.catch(function(){});
-    }catch(e){}
-  }
-  stopBgm(){const b=this.base.bgm;if(!b)return;try{b.pause();b.currentTime=0;}catch(e){}}
-}
-
-//── Background image item ────────────────────────────────────────────────────
-// Decorative image placed in the level editor: no collisions, drawn behind
-// obstacles/labels, moves with its wave. Freely positioned, stretched (w/h
-// independent) and tinted per instance.
-class BgImg{
-  constructor(o,img){
-    this.coordMode=o.coordMode||'center';
-    this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
-    this.x=layoutX(o);this.y=layoutY(o);
-    this.w=o.w||200;this.h=o.h||200;
-    this.tint=o.tint||'#ffffff';
-    this.img=img||null;
-  }
-  relayout(){
-    this.x=layoutX({coordMode:this.coordMode,x:this.layoutLocalX});
-    this.y=layoutY({coordMode:this.coordMode,y:this.layoutLocalY});
-  }
-  draw(ctx,top){
-    if(!imgOk(this.img))return;
-    drawTintedImage(ctx,this.img,this.x-this.w/2,this.y+top-this.h/2,this.w,this.h,this.tint);
-  }
-}
-
-//── Obstacle ─────────────────────────────────────────────────────────────────
-class Obs{
-  constructor(o){
-    this.cfg=o.cfg||{};
-    this.coordMode=o.coordMode||'screen';
-    this.layoutLocalX=o.x??0;this.layoutLocalY=o.y??0;
-    this.x=layoutX(o);this.y=layoutY(o);
-    this.w=o.w||60;this.h=o.h||60;
-    this.shape=o.shape||'rect';
-    this.points=(o.points||null);
-    this.color=o.color||'#e05252';
-    this.spr=o.sprite||null;
-    this.imageSrc=o.imageSrc||null;
-    this.customImg=makeImg(this.imageSrc);
-    this.moveX=o.moveX||0;
-    this.moveSpeed=o.moveSpeed||1800;
-    this.t=o.phaseOffset||0;
-    this.ix=this.x;this.iy=this.y;
-    this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
-  }
-  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
-  push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
-  update(dt,gravityModifier=1){
-    if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
-    if(!this.kin){
-      // Free-body motion after the protector hits the obstacle.
-      // X keeps inertia with damping, Y is pulled down by gravity.
-      this.vy+=.38*gravityModifier;
-      this.x+=this.vx;this.y+=this.vy;
-      this.vx*=.985;this.vy*=.995;
-      this.rot+=this.av;this.av*=.985;
-      if(this.y>3000)this.live=false;
-    }
-  }
-  hits(cx,cy,cr){
-    if(!this.kin||!this.live)return false;
-    if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
-    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>({x:this.x+p.x*this.w,y:this.y+p.y*this.h}));return circlePolyHit(cx,cy,cr,pts);}
-    const nx=clamp(cx,this.x-this.w/2,this.x+this.w/2),ny=clamp(cy,this.y-this.h/2,this.y+this.h/2);
-    return(cx-nx)**2+(cy-ny)**2<cr*cr;
-  }
-  draw(ctx,sy){
-    if(!this.live)return;
-    const dx=this.x,dy=this.y+sy;
-    ctx.save();
-    ctx.translate(dx,dy);
-    if(!this.kin)ctx.rotate(this.rot);
-    const im=imgOk(this.customImg)?this.customImg:this.spr;
-    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.cfg&&this.cfg.obstacleSpriteColor);}
-    else{
-      ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
-      if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
-      else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(0,-hh);ctx.lineTo(hw,hh);ctx.lineTo(-hw,hh);ctx.closePath();ctx.fill();ctx.stroke();}
-      else if(this.shape==='custom'&&this.points&&this.points.length>=3){ctx.beginPath();this.points.forEach((p,i)=>{const px=p.x*this.w,py=p.y*this.h;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.fill();ctx.stroke();}
-      else{ctx.beginPath();ctx.rect(-this.w/2,-this.h/2,this.w,this.h);ctx.fill();ctx.stroke();}
-    }
-    ctx.restore();
-  }
-}
-
-//── Stage ─────────────────────────────────────────────────────────────────────
-class Stage{
-  constructor(idx,obs,color,labels,bgs){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
-  reset(){this.done=false;this.obs.forEach(o=>o.reset());}
-  resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
-  complete(){this.done=true;this.worldY=CH+this.H*4;}
-  update(dt,fallSpeed=0,gravityModifier=1){
-    if(this.done)return;
-    // Stages are now falling waves: obstacles keep their local layout,
-    // while the whole wave moves from the top of the screen downward.
-    this.worldY+=fallSpeed*dt;
-    this.obs.forEach(o=>o.update(dt,gravityModifier));
-  }
-  draw(ctx,top){
-    if(this.done)return;
-    if(this.color){
-      const g=ctx.createLinearGradient(0,top,0,top+this.H);
-      g.addColorStop(0,rgba(this.color,.08));g.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=g;ctx.fillRect(0,top,CW,this.H);
-    }
-    this.bgs.forEach(b=>b.draw(ctx,top));
-    this.obs.forEach(o=>o.draw(ctx,top));
-    for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
-  }
-  hit(px,py,pr,top){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr))return o;}return null;}
-}
-
-//── Shield — двигается по X и Y за пальцем, защищает шарик ──────────────────
-class Shield{
-  constructor(cfg){
-    this.cfg=cfg;
-    this.x=CW/2;this.y=CH*.5;
-    this.tx=this.x;this.ty=this.y;
-    this.vx=0;this.vy=0;this._px=this.x;this._py=this.y;
-    this.dragging=false;
-    this.dead=false;this.da=0;this.ra=0;this.flash=0;
-    this.spr=null;
-  }
-  get r(){return 26*this.cfg.shieldSize;}
-  down(x,y){this.dragging=true;this.tx=x;this.ty=y;}
-  move(x,y){if(this.dragging&&!this.dead){this.tx=x;this.ty=y;}}
-  up(){this.dragging=false;}
-  die(){this.dead=true;this.dragging=false;this.da=0;}
-  respawn(){this.dead=false;this.x=CW/2;this.y=CH*.5;this.tx=this.x;this.ty=this.y;this.vx=0;this.vy=0;this._px=this.x;this._py=this.y;this.da=0;this.ra=0;this.flash=0;}
-  update(dt){
-    const ox=this.x,oy=this.y;
-    if(this.dead){this.da=Math.min(1,this.da+dt/500);this.vx=0;this.vy=0;return;}
-    if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
-    if(this.flash>0)this.flash-=dt;
-    if(this.dragging){
-      this.x=lerp(this.x,this.tx,.2);
-      this.y=lerp(this.y,this.ty,.2);
-    }
-    const r=this.r;
-    this.x=clamp(this.x,r,CW-r);
-    this.y=clamp(this.y,r,CH*.8);
-    const k=16.6667/Math.max(1,dt);
-    this.vx=(this.x-ox)*k;
-    this.vy=(this.y-oy)*k;
-  }
-  draw(ctx){
-    if(this.dead){
-      ctx.save();ctx.globalAlpha=lerp(1,0,this.da);
-      ctx.translate(this.x,this.y);ctx.scale(lerp(1,.05,this.da),lerp(1,.05,this.da));
-      this._paint(ctx,0,0);ctx.restore();return;
-    }
-    const pop=this.ra<1?(.5+.5*Math.sin(this.ra*Math.PI)):1;
-    ctx.save();ctx.translate(this.x,this.y);ctx.scale(pop,pop);
-    if(this.flash>0)ctx.globalAlpha=.5+.5*Math.sin(this.flash*.04);
-    this._paint(ctx,0,0);ctx.restore();
-  }
-  _paint(ctx,x,y){
-    const r=this.r;
-    if(imgOk(this.spr)){
-      const iw=this.spr.naturalWidth||this.spr.width||1, ih=this.spr.naturalHeight||this.spr.height||1;
-      const h=r*2.25, w=h*(iw/ih);
-      drawTintedImage(ctx,this.spr,x-w/2,y-h/2,w,h,this.cfg.shieldSpriteColor);
-      return;
-    }
-    // glow ring
-    ctx.strokeStyle=rgba(this.cfg.shieldColor,.55);ctx.lineWidth=3;
-    ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.stroke();
-    // body
-    const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);
-    g.addColorStop(0,rgba(this.cfg.shieldColor,.92));g.addColorStop(1,rgba(this.cfg.shieldColor,.5));
-    ctx.fillStyle=g;ctx.strokeStyle=this.cfg.shieldColor;ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.3)';
-    ctx.beginPath();ctx.ellipse(x-r*.28,y-r*.28,r*.2,r*.12,-.5,0,Math.PI*2);ctx.fill();
-  }
-}
-
-//── Ball — движется только по Y ───────────────────────────────────────────────
-class Ball{
-  constructor(cfg){
-    this.cfg=cfg;
-    this.x=CW/2;
-    this.ty=CH*.72;              // fixed gameplay line after the first tap
-    this.idleY=Math.min(CH-this.r-8,this.ty+80); // before tap: 50-100px lower
-    this.y=this.idleY;
-    this.dead=false;this.da=0;this.ra=0;this.flash=0;
-    this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;
-    this.travel=0;this.speed=0;this.animT=0;
-    this.spr=null;
-  }
-  get r(){return 20*this.cfg.playerSize;}
-  get worldY(){return this.travel;}
-  die(){this.dead=true;this.da=0;}
-  respawn(){
-    this.dead=false;this.x=CW/2;this.ty=CH*.72;this.idleY=Math.min(CH-this.r-8,this.ty+80);this.y=this.idleY;
-    this.da=0;this.ra=0;this.flash=0;this.flying=false;this.finalFly=false;this.fy=0;this.introT=0;this.travel=0;this.speed=0;this.animT=0;
-  }
-  start(speed,travel=0){this.flying=true;this.finalFly=false;this.speed=speed;this.travel=travel;this.introT=0;}
-  flyAway(){this.flying=true;this.finalFly=true;this.fy=0;}
-  update(dt){
-    this.animT+=dt;
-    if(this.dead){this.da=Math.min(1,this.da+dt/500);return;}
-    if(this.ra<1)this.ra=Math.min(1,this.ra+dt/300);
-    if(this.flash>0)this.flash-=dt;
-    if(this.finalFly){
-      this.y-=Math.max(.75,this.speed*1.15)*dt;
-      this.travel+=this.speed*dt;
-      return;
-    }
-    if(this.flying){
-      this.travel+=this.speed*dt;
-      this.introT=Math.min(1,this.introT+dt/520);
-      const t=1-Math.pow(1-this.introT,3);
-      this.y=lerp(this.idleY,this.ty,t);
-      if(this.introT>=1)this.y=this.ty;
-    }else{
-      this.y=this.idleY;
-    }
-  }
-  draw(ctx){
-    if(this.dead){
-      ctx.save();ctx.globalAlpha=lerp(1,0,this.da);
-      ctx.translate(this.x,this.y);ctx.scale(lerp(1,.05,this.da),lerp(1,.05,this.da));
-      this._paint(ctx,0,0);ctx.restore();return;
-    }
-    const pop=this.ra<1?(.5+.5*Math.sin(this.ra*Math.PI)):1;
-    ctx.save();ctx.translate(this.x,this.y);ctx.scale(pop,pop);
-    if(this.flash>0)ctx.globalAlpha=.5+.5*Math.sin(this.flash*.04);
-    this._paint(ctx,0,0);ctx.restore();
-  }
-  _paint(ctx,x,y){
-    const r=this.r;
-    if(imgOk(this.spr)){
-      // Default player is now a balloon PNG. It is drawn with its real aspect
-      // ratio and a light Spine-like idle deformation: soft sway, squash and
-      // a wavy string so the playable matches the balloon reference even
-      // without a separate Spine runtime in the exported HTML.
-      const iw=this.spr.naturalWidth||this.spr.width||1,ih=this.spr.naturalHeight||this.spr.height||1;
-      const t=(this.animT||0)/1000;
-      const sway=Math.sin(t*2.2)*r*.075;
-      const rot=Math.sin(t*1.65)*0.035;
-      const sx=1+Math.sin(t*2.4)*0.018;
-      const sy=1-Math.sin(t*2.4)*0.012;
-      const h=r*4.15,w=h*(iw/ih);
-      ctx.save();
-      ctx.translate(x+sway,y+r*.15);
-      ctx.rotate(rot);
-      ctx.scale(sx,sy);
-      drawTintedImage(ctx,this.spr,-w/2,-h*.58,w,h,this.cfg.playerSpriteColor);
-      // Rope lives in the same local transform as the balloon and uses exactly
-      // the same rotation/sway/squash values. Its top point is fixed to the
-      // balloon neck, so it cannot drift away as a separate object.
-      ctx.strokeStyle=rgba(this.cfg.playerRopeColor||this.cfg.playerOutlineColor||'#ffffff',.9);
-      ctx.lineWidth=Math.max(1,r*.045);ctx.lineCap='round';
-      const ropeTopY=r*1.02;
-      const ropeEndY=r*3.25;
-      const bend=Math.sin(t*2.2)*r*.10;
-      ctx.beginPath();
-      ctx.moveTo(0,ropeTopY);
-      ctx.bezierCurveTo(bend*.35,r*1.75,bend*.65,r*2.5,bend,ropeEndY);
-      ctx.stroke();
-      ctx.restore();
-      return;
-    }
-    const g=ctx.createRadialGradient(x-r*.3,y-r*.3,r*.1,x,y,r);
-    g.addColorStop(0,this.cfg.playerColor);g.addColorStop(1,rgba(this.cfg.playerColor,.75));
-    ctx.fillStyle=g;ctx.strokeStyle=this.cfg.playerOutlineColor;ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,.28)';
-    ctx.beginPath();ctx.ellipse(x-r*.28,y-r*.28,r*.18,r*.1,-.5,0,Math.PI*2);ctx.fill();
-    // string up to shield
-    ctx.strokeStyle=rgba(this.cfg.playerOutlineColor,.35);ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x,y-r-16);ctx.stroke();
-  }
-}
-
-//── Game ──────────────────────────────────────────────────────────────────────
-class Game{
-  constructor(el,cfg,assets,cb){
-    this.cfg=Object.assign({},DEF,cfg);
-    setView(this.cfg.orientation);
-    this.assets=assets||{};
-    this.cb=cb||{};
-    // canvas
-    this.cv=document.createElement('canvas');
-    this.cv.width=CW;this.cv.height=CH;
-    this.cv.style.cssText='display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;';
-    el.appendChild(this.cv);
-    this.ctx=this.cv.getContext('2d');
-    this.fx=new FX();
-    this.snd=new SND(this.cfg);
-    this._buildStages();
-    this._bindInput();
-    this._reset();
+    return null;
   }
 
-  _spr(key){const s=this.assets[key];return imgOk(s)?s:null;}
-
-  _buildStages(){
-    const c=this.cfg;
-    const sc=c.stageColors||['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
-    const sh=['rect','circle','triangle'];
-    this.stages=[];
-    this.progressBars=[];
-    const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
-    // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
-    const ld=c.levelData;
-    const hasLD=Array.isArray(ld)&&ld.some(s=>Array.isArray(s)&&s.length>0);
-    const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
-    for(let si=0;si<stageCount;si++){
-      let obs=[],labels=[],bgs=[];
-      if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
-        ld[si].forEach(o=>{
-          if(o&&o.kind==='text'){labels.push(o);return;}
-          if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
-          if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
-          const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
-          ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
-          obs.push(ob);
-        });
-      } else {
-        const isFixedEdge=(si===0||si===stageCount-1);
-        const n=isFixedEdge?0:2+Math.max(0,si-1);
-        for(let oi=0;oi<n;oi++){
-          const ob=new Obs({
-            coordMode:'center',x:-115+(oi%2)*230,y:-CH/2+160+Math.floor(oi/2)*200+si*15,
-            w:55+si*5,h:55+si*5,shape:sh[(oi+si)%3],
-            color:oi%2===0?c.obstacleColor:c.obstacleColorAlt,
-            moveX:si>1&&oi%2===0?80:0,moveSpeed:1800-si*120,phaseOffset:oi*600,cfg:c,
-          });
-          ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
-          obs.push(ob);
-        }
-      }
-      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs));
-    }
+  function setColor(input, color) {
+    const normalized = normalizeHex(color);
+    if (!normalized) return;
+    input.value = normalized;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.focus({ preventScroll: true });
   }
 
-  _reset(){
-    this.camY=0;
-    this.state='start';
-    this.lives=this.cfg.lives;
-    this.si=0;
-    this.dtimer=0;this.fadeA=0;this.fadeDir=0;
-    this.endA=0;this.isWin=false;
-    this.tutA=1;this.tutT=0;this.tutDone=false;
-    this.hpA=0;this.hpT=0;
-    this.fx=new FX();
-    this.shield=new Shield(this.cfg);
-    this.ball=new Ball(this.cfg);
-    this.shield.spr=this._spr('shield')||makeImg(this.cfg.defaultShieldSrc);
-    this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
-    this._resetFallingStages();
-    this.completedStages=0;
-    if(this._raf)cancelAnimationFrame(this._raf);
-    this._last=null;
-    this._raf=requestAnimationFrame(t=>this._loop(t));
-  }
-
-  _cxy(e){
-    const rc=this.cv.getBoundingClientRect();
-    return{x:(e.clientX-rc.left)*(CW/rc.width),y:(e.clientY-rc.top)*(CH/rc.height)};
-  }
-
-  _bindInput(){
-    const cv=this.cv;
-    const down=(x,y)=>{
-      if(this.state==='start'){this._start();return;}
-      if(this.state==='playing'){this.shield.down(x,y);}
-      if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
-    };
-    const move=(x,y)=>{
-      if(this.state==='playing'){this.shield.move(x,y);}
-    };
-    const up=()=>this.shield.up();
-
-    // Pointer events (mouse + most touch)
-    cv.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      try{cv.setPointerCapture(e.pointerId);}catch(_){}
-      const p=this._cxy(e);down(p.x,p.y);
-    },{passive:false});
-    cv.addEventListener('pointermove',e=>{
-      e.preventDefault();
-      const p=this._cxy(e);move(p.x,p.y);
-    },{passive:false});
-    cv.addEventListener('pointerup',e=>{e.preventDefault();up();},{passive:false});
-    cv.addEventListener('pointercancel',()=>up());
-
-    // Touch fallback (older mobile webviews where pointer events misbehave)
-    const tcxy=t=>{const rc=cv.getBoundingClientRect();return{x:(t.clientX-rc.left)*(CW/rc.width),y:(t.clientY-rc.top)*(CH/rc.height)};};
-    cv.addEventListener('touchstart',e=>{e.preventDefault();const p=tcxy(e.touches[0]);down(p.x,p.y);},{passive:false});
-    cv.addEventListener('touchmove',e=>{e.preventDefault();const p=tcxy(e.touches[0]);move(p.x,p.y);},{passive:false});
-    cv.addEventListener('touchend',e=>{e.preventDefault();up();},{passive:false});
-
-    // Mouse fallback (desktop webviews without pointer events)
-    cv.addEventListener('mousedown',e=>{const p=this._cxy(e);down(p.x,p.y);});
-    cv.addEventListener('mousemove',e=>{if(this.state==='playing'){const p=this._cxy(e);move(p.x,p.y);}});
-    cv.addEventListener('mouseup',()=>up());
-  }
-
-  _ballSpeed(){return this.cfg.gameSpeed/16.6667;}
-  _obstacleFallSpeed(){return this.cfg.gameSpeed/16.6667;}
-  _resetFallingStages(){
-    // First wave starts just above the visible area; each following wave is
-    // placed farther upward. They later fall down into the screen.
-    const H=this.stages[0].H;
-    const firstTop=-160;
-    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H));
-    this.spawnTop=firstTop-(this.stages.length-1)*H;
-    this.completedStages=0;
-    this.si=0;
-  }
-  _start(){this.state='playing';this.ball.start(this._ballSpeed(),this.camY);this.snd.play('bgm');}
-
-  _loop(ts){
-    if(!this._last)this._last=ts;
-    const dt=Math.min(50,ts-this._last);this._last=ts;
-    this._update(dt);this._draw();
-    this._raf=requestAnimationFrame(t=>this._loop(t));
-  }
-
-  _sst(i){return this.stages[i].worldY;}
-
-  _updateCamera(){
-    // Obstacles move toward the player, so the camera no longer lifts the ball
-    // above its gameplay line. The ball only rises once from idleY to ty after
-    // the first tap; on the last stage _win() switches it to finalFly.
-    this.camY=0;
-  }
-
-  _recycleStages(){
-    const H=this.stages[0].H;
-    let highest=Math.min(...this.stages.map(s=>s.worldY));
-    for(const st of this.stages){
-      // Completed waves are parked far below the screen (worldY=CH+H*4), so
-      // without this guard they would re-trigger the threshold check on every
-      // frame and inflate completedStages — the game "won" a split second
-      // after the first wave passed. Count each wave exactly once.
-      if(st.done)continue;
-      // When a wave has fallen below the screen, move it back above every
-      // other wave. This creates new obstacles at the top instead of moving
-      // old level chunks upward with the camera.
-      if(st.worldY>CH+CH*.35){
-        highest-=H;
-        this.completedStages++;
-        // Win as soon as the FINISH scene is the one on screen (i.e. start +
-        // all mini-levels have passed), so the ball flies up through the
-        // finish scene — not after it has already fallen past the player.
-        if(this.completedStages>=this.stages.length-1){
-          this.si=this.stages.length-1;
-          this.cb.onStageChange&&this.cb.onStageChange(this.si);
-          this._win();
-          return;
-        }
-        // Do not recycle completed mini-levels: playable flow is
-        // START stage -> exactly stageCount mini-levels -> FINISH stage.
-        st.complete();
-        this.si=this.completedStages;
-        this.cb.onStageChange&&this.cb.onStageChange(this.si);
-      }
-    }
-    this.spawnTop=highest;
-  }
-
-  _update(dt){
-    const st=this.state;
-    this.shield.update(dt);
-    this.ball.update(dt);
-    if(st==='playing'||st==='respawning'){
-      this._updateCamera();
-    }
-    if(st==='playing'||st==='respawning'||st==='won'){
-      const fall=this._obstacleFallSpeed();
-      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
-    }
-    this.fx.update();
-
-    // tutorial
-    if(st==='playing'&&!this.tutDone){
-      this.tutT+=dt;
-      if(this.tutT>this.cfg.tutorialDisplayTime)this.tutDone=true;
-      const fs=this.cfg.tutorialDisplayTime-600;
-      if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
-    }
-    // hp bar
-    if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
-
-    // collisions: shield blocks obstacles; if shield misses, ball also checks
-    if(st==='playing'&&!this.shield.dead){
-      outer:for(let i=0;i<this.stages.length;i++){
-        const top=this._sst(i);
-        const sh=this.stages[i].hit(this.shield.x,this.shield.y,this.shield.r,top);
-        if(sh){this._hit(sh,top,'shield');break outer;}
-        const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top);
-        if(bh){this._hit(bh,top,'ball');break outer;}
-      }
-    }
-
-    // keep falling obstacle waves spawning above the screen
-    if(st==='playing')this._recycleStages();
-
-    // death sequence
-    if(st==='dying'){this.dtimer+=dt;if(this.dtimer>900)this._afterDeath();}
-
-    // fade
-    if(this.fadeDir!==0){
-      this.fadeA=clamp(this.fadeA+this.fadeDir*dt/300,0,1);
-      if(this.fadeA>=1&&this.fadeDir>0){this._onFadeIn();this.fadeDir=-1;}
-      if(this.fadeA<=0&&this.fadeDir<0)this.fadeDir=0;
-    }
-    if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
-  }
-
-  _hit(obs,top,who){
-    const hx=who==='shield'?this.shield.x:this.ball.x;
-    const hy=who==='shield'?this.shield.y:this.ball.y;
-    const dx=obs.x-hx,dy=(obs.y+top)-hy;
-    const len=Math.sqrt(dx*dx+dy*dy)||1;
-    const f=this.cfg.obstaclePushForce;
-    if(who==='shield'){
-      // Protector collision: impulse goes away from the shield, with a bit of
-      // the shield's current swipe velocity. After that gravity pulls it down.
-      const svx=this.shield.vx||0,svy=this.shield.vy||0;
-      const awayX=dx/len,awayY=dy/len;
-      const impulse=f*1.25;
-      let vx=awayX*impulse+svx*.55;
-      let vy=awayY*impulse+svy*.55;
-      // Even if the hit comes from below/side, the obstacle should then fall.
-      vy=Math.max(vy,2.2);
-      const spin=clamp((svx*.018)+(awayX*.08),-.22,.22);
-      obs.push(vx,vy,spin);
-      this.shield.flash=400;
-      this.snd.play('shield');
-    } else {
-      obs.push(dx/len*f,dy/len*f-2,clamp(dx*.01,-.18,.18));
-      this.ball.flash=400;
-      this._die();
-    }
-    this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
-    this.tutDone=true;
-  }
-
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.snd.play('hit');}
-  _afterDeath(){this.lives--;if(this.lives<=0){this._lose();return;}this.hpA=1;this.hpT=0;this.fadeDir=1;}
-  _onFadeIn(){
-    this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
-    this._resetFallingStages();
-    this.shield.respawn();this.ball.respawn();
-    this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
-    setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
-  }
-  _advance(){
-    const n=this.si+1;
-    if(n>=this.stages.length){this._win();return;}
-    this.si=n;
-    this.cb.onStageChange&&this.cb.onStageChange(n);
-  }
-  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{this.state='endcard';this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.state='endcard';this.isWin=false;this.snd.stopBgm();this.snd.play('lose');this.cb.onLose&&this.cb.onLose();}
-
-  _drawCover(ctx,bg,x,y,w,h){
-    if(!imgOk(bg))return false;
-    const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
-    const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-    ctx.drawImage(bg,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
-    return true;
-  }
-
-  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint){
-    if(!imgOk(bg))return false;
-    const off=document.createElement('canvas');
-    off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
-    const oc=off.getContext('2d');
-    const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
-    const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-    oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
-    if(tint&&String(tint).toLowerCase()!=='#ffffff'){
-      oc.globalCompositeOperation='source-atop';
-      oc.fillStyle=tint;
-      oc.globalAlpha=.45;
-      oc.fillRect(0,0,w,h);
-      oc.globalAlpha=1;
-      oc.globalCompositeOperation='source-over';
-    }
-    if(fade>0){
-      const f=Math.min(fade,h/2);
-      const g=oc.createLinearGradient(0,0,0,h);
-      g.addColorStop(0,'rgba(0,0,0,0)');
-      g.addColorStop(f/h,'rgba(0,0,0,1)');
-      g.addColorStop(1-f/h,'rgba(0,0,0,1)');
-      g.addColorStop(1,'rgba(0,0,0,0)');
-      oc.globalCompositeOperation='destination-in';
-      oc.fillStyle=g;oc.fillRect(0,0,w,h);
-      oc.globalCompositeOperation='source-over';
-    }
-    ctx.drawImage(off,x,y);
-    return true;
-  }
-
-  _drawBackground(ctx){
-    ctx.fillStyle=this.cfg.bgColor;ctx.fillRect(0,0,CW,CH);
-    // One optional full-screen environment image; all other background art is
-    // placed in the level editor as BgImg items and travels with its wave.
-    const bg=this._spr('background');
-    if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
-  }
-
-  _draw(){
-    const ctx=this.ctx;
-    this._drawBackground(ctx);
-    // stages
-    for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
-    this.fx.draw(ctx);
-    // ball below shield
-    this.ball.draw(ctx);
-    this.shield.draw(ctx);
-    // Level progress dots removed: progress indicators should be placed manually in the editor.
-    this._drawProgressBars(ctx);
-    if(!this.tutDone&&this.state==='playing'&&this.tutA>0)this._drawTut(ctx);
-    if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
-    if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
-    if(this.state==='start')this._drawStart(ctx);
-    if(this.state==='endcard')this._drawEnd(ctx);
-  }
-
-  _flaskPath(ctx,x,y,w,h){
-    const r=w*.18,neck=w*.42,nx=x+w/2-neck/2,ny=y+4,bodyBot=y+h-r;
-    ctx.beginPath();ctx.moveTo(nx,ny);ctx.quadraticCurveTo(x+w/2,ny-r*.45,nx+neck,ny);ctx.lineTo(nx+neck,bodyBot);ctx.quadraticCurveTo(nx+neck,bodyBot+r*.9,x+w/2,bodyBot+r*.9);ctx.quadraticCurveTo(nx,bodyBot+r*.9,nx,bodyBot);ctx.closePath();
-  }
-
-  _drawFlask(ctx,x,y,w,h,progress,fill,line,b){
-    progress=clamp(progress==null?0:progress,0,1);
-    const flask=b&&imgOk(b.flaskImg)?b.flaskImg:null, fillImg=b&&imgOk(b.fillImg)?b.fillImg:null;
-    if(flask){
-      const ow=Math.max(1,Math.ceil(w)),oh=Math.max(1,Math.ceil(h));
-      const off=document.createElement('canvas');off.width=ow;off.height=oh;const ox=off.getContext('2d');
-      const fy=oh-oh*progress;
-      if(fillImg)ox.drawImage(fillImg,0,fillImg.naturalHeight*(1-progress),fillImg.naturalWidth,fillImg.naturalHeight*progress,0,fy,ow,oh-fy);
-      else{ox.fillStyle=fill||'#b9ff9b';ox.fillRect(0,fy,ow,oh-fy);}
-      ox.globalCompositeOperation='destination-in';ox.drawImage(flask,0,0,ow,oh);
-      ctx.drawImage(off,x,y,w,h);ctx.drawImage(flask,x,y,w,h);return;
-    }
-    ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.clip();ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x,y,w,h);
-    const fy=y+h-h*progress;
-    if(fillImg)ctx.drawImage(fillImg,0,fillImg.naturalHeight*(1-progress),fillImg.naturalWidth,fillImg.naturalHeight*progress,x,fy,w,h*progress);else{ctx.fillStyle=fill||'#b9ff9b';ctx.fillRect(x,fy,w,y+h-fy);}
-    ctx.restore();
-    ctx.save();this._flaskPath(ctx,x,y,w,h);ctx.strokeStyle=line||'#101625';ctx.lineWidth=Math.max(2,w*.045);ctx.stroke();ctx.lineWidth=Math.max(1,w*.025);
-    for(let k=1;k<10;k++){const yy=y+h-k*h/10;ctx.beginPath();ctx.moveTo(x+w*.52,yy);ctx.lineTo(x+w*.86,yy);ctx.stroke();}
-    ctx.restore();
-  }
-
-  _drawProgressBars(ctx){
-    // Progress bars are editor elements, just like text labels: no hard-coded
-    // flask is drawn unless the user placed one in Level Editor. Position is
-    // always resolved from the selected anchor + percentage offsets.
-    const bars=(this.progressBars&&this.progressBars.length)?this.progressBars:[];
-    if(!bars.length)return;
-    const denom=Math.max(1,this.stages.length-1);
-    const H=this.stages[0]?this.stages[0].H:CH,firstTop=-160,threshold=CH+CH*.35;
-    let frac=0;
-    const st=this.stages[this.completedStages];
-    if(st&&!st.done)frac=clamp((st.worldY-firstTop)/(threshold-firstTop),0,1);
-    const p=clamp(((this.completedStages||0)+frac)/denom,0,1);
-    for(const b of bars){
-      const l=progressLocal(b),x=CW/2+l.x-(b.w||64)/2,y=CH/2+l.y-(b.h||300)/2;
-      this._drawFlask(ctx,x,y,b.w||64,b.h||300,p,b.fill,b.line,b);
+  async function pickColor(input, button) {
+    if (!('EyeDropper' in window)) return;
+    button.disabled = true;
+    try {
+      const result = await new EyeDropper().open();
+      if (result && result.sRGBHex) setColor(input, result.sRGBHex);
+    } catch (error) {
+      if (!error || error.name !== 'AbortError') console.warn('EyeDropper failed:', error);
+    } finally {
+      button.disabled = false;
     }
   }
 
+  function enhance(input) {
+    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1') return;
+    input.dataset.eyedropperReady = '1';
 
-  _drawHealthBars(ctx){
-    const bars=(this.healthBars&&this.healthBars.length)?this.healthBars:[];
-    if(!bars.length)return;
-    for(const b of bars){
-      const count=Math.max(1,parseInt(b.count,10)||3), size=b.heartW||36, gap=(b.gap==null?6:b.gap);
-      const l=healthLocal(b), total=count*size+(count-1)*gap;
-      let x=CW/2+l.x-total/2, y=CH/2+l.y-size/2;
-      for(let i=0;i<count;i++){
-        ctx.save();
-        ctx.globalAlpha=i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha);
-        const im=b.heartImg;
-        if(imgOk(im))drawTintedImage(ctx,im,x,y,size,size,b.tint||'#ffffff');
-        else{ctx.font=Math.round(size*.86)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=i<this.lives?'#ff6b6b':'#444';ctx.fillText('♥',x+size/2,y+size/2);}
-        ctx.restore();
-        x+=size+gap;
-      }
+    const wrap = document.createElement('span');
+    wrap.className = 'color-picker-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'color-eyedropper';
+    button.setAttribute('aria-label', 'Выбрать цвет пипеткой с экрана');
+    button.title = 'Пипетка: выбрать цвет с экрана';
+    button.textContent = '◉';
+    if (!('EyeDropper' in window)) {
+      button.disabled = true;
+      button.title = 'Пипетка не поддерживается этим браузером';
     }
+    button.addEventListener('click', () => pickColor(input, button));
+    wrap.appendChild(button);
   }
 
-  _drawDots(ctx){
-    const n=this.stages.length,r=5,gap=12,sc=this.cfg.stageColors||['#e05252'];
-    const accents=this.cfg.stageAccents!==false;
-    let x=(CW-n*(r*2)-(n-1)*gap)/2,y=CH-22;
-    for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(x+r,y,r,0,Math.PI*2);ctx.fillStyle=i===this.si?(accents?sc[i%sc.length]:rgba('#fff',.55)):rgba('#fff',.2);ctx.fill();x+=r*2+gap;}
+  function enhanceAll(root = document) {
+    if (root.matches && root.matches(COLOR_SELECTOR)) enhance(root);
+    if (root.querySelectorAll) root.querySelectorAll(COLOR_SELECTOR).forEach(enhance);
   }
 
-  _drawTut(ctx){
-    ctx.save();ctx.globalAlpha=this.tutA;
-    ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
-    ctx.fillText('Hold & drag to move',CW/2,this.shield.y-this.shield.r-24);
-    const ay=this.shield.y-this.shield.r-8+Math.sin(Date.now()/500)*4;
-    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2-7,ay+11);ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2+7,ay+11);ctx.stroke();
-    ctx.restore();
+  function init() {
+    enhanceAll(document);
+    new MutationObserver(records => {
+      records.forEach(record => record.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) enhanceAll(node);
+      }));
+    }).observe(document.body, { childList: true, subtree: true });
   }
 
-  _drawHp(ctx){
-    ctx.save();ctx.globalAlpha=this.hpA;
-    const bw=130,bh=44,bx=(CW-bw)/2,by=16;
-    ctx.fillStyle='rgba(0,0,0,.7)';ctx.beginPath();ctx.rect(bx,by,bw,bh);ctx.fill();
-    const hs=22,tot=this.cfg.lives,gap=5;
-    let hx=(CW-tot*hs-(tot-1)*gap)/2;
-    for(let i=0;i<tot;i++){ctx.font=hs+'px serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=i<this.lives?'#ff6b6b':'#444';ctx.globalAlpha=this.hpA*(i<this.lives?1:.3);ctx.fillText('♥',hx,by+bh/2);hx+=hs+gap;}
-    ctx.restore();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
+})();
+</script>
 
-  _drawStart(ctx){
-    ctx.save();
-    const startBg=this._spr('background_start');
-    if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
-    const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
-    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
-    ctx.restore();
-  }
+<script src="src/playable-template.js?v=40-tutorial-motion"></script>
+<script src="src/builder.js?v=39-defaults"></script>
+<script src="script2.js?v=playable-defaults-2"></script>
 
-  _drawEnd(ctx){
-    const finishBg=this._spr('background_finish');
-    if(imgOk(finishBg))this._drawCoverFade(ctx,finishBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
-    ctx.save();ctx.globalAlpha=this.endA;
-    ctx.fillStyle='rgba(0,0,0,.78)';ctx.fillRect(0,0,CW,CH);
-    const cw=300,ch=360,cx=(CW-cw)/2,cy=(CH-ch)/2;
-    ctx.fillStyle=this.isWin?'#172117':'#211717';
-    ctx.strokeStyle=this.isWin?'#52e08a':this.cfg.obstacleColor;ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.rect(cx,cy,cw,ch);ctx.fill();ctx.stroke();
-    ctx.font='56px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(this.isWin?'🎉':'😔',CW/2,cy+80);
-    ctx.fillStyle='#fff';ctx.font='bold 26px sans-serif';ctx.fillText(this.isWin?'You Win!':'Game Over',CW/2,cy+150);
-    ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='14px sans-serif';ctx.fillText(this.isWin?'Amazing!':'Better luck next time',CW/2,cy+182);
-    const bw=200,bh=50,bx2=(CW-bw)/2,by2=cy+ch-72;
-    const bg=ctx.createLinearGradient(bx2,0,bx2+bw,0);
-    bg.addColorStop(0,this.cfg.obstacleColor);bg.addColorStop(1,this.cfg.obstacleColorAlt||'#5282e0');
-    ctx.fillStyle=bg;ctx.beginPath();ctx.rect(bx2,by2,bw,bh);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 17px sans-serif';ctx.fillText('PLAY NOW',CW/2,by2+bh/2);
-    ctx.restore();
-  }
-
-  destroy(){if(this._raf)cancelAnimationFrame(this._raf);this.cv.remove();}
-
-  // Live orientation switch: one exported HTML serves both portrait and
-  // landscape. Game state (lives, progress, flying obstacles) is preserved;
-  // positions are re-derived from center-based layout coords or scaled.
-  setOrientation(or){
-    or=or==='landscape'?'landscape':'portrait';
-    if(or===this.cfg.orientation)return;
-    const oldW=CW,oldH=CH;
-    this.cfg.orientation=or;setView(or);
-    const kx=CW/oldW,ky=CH/oldH;
-    this.cv.width=CW;this.cv.height=CH;
-    // ball: recompute its fixed lines for the new screen
-    const b=this.ball;
-    b.x=CW/2;b.ty=CH*.72;b.idleY=Math.min(CH-b.r-8,b.ty+80);
-    if(b.finalFly)b.y*=ky;
-    else if(b.flying)b.y=b.introT>=1?b.ty:lerp(b.idleY,b.ty,1-Math.pow(1-b.introT,3));
-    else b.y=b.idleY;
-    // shield: keep relative position
-    const s=this.shield;
-    s.x*=kx;s.y*=ky;s.tx*=kx;s.ty*=ky;s._px=s.x;s._py=s.y;
-    s.x=clamp(s.x,s.r,CW-s.r);s.y=clamp(s.y,s.r,CH*.8);
-    // stages: wave height follows CH; kinematic obstacles re-derive layout
-    // from their local (center-based) coords, free-flying ones just scale
-    for(const st of this.stages){
-      st.H=CH+6;
-      st.worldY*=ky;
-      st.bgs.forEach(b=>b.relayout());
-      for(const o of st.obs){
-        if(o.kin&&o.live){
-          o.ix=layoutX({coordMode:o.coordMode,x:o.layoutLocalX});
-          o.iy=layoutY({coordMode:o.coordMode,y:o.layoutLocalY});
-          o.x=o.ix;o.y=o.iy;
-        }else{o.x*=kx;o.y*=ky;}
-      }
-    }
-    if(this.spawnTop!=null)this.spawnTop*=ky;
-  }
-}
-
-const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
-  hpBarShowTime:2000,tutorialDisplayTime:3500,
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',
-  shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
-  obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,stageCount:5,orientation:'portrait',
-  soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
-  levelData:null,
-};
-
-W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};
-})(window);
+</body>
+</html>
