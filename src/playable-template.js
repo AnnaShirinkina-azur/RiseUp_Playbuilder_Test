@@ -1327,13 +1327,10 @@ class Game{
   }
 
   _drawStart(ctx){
-    ctx.save();
+    // Before gameplay starts, show the scene at full brightness.
+    // The previous radial darkening made the preview look inactive.
     const startBg=this._spr('background_start');
     if(imgOk(startBg))this._drawCoverFade(ctx,startBg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
-    const g=ctx.createRadialGradient(CW/2,CH/2,CH*.1,CW/2,CH/2,CH*.8);
-    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.55)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
-    ctx.restore();
   }
 
 
