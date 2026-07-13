@@ -1619,16 +1619,9 @@ bindHexColorInputs(document);
     return {sq:side,aw:side,ah:side,x0,y0,x1:x0+side,y1:y0+side,top,bottom:top+h,w};
   }
   function drawPassiveZone(top,w,h,midX,midY){ // call BEFORE obstacles
+    // Passive areas no longer receive a dark overlay. Zone visualization is
+    // limited to the outline and labels drawn by drawActiveZone().
     if(!showZones)return;
-    const z=zoneRect(top,w,h,midX,midY);
-    ctx.save();
-    ctx.fillStyle='rgba(6,6,12,.5)';         // dim the extension area
-    if(z.y0>z.top+0.5)ctx.fillRect(0,z.top,w,z.y0-z.top);            // top band
-    if(z.y1<z.bottom-0.5)ctx.fillRect(0,z.y1,w,z.bottom-z.y1);       // bottom band
-    const sy0=Math.max(z.top,z.y0),sy1=Math.min(z.bottom,z.y1);
-    if(z.x0>0.5)ctx.fillRect(0,sy0,z.x0,sy1-sy0);                    // left band
-    if(z.x1<w-0.5)ctx.fillRect(z.x1,sy0,w-z.x1,sy1-sy0);            // right band
-    ctx.restore();
   }
   function drawActiveZone(top,w,h,midX,midY){ // call AFTER obstacles
     if(!showZones)return;
