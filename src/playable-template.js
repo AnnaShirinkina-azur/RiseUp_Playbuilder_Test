@@ -948,7 +948,7 @@ class Game{
   }
   _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
   _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{if(this._endCardsEnabled()){this.state='endcard';}else{this.state='finished';}this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');const ec=this.cfg.endCard||{};const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;this.state='lost';const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);setTimeout(()=>{if(this.state!=='lost')return;if(show){this.state='endcard';this.endA=0;}this.cb.onLose&&this.cb.onLose();},delay);}
+  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');const ec=this.cfg.endCard||{};const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;this.state='lost';const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);setTimeout(()=>{if(this.state!=='lost')return;if(show){this.state='endcard';this.endA=0;if(duration>0)setTimeout(()=>{if(this.state==='endcard'&&!this.isWin)this.state='finished';},duration);}else{this.state='finished';}this.cb.onLose&&this.cb.onLose();},delay);}
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;

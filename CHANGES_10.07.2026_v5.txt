@@ -1,5 +1,0 @@
-Fixed obstacle layout across orientations:
-- Obstacles now use one fixed 844x844 square design area in portrait and landscape.
-- Obstacle anchors and X/Y offsets are calculated against that square, not screen dimensions.
-- Portrait/landscape only crop/reveal the square and no longer stretch obstacle layouts.
-- Level Editor active-zone overlay now shows the same 844x844 obstacle area in both orientations.

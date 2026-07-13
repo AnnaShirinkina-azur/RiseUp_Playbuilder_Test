@@ -67,6 +67,7 @@ function readConfig(){
       enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
       tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),
       tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?1200:v*1000;})(),
+      tryAgainDuration:(function(){var v=g('cfg-tryAgainDuration');return isNaN(v)?0:Math.max(0,v*1000);})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
       y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),
