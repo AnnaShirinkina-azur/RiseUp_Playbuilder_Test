@@ -765,7 +765,7 @@ class Game{
       if(st==='playing'&&!this.tutDone){
         if(this.tutPhase==='fly') fall*=0.82;
         else if(this.tutPhase==='brake'){
-          const bk=clamp(this.tutPhaseT/1150,0,1);
+          const bk=clamp(this.tutPhaseT/400,0,1);
           const ease=bk*bk*(3-2*bk);
           fall*=lerp(0.82,0.03,ease);
         }
@@ -787,15 +787,15 @@ class Game{
     }
     this.fx.update();
 
-    // Rise Up intro tutorial: wait for the first tap, fly, brake, then teach the swipe.
+    // Rise Up intro tutorial: short launch, quick brake, then teach the swipe.
     // No modal/window is shown. The real obstacle waves stay frozen until training ends.
     if(st==='playing'&&!this.tutDone){
       this.tutPhaseT+=dt;
       if(this.tutPhase==='fly'){
         this.tutA=0;
-        if(this.tutPhaseT>=1450){this.tutPhase='brake';this.tutPhaseT=0;}
+        if(this.tutPhaseT>=550){this.tutPhase='brake';this.tutPhaseT=0;}
       }else if(this.tutPhase==='brake'){
-        const k=clamp(this.tutPhaseT/1150,0,1);
+        const k=clamp(this.tutPhaseT/400,0,1);
         this.ball.speed=lerp(this._tutCruiseSpeed,this._tutCruiseSpeed*.08,k*k*(3-2*k));
         if(k>=1){
           this.tutPhase='learn';this.tutPhaseT=0;this.tutT=0;this.tutA=0;
@@ -805,9 +805,9 @@ class Game{
       }else if(this.tutPhase==='learn'){
         this.ball.speed=0;
         this.tutT+=dt;
-        // Soft reveal like the reference Rise Up playable: the prompt and
-        // training pyramid fade in after the braking motion has settled.
-        const reveal=clamp(this.tutT/650,0,1);
+        // Fast reveal matching the reference playable: the tutorial becomes
+        // readable almost immediately after the short launch motion.
+        const reveal=clamp(this.tutT/250,0,1);
         this.tutA=reveal*reveal*(3-2*reveal);
         this._updateTutorial(dt);
         if(this.tutT>this.cfg.tutorialDisplayTime){
