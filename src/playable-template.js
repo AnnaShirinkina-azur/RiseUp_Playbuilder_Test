@@ -771,6 +771,18 @@ class Game{
         }
       }
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
+      // Keep the whole tutorial inside the fixed START zone. While the intro
+      // is active, the first playable level must not enter the viewport.
+      // All stage bands move together, so clamp their shared travel exactly
+      // when stage 1 reaches the top edge (its bottom is at y=0).
+      if(st==='playing'&&!this.tutDone&&this.stages.length>1){
+        const next=this.stages[1];
+        const limit=-next.H;
+        if(next.worldY>limit){
+          const overshoot=next.worldY-limit;
+          this.stages.forEach(s=>{if(!s.done)s.worldY-=overshoot;});
+        }
+      }
       this._scatterPhysics();
     }
     this.fx.update();
