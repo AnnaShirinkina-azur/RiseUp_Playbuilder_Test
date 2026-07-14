@@ -1424,7 +1424,7 @@ class Game{
       const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts;
       drawRich(to,tp.x,tp.y,tfz,fam,ts,this.isWin?'YOU WIN!':'TRY AGAIN');
       if(ec.showCta!==false){
-        const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,bw=(orientation==='landscape'?220:W*.56)*cs,bh=54*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
+        const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs,bh=baseH*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
         if(imgOk(btn))ctx.drawImage(btn,bx,by,bw,bh);else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
         const cfz=(co.fontSize==null?17:co.fontSize)*cs,ctaFallback=typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW';
         drawRich(co,bx+bw/2,by+bh/2,cfz,fam,cs,ctaFallback);
