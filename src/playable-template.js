@@ -23,7 +23,7 @@ function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 const BG_GRADS=[['#39a2d8','#69c5ec'],['#ef5350','#f97f6f'],['#b03c02','#cc4a05'],['#f0a44c','#f9c178'],['#ee4630','#fa6a4b']];
 function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[180,180,180];}
 function rgba(h,a){const[r,g,b]=hr(h);return`rgba(${r},${g},${b},${a})`;}
-function imgOk(s){return s&&s.complete&&s.naturalWidth>0;}
+function imgOk(s){return !!(s&&((s.complete&&s.naturalWidth>0)||(typeof s.getContext==='function'&&s.width>0&&s.height>0)));}
 function makeImg(src){if(!src)return null;const im=new Image();im.src=src;return im;}
 const _tintCache=new Map();
 function tintedSprite(img,color){
