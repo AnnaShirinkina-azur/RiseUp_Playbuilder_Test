@@ -1103,13 +1103,17 @@ class Game{
     };
 
     const drawMountain=(source,v)=>{
-      if(!imgOk(source))return;
+      if(!imgOk(source)||!v)return;
       const {iw,ih}=sourceSize(source);
       const tileW=390*sizeFactor;
       const tileH=tileW*(ih/iw);
-      // Mountains are screen scenery: pin them directly to the viewport bottom
-      // with zero padding, independent of stage/camera movement.
-      tileAcrossWidth(source,CH-tileH);
+      // Mountains belong to the START scene rather than the viewport. They
+      // begin flush with the bottom of the opening screen, then travel down
+      // with stage 0 and naturally leave the frame as gameplay progresses.
+      const stageBottom=v.top+Math.min(v.H,CH);
+      const y=stageBottom-tileH;
+      if(y>CH||y+tileH<0)return;
+      tileAcrossWidth(source,y);
     };
 
     const drawCloudBand=(source,v)=>{
@@ -1124,11 +1128,14 @@ class Game{
     };
 
     const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
-    // Mountains are viewport scenery and must remain visible even after the
-    // Start stage itself has completed and left the active stage list.
+    // Mountains are part of stage 0. Use its live world position so the image
+    // stays at the opening scene and disappears below the viewport as that
+    // scene moves past the player.
     if(layer==='mountains'){
-      const mountain=seamFor(0);
-      if(imgOk(mountain))drawMountain(mountain);
+      const mountain=seamFor(0),start=this.stages&&this.stages[0];
+      if(imgOk(mountain)&&start&&!start.done){
+        drawMountain(mountain,{i:0,top:start.worldY,H:start.H});
+      }
       return;
     }
     if(!vis.length)return;
@@ -1144,8 +1151,8 @@ class Game{
   _draw(){
     const ctx=this.ctx;
     this._drawBackground(ctx);
-    // Mountains are pinned flush to the viewport bottom and remain behind
-    // gameplay, while transition clouds stay above stage content.
+    // START mountains move with the opening scene and remain behind gameplay;
+    // transition clouds stay above stage content.
     this._drawSeamOverlays(ctx,'mountains');
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
