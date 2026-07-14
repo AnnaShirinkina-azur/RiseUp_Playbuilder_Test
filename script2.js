@@ -1562,33 +1562,27 @@ bindHexColorInputs(document);
     const sizeFactor=Math.max(0.6,Math.min(2.4,rawScale/0.5));
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
 
-    const drawCoverBand=(source,x,y,bw,bh)=>{
-      if(!imageReady(source)||bw<=0||bh<=0)return;
+    const fullWidthHeight=(source)=>{
       const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      const scale=Math.max(bw/iw,bh/ih);
-      const dw=iw*scale,dh=ih*scale;
-      const dx=x+(bw-dw)*0.5,dy=y+(bh-dh)*0.5;
-      ctx.save();ctx.beginPath();ctx.rect(x,y,bw,bh);ctx.clip();
-      ctx.drawImage(source,dx,dy,dw,dh);
-      ctx.restore();
+      // Same no-crop geometry as the playable: the entire source sprite is
+      // mapped to the level width, with a half-screen height cap in Landscape.
+      return Math.max(8,Math.min(h*0.5,w*(ih/iw)*sizeFactor));
     };
 
     const drawMountain=(source,top,bottom)=>{
       if(!imageReady(source))return;
-      // Match the playable: mountains occupy only the lower screen band.
-      // Cover-fit preserves proportions and crops the excess in landscape.
-      const bandH=h*0.36*sizeFactor;
-      drawCoverBand(source,0,bottom-bandH,w,bandH);
+      const dh=fullWidthHeight(source);
+      // Start mountains are flush with the bottom of the Start screen.
+      ctx.drawImage(source,0,bottom-dh,w,dh);
     };
 
     const drawCloudBand=(source,top,bottom)=>{
       if(!imageReady(source))return;
-      // The cloud band is attached to the level bottom, but shifted down so
-      // 30% crosses into the level below. This is the same geometry used by
-      // the exported playable in both Portrait and Landscape.
-      const bandH=h*0.28*sizeFactor;
-      const y=bottom-bandH*0.70;
-      drawCoverBand(source,0,y,w,bandH);
+      const dh=fullWidthHeight(source);
+      // 70% remains in the new level, 30% extends below the boundary.
+      // No stage clipping: all cloud layers remain visible.
+      const y=bottom-dh*0.70;
+      ctx.drawImage(source,0,y,w,dh);
     };
 
     const drawOverlay=(seam,r)=>{

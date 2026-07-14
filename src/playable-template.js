@@ -1070,7 +1070,7 @@ class Game{
     }
   }
 
-  _drawSeamOverlays(ctx){
+  _drawSeamOverlays(ctx,layer){
     if(this.cfg.backgroundMode==='common')return;
     const vis=[];
     for(let i=0;i<this.stages.length;i++){
@@ -1088,55 +1088,58 @@ class Game{
       return pair[1]||pair[0]||'#ffffff';
     };
 
+    const fullWidthHeight=(source)=>{
+      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
+      // Match the reference playable: map the complete sprite to the full
+      // gameplay width. Height is capped to half a screen so Landscape does
+      // not turn a 2:1 asset into a screen-sized foreground. Unlike cover-fit,
+      // every source pixel remains visible and there is no clipping rectangle.
+      return clamp(CW*(ih/iw)*sizeFactor,20,CH*0.5);
+    };
+
     const drawMountain=(source,v)=>{
       if(!imgOk(source))return;
-      // The Start terrain is a screen decoration, not a moving level seam.
-      // Keep it pinned to the visible viewport bottom while the Start level
-      // still intersects the screen, so it can never slip below the canvas.
       if(v.top>=CH||v.top+v.H<=0)return;
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      const scale=Math.max(CW/iw,(CH*0.36*sizeFactor)/ih);
-      const dw=iw*scale,dh=ih*scale;
-      const x=(CW-dw)*0.5,y=CH-dh;
-      ctx.save();ctx.beginPath();ctx.rect(0,0,CW,CH);ctx.clip();
-      ctx.drawImage(source,x,y,dw,dh);
-      ctx.restore();
+      const dh=fullWidthHeight(source);
+      // Start mountains are screen-fixed and flush with the viewport bottom.
+      // Draw the complete sprite; never crop it inside an artificial band.
+      ctx.drawImage(source,0,CH-dh,CW,dh);
     };
 
     const drawCloudBand=(source,v)=>{
       if(!imgOk(source))return;
-      // Every cloud sprite belongs to its own level and is bottom-aligned
-      // inside that level. Scale from the screen width, preserve the source
-      // aspect ratio, and crop only at the level edges.
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      const scale=Math.max(0.01,(CW/iw)*sizeFactor);
-      const dw=iw*scale,dh=ih*scale;
+      const dh=fullWidthHeight(source);
       const boundary=v.top+v.H;
-      const x=(CW-dw)*0.5,y=boundary-dh;
-      if(y>CH||boundary<0)return;
-      ctx.save();ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
-      ctx.drawImage(source,x,y,dw,dh);
-      ctx.restore();
+      // Keep the requested vertical placement: 70% inside the new level and
+      // 30% below its bottom boundary. The complete cloud sprite is rendered.
+      const y=boundary-dh*0.70;
+      if(y>CH||y+dh<0)return;
+      ctx.drawImage(source,0,y,CW,dh);
     };
 
     const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
     for(let k=0;k<vis.length;k++){
       const v=vis[k],seam=seamFor(v.i);
       if(!imgOk(seam))continue;
-      if(v.i===0)drawMountain(seam,v);
-      else drawCloudBand(seamCompositedOnPreviousColor(seam,previousTopColor(v.i)),v);
+      if(v.i===0){
+        if(layer!=='clouds')drawMountain(seam,v);
+      }else if(layer!=='mountains'){
+        drawCloudBand(seamCompositedOnPreviousColor(seam,previousTopColor(v.i)),v);
+      }
     }
   }
 
   _draw(){
     const ctx=this.ctx;
     this._drawBackground(ctx);
+    // The static Start mountains sit behind gameplay, so a wide Landscape
+    // viewport cannot hide all moving obstacles and make the scene look frozen.
+    this._drawSeamOverlays(ctx,'mountains');
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
-    // Seam overlays cover the backgrounds/stage content, but the two balls
-    // must always stay above them.
-    this._drawSeamOverlays(ctx);
+    // Transition clouds stay above stage content; the two balls are drawn last.
+    this._drawSeamOverlays(ctx,'clouds');
     // ball below shield, both above seam overlays
     this.ball.draw(ctx);
     this.shield.draw(ctx);
