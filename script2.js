@@ -1402,13 +1402,17 @@ bindHexColorInputs(document);
     const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // The transition belongs to the OLD/current stage. Its top edge is
-      // anchored to that stage's upper boundary and the image grows downward,
-      // entirely over the old colour band. The next stage above stays clean.
-      const top=rowOf(r)*h;
-      const y=top;
-      ctx.drawImage(seam,0,y,w,sh);
+      // Keep the sprite's aspect ratio. At scale 1 its width is one level
+      // width; larger parts are clipped instead of being squeezed.
+      const dw=Math.max(1,w*sc),dh=Math.max(1,dw*(ih/iw));
+      const top=rowOf(r)*h,bottom=top+h;
+      const x=(w-dw)/2,y=bottom-dh;
+      // The transition belongs to the OLD/current stage and is pinned to its
+      // bottom edge. Anything outside that stage is cropped.
+      ctx.save();
+      ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
+      ctx.drawImage(seam,x,y,dw,dh);
+      ctx.restore();
     };
     if(multi){
       for(let r=0;r<totalStages();r++){

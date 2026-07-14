@@ -1058,29 +1058,29 @@ class Game{
     vis.sort((a,b)=>a.top-b.top);
     const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
-    const drawAt=(seam,y)=>{
+    const drawInStage=(seam,v)=>{
       if(!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
-      if(y<-sh||y>CH+sh)return;
-      ctx.drawImage(seam,0,y,CW,sh);
-    };
-    const overlayY=(k,seam)=>{
-      const v=vis[k];
-      const stageTop=v.top;
-      // Draw the transition from the boundary downward, fully over the
-      // old/current stage. This makes the clouds appear at the end of the old
-      // level before the next stage arrives, without covering the new stage.
-      return stageTop;
+      // Preserve the sprite's aspect ratio. At scale 1 it uses the gameplay
+      // width; overflow is cropped by the stage bounds instead of compressed.
+      const dw=Math.max(1,CW*sc),dh=Math.max(1,dw*(ih/iw));
+      const x=(CW-dw)/2,y=v.top+v.H-dh;
+      if(y>CH||y+dh<0)return;
+      // Pin the transition to the bottom of the OLD/current stage. The clip
+      // keeps it out of the next stage and crops any oversized part.
+      ctx.save();
+      ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
+      ctx.drawImage(seam,x,y,dw,dh);
+      ctx.restore();
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
         const seam=this._spr('bg_seam_stage'+vis[k].i);
-        drawAt(seam,overlayY(k,seam));
+        drawInStage(seam,vis[k]);
       }
     }else{
       const seam=this._spr('bg_seam');
-      for(let k=0;k<vis.length;k++)drawAt(seam,overlayY(k,seam));
+      for(let k=0;k<vis.length;k++)drawInStage(seam,vis[k]);
     }
   }
 
