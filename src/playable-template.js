@@ -1078,10 +1078,11 @@ class Game{
         if(k===vis.length-1)bottom=Math.max(bottom,CH);
         return bottom-sh;
       }
-      // Every later level owns the overlay on its lower junction. Center the
-      // image on the boundary: 50% stays on this/new level, 50% drops onto
-      // the previous level below.
-      return stageBottom-sh*0.5;
+      // Every later level owns the cloud/seam that follows it. Keep the whole
+      // sprite AFTER the level's colour band instead of centring it on the
+      // boundary. This prevents neighbouring level clouds from visually
+      // stacking on top of the colour band they belong to.
+      return stageBottom;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
