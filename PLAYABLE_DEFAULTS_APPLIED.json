@@ -32,7 +32,7 @@
         "#CC4A05"
       ]
     ],
-    "seamScale": 0.5,
+    "seamScale": 1,
     "soundVolume": 0.8,
     "soundVolumes": {
       "bgm": 0.7,

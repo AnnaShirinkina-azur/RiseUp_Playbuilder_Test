@@ -1061,9 +1061,11 @@ class Game{
     const drawInStage=(seam,v)=>{
       if(!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Preserve the sprite's aspect ratio. At scale 1 it uses the gameplay
-      // width; overflow is cropped by the stage bounds instead of compressed.
-      const dw=Math.max(1,CW*sc),dh=Math.max(1,dw*(ih/iw));
+      // Uniformly scale from the gameplay width while preserving aspect
+      // ratio. The sprite always covers the full width; oversized parts are
+      // cropped by the old-stage bounds instead of stretched independently.
+      const fitScale=Math.max(1,sc);
+      const dw=Math.max(1,CW*fitScale),dh=Math.max(1,dw*(ih/iw));
       const x=(CW-dw)/2,y=v.top+v.H-dh;
       if(y>CH||y+dh<0)return;
       // Pin the transition to the bottom of the OLD/current stage. The clip
