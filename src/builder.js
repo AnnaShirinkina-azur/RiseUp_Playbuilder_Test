@@ -45,7 +45,7 @@ function readConfig(){
     orientation:g('cfg-orientation')||'portrait',
     backgroundMode:(function(){var e=document.getElementById('cfg-backgroundMode');return (e&&e.value)||'perStage';})(),
     stageBgGradients:(function(){var a=[],i=0;for(;;){var x=document.getElementById('cfg-bgg'+i+'a'),y=document.getElementById('cfg-bgg'+i+'b');if(!x||!y)break;a.push([x.value,y.value]);i++;}return a.length?a:null;})(),
-    seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?1:Math.max(1,v);})(),
+    seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?0.5:Math.max(0.3,v);})(),
     seamOverlayMode:(function(){var e=document.getElementById('cfg-seamOverlayMode');return (e&&e.value)||'perStage';})(),
     seamMulti:(function(){var m=document.getElementById('cfg-seamOverlayMode');if(m)return m.value==='perStage';var e=document.getElementById('cfg-seamMulti');return !!(e&&e.checked);})(),
     bgStageTint:(function(){var e=document.getElementById('cfg-bgStageTint');return (e&&e.value)||'#ffffff';})(),
