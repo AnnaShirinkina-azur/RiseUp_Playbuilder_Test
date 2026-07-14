@@ -1510,6 +1510,40 @@ bindHexColorInputs(document);
       }
     }
   }
+  const _seamPreviousColorCache=new Map();
+  function seamCompositedOnPreviousColor(im,color){
+    if(!imageReady(im)||!color)return im;
+    const key=(im.src||'')+'|prev|'+String(color).toLowerCase();
+    const hit=_seamPreviousColorCache.get(key);if(hit)return hit;
+    const w=Math.max(1,im.naturalWidth||im.width||1),h=Math.max(1,im.naturalHeight||im.height||1);
+    const oc=document.createElement('canvas');oc.width=w;oc.height=h;
+    const ox=oc.getContext('2d',{willReadFrequently:true});ox.drawImage(im,0,0,w,h);
+    try{
+      const px=ox.getImageData(0,0,w,h),d=px.data,rgb=hr(color).split(',').map(Number);
+      for(let i=0;i<d.length;i+=4){
+        const a=d[i+3]/255;
+        if(a<=.002){d[i+3]=0;continue;}
+        // Pre-compose every cloud layer over the previous level colour. This
+        // preserves the white/light cloud highlights, but stops the half that
+        // overlaps the new level from picking up the new level's colour.
+        d[i]=Math.round(d[i]*a+rgb[0]*(1-a));
+        d[i+1]=Math.round(d[i+1]*a+rgb[1]*(1-a));
+        d[i+2]=Math.round(d[i+2]*a+rgb[2]*(1-a));
+        // Main cloud layers use partial alpha in the source PNG. Make them
+        // effectively opaque after pre-composition while retaining soft edges.
+        d[i+3]=Math.min(255,Math.round(d[i+3]*4));
+      }
+      ox.putImageData(px,0,0);
+    }catch(e){return im;}
+    if(_seamPreviousColorCache.size>64)_seamPreviousColorCache.clear();
+    _seamPreviousColorCache.set(key,oc);return oc;
+  }
+  function previousStageTopColor(r){
+    const prev=Math.max(0,r-1);
+    const defs=(window.RiseBgUI&&RiseBgUI.BG_GRAD_DEFAULTS)||[['#39a2d8','#69c5ec']];
+    const d=defs[prev%defs.length]||defs[0];
+    return $('cfg-bgg'+prev+'b')?.value||d[1]||d[0]||'#ffffff';
+  }
   function drawSeamOverlays(){
     if(!(window.RiseBgUI&&RiseBgUI.getBgMode()==='perStage'))return;
     const sm=sprMap();
@@ -1521,14 +1555,14 @@ bindHexColorInputs(document);
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
       // The editor strip is visually flipped: Start is the bottom row and
-      // Finish is the top row. Start has no previous level, so its overlay is
-      // fully inside Start and flush to the bottom. Every later level draws
-      // its overlay centered on its lower boundary: half on this/new level,
-      // half on the previous level below.
+      // Finish is the top row. Start has no previous level, so its mountains
+      // stay unchanged. Later cloud overlays are centered on the junction and
+      // pre-composited with the previous level's top colour.
       const top=rowOf(r)*h;
       const bottom=top+h;
       const y=(r===0)?(bottom-sh):(bottom-sh*0.5);
-      ctx.drawImage(seam,0,y,w,sh);
+      const source=r===0?seam:seamCompositedOnPreviousColor(seam,previousStageTopColor(r));
+      ctx.drawImage(source,0,y,w,sh);
     };
     if(multi){
       for(let r=0;r<totalStages();r++){
