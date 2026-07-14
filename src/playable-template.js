@@ -1262,8 +1262,11 @@ class Game{
   }
   _drawTutAnim(ctx){
     if(!this._tutHand){
-      const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#ffffff" stroke="#1c2030" stroke-width="0.8" stroke-linejoin="round" d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>';
-      this._tutHand=makeImg('data:image/svg+xml,'+encodeURIComponent(svg));
+      this._tutHand=this._spr('tutorial_hand')||makeImg(this.cfg.defaultTutorialHandSrc);
+      if(!this._tutHand){
+        const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#ffffff" stroke="#1c2030" stroke-width="0.8" stroke-linejoin="round" d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>';
+        this._tutHand=makeImg('data:image/svg+xml,'+encodeURIComponent(svg));
+      }
     }
     if(!this.tutBlocks)this._tutInit();
     const S=this._tutAnchor.S;
@@ -1284,25 +1287,24 @@ class Game{
     const smashed=this._tutSmashed;
     // swipe streak (hidden once the pyramid is destroyed)
     if(!smashed){
-      const A=this._tutU(1.5,4.16),E=this._tutU(-1.05,5.71);
-      const gr8=ss(Math.min(1,p/0.75));
+      const hp=ss(p);
+      const H0=this._tutU(1.48,3.58);
+      const H=this._tutU(1.48+(-1.23-1.48)*hp,3.58+(5.61-3.58)*hp);
       const sa=p<0.75?0.4:(p<0.92?0.4*(1-(p-0.75)/0.17):0);
-      if(sa>0&&gr8>0.03){
-        const bx=A.x+(E.x-A.x)*gr8,by=A.y+(E.y-A.y)*gr8;
-        const len=Math.hypot(bx-A.x,by-A.y);
+      const len=Math.hypot(H.x-H0.x,H.y-H0.y);
+      if(sa>0&&len>0.03*S){
         ctx.save();ctx.globalAlpha*=sa;
-        ctx.translate(A.x,A.y);ctx.rotate(Math.atan2(by-A.y,bx-A.x));
+        ctx.translate(H0.x,H0.y);ctx.rotate(Math.atan2(H.y-H0.y,H.x-H0.x));
         const gr=ctx.createLinearGradient(0,0,len,0);
         gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,1)');
         ctx.fillStyle=gr;
         ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(len,-0.19*S);ctx.lineTo(len,0.19*S);ctx.closePath();ctx.fill();
         ctx.restore();
       }
-      // hand
+      // hand: H is also the trail endpoint, so the streak is always attached to the fingertip
       const ha=p<0.42?p/0.42:(p<0.58?1:Math.max(0,1-(p-0.58)/0.42));
       if(ha>0&&imgOk(this._tutHand)){
-        const H=this._tutU(1.48+(-1.23-1.48)*ss(p),3.58+(5.61-3.58)*ss(p));
-        const rot=-((-25.4+(18+25.4)*ss(p))*Math.PI/180);// Unity CCW -> canvas
+        const rot=-((-25.4+(18+25.4)*hp)*Math.PI/180);// Unity CCW -> canvas
         const hw=1.7*S;
         ctx.save();ctx.globalAlpha*=ha;
         ctx.translate(H.x,H.y);ctx.rotate(rot);

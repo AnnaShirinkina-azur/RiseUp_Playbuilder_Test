@@ -271,6 +271,13 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="sec">Tutorial animation</div>
       <div class="row"><label>Enable animation<small>Рука + пирамида + надпись. Позиция и вид настраиваются объектом Tutorial в Level Editor</small></label><input type="checkbox" id="cfg-tutorialAnimEnabled" checked></div>
       <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
+      <div class="sec">Hand sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-tutorial_hand"><img src="Assets/textures/tutorial_hand.svg" alt="tutorial hand"></div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*,.svg" style="display:none" onchange="loadSpr('tutorial_hand',this)"></label>
+        <button class="x-btn" onclick="clearSpr('tutorial_hand')" title="Сбросить спрайт руки">✕</button>
+      </div></div>
+      <div class="row wide"><label><small>Кончик пальца в спрайте должен находиться примерно в верхней центральной части изображения.</small></label></div>
     </div>
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
@@ -795,9 +802,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=40-tutorial-motion"></script>
-<script src="src/builder.js?v=39-defaults"></script>
-<script src="script2.js?v=playable-defaults-2"></script>
+<script src="src/playable-template.js?v=41-tutorial-hand-trail"></script>
+<script src="src/builder.js?v=40-tutorial-hand"></script>
+<script src="script2.js?v=tutorial-hand-trail-1"></script>
 
 </body>
 </html>
