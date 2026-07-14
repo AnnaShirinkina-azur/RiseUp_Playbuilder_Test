@@ -1400,30 +1400,32 @@ bindHexColorInputs(document);
     const sc=parseFloat($('cfg-seamScale')?.value)||1;
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
     const drawOverlay=(seam,r)=>{
-      if(!imageReady(seam))return;
+      // A seam belongs to the INCOMING level. There is no previous level
+      // before Start, so its seam is intentionally not drawn.
+      if(r<=0||!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Uniformly scale from the level width, preserving the source aspect
-      // ratio. Never allow the transition to become narrower than the level;
-      // any overflow is cropped by the stage clip instead of distorted.
+      // Scale uniformly from the level width and keep the source proportions.
+      // Any horizontal/vertical overflow is cropped instead of distorted.
       const fitScale=Math.max(1,sc);
       const dw=Math.max(1,w*fitScale),dh=Math.max(1,dw*(ih/iw));
-      const top=rowOf(r)*h,bottom=top+h;
-      const x=(w-dw)/2,y=bottom-dh;
-      // The transition belongs to the OLD/current stage and is pinned to its
-      // bottom edge. Anything outside that stage is cropped.
+      const incomingTop=rowOf(r)*h;
+      const boundary=incomingTop+h;
+      const x=(w-dw)/2,y=boundary;
+      // Draw DOWN from the incoming level boundary, over the previous level.
+      // This makes the clouds cover the old screen before the new level enters.
       ctx.save();
-      ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
+      ctx.beginPath();ctx.rect(0,boundary,w,h);ctx.clip();
       ctx.drawImage(seam,x,y,dw,dh);
       ctx.restore();
     };
     if(multi){
-      for(let r=0;r<totalStages();r++){
+      for(let r=1;r<totalStages();r++){
         const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
         drawOverlay(getEditorImage(sm[key]),r);
       }
     }else{
       const seam=getEditorImage(sm.bg_seam);
-      for(let r=0;r<totalStages();r++)drawOverlay(seam,r);
+      for(let r=1;r<totalStages();r++)drawOverlay(seam,r);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}

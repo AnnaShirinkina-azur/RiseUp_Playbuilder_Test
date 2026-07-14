@@ -1058,31 +1058,34 @@ class Game{
     vis.sort((a,b)=>a.top-b.top);
     const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
-    const drawInStage=(seam,v)=>{
-      if(!imgOk(seam))return;
+    const drawBeforeStage=(seam,v)=>{
+      // The seam image belongs to the INCOMING stage. Stage 0 has no previous
+      // level beneath it, so there is no transition to draw for it.
+      if(v.i<=0||!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Uniformly scale from the gameplay width while preserving aspect
-      // ratio. The sprite always covers the full width; oversized parts are
-      // cropped by the old-stage bounds instead of stretched independently.
+      // Uniformly scale from the gameplay width while preserving aspect ratio.
+      // Oversized parts are cropped, never squeezed independently.
       const fitScale=Math.max(1,sc);
       const dw=Math.max(1,CW*fitScale),dh=Math.max(1,dw*(ih/iw));
-      const x=(CW-dw)/2,y=v.top+v.H-dh;
+      const boundary=v.top+v.H;
+      const x=(CW-dw)/2,y=boundary;
       if(y>CH||y+dh<0)return;
-      // Pin the transition to the bottom of the OLD/current stage. The clip
-      // keeps it out of the next stage and crops any oversized part.
+      // Draw DOWN from the new level boundary and clip to one screen-height of
+      // the previous level. Clouds therefore cover the old screen before the
+      // incoming background becomes visible.
       ctx.save();
-      ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
+      ctx.beginPath();ctx.rect(0,boundary,CW,v.H);ctx.clip();
       ctx.drawImage(seam,x,y,dw,dh);
       ctx.restore();
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
         const seam=this._spr('bg_seam_stage'+vis[k].i);
-        drawInStage(seam,vis[k]);
+        drawBeforeStage(seam,vis[k]);
       }
     }else{
       const seam=this._spr('bg_seam');
-      for(let k=0;k<vis.length;k++)drawInStage(seam,vis[k]);
+      for(let k=0;k<vis.length;k++)drawBeforeStage(seam,vis[k]);
     }
   }
 
