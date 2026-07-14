@@ -1400,48 +1400,31 @@ bindHexColorInputs(document);
     const sc=parseFloat($('cfg-seamScale')?.value)||1;
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
     const drawOverlay=(seam,r)=>{
-      if(!imageReady(seam))return;
+      // A seam belongs to the INCOMING level. There is no previous level
+      // before Start, so its seam is intentionally not drawn.
+      if(r<=0||!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      const userScale=Math.max(1,sc);
-      const stageTop=rowOf(r)*h;
-      const stageBottom=stageTop+h;
-      if(r===0){
-        // Start has no older level below it. Keep the landscape width-fitted,
-        // proportional and bottom-aligned inside the Start scene.
-        const startScale=(w/iw)*userScale;
-        const dw=Math.max(1,iw*startScale),dh=Math.max(1,ih*startScale);
-        const x=(w-dw)/2,y=stageBottom-dh;
-        ctx.save();
-        ctx.beginPath();ctx.rect(0,stageTop,w,h);ctx.clip();
-        ctx.drawImage(seam,x,y,dw,dh);
-        ctx.restore();
-        return;
-      }
-      // Every later transition occupies one full level-height centred on
-      // the boundary: half of the visible cloud zone is on the incoming level
-      // and half is on the old level. The sprite cover-fills that zone while
-      // keeping its proportions; overflow is cropped, never squeezed.
-      const boundary=stageBottom;
-      const targetY=boundary-h/2;
-      const coverScale=Math.max(w/iw,h/ih)*userScale;
-      const dw=Math.max(1,iw*coverScale),dh=Math.max(1,ih*coverScale);
-      const x=(w-dw)/2,y=boundary-dh/2;
+      // Scale uniformly from the level width and keep the source proportions.
+      // Any horizontal/vertical overflow is cropped instead of distorted.
+      const fitScale=Math.max(1,sc);
+      const dw=Math.max(1,w*fitScale),dh=Math.max(1,dw*(ih/iw));
+      const incomingTop=rowOf(r)*h;
+      const boundary=incomingTop+h;
+      const x=(w-dw)/2,y=boundary;
+      // Draw DOWN from the incoming level boundary, over the previous level.
+      // This makes the clouds cover the old screen before the new level enters.
       ctx.save();
-      ctx.beginPath();ctx.rect(0,targetY,w,h);ctx.clip();
+      ctx.beginPath();ctx.rect(0,boundary,w,h);ctx.clip();
       ctx.drawImage(seam,x,y,dw,dh);
       ctx.restore();
     };
     if(multi){
-      for(let r=0;r<totalStages();r++){
+      for(let r=1;r<totalStages();r++){
         const key=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(r):('bg_seam_stage'+r);
         drawOverlay(getEditorImage(sm[key]),r);
       }
     }else{
       const seam=getEditorImage(sm.bg_seam);
-      // A common seam is only a transition image; Start keeps its dedicated
-      // per-level landscape when available.
-      const startKey=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(0):'bg_seam_stage0';
-      drawOverlay(getEditorImage(sm[startKey]),0);
       for(let r=1;r<totalStages();r++)drawOverlay(seam,r);
     }
   }
