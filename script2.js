@@ -1519,32 +1519,17 @@ bindHexColorInputs(document);
     const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      const userScale=Math.max(1,sc);
-      const stageTop=rowOf(r)*h;
-      const stageBottom=stageTop+h;
-      if(r===0){
-        // Start has no older level below it. Keep the landscape width-fitted,
-        // proportional and bottom-aligned inside the Start scene.
-        const startScale=(w/iw)*userScale;
-        const dw=Math.max(1,iw*startScale),dh=Math.max(1,ih*startScale);
-        const x=(w-dw)/2,y=stageBottom-dh;
-        ctx.save();
-        ctx.beginPath();ctx.rect(0,stageTop,w,h);ctx.clip();
-        ctx.drawImage(seam,x,y,dw,dh);
-        ctx.restore();
-        return;
-      }
-      // Every later transition occupies one full level-height centred on
-      // the boundary: half of the visible cloud zone is on the incoming level
-      // and half is on the old level. The sprite cover-fills that zone while
-      // keeping its proportions; overflow is cropped, never squeezed.
-      const boundary=stageBottom;
-      const targetY=boundary-h/2;
-      const coverScale=Math.max(w/iw,h/ih)*userScale;
-      const dw=Math.max(1,iw*coverScale),dh=Math.max(1,ih*coverScale);
-      const x=(w-dw)/2,y=boundary-dh/2;
+      // Uniformly scale from the level width, preserving the source aspect
+      // ratio. Never allow the transition to become narrower than the level;
+      // any overflow is cropped by the stage clip instead of distorted.
+      const fitScale=Math.max(1,sc);
+      const dw=Math.max(1,w*fitScale),dh=Math.max(1,dw*(ih/iw));
+      const top=rowOf(r)*h,bottom=top+h;
+      const x=(w-dw)/2,y=bottom-dh;
+      // The transition belongs to the OLD/current stage and is pinned to its
+      // bottom edge. Anything outside that stage is cropped.
       ctx.save();
-      ctx.beginPath();ctx.rect(0,targetY,w,h);ctx.clip();
+      ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
       ctx.drawImage(seam,x,y,dw,dh);
       ctx.restore();
     };
@@ -1555,11 +1540,7 @@ bindHexColorInputs(document);
       }
     }else{
       const seam=getEditorImage(sm.bg_seam);
-      // A common seam is only a transition image; Start keeps its dedicated
-      // per-level landscape when available.
-      const startKey=RiseBgUI.seamKeyForStage?RiseBgUI.seamKeyForStage(0):'bg_seam_stage0';
-      drawOverlay(getEditorImage(sm[startKey]),0);
-      for(let r=1;r<totalStages();r++)drawOverlay(seam,r);
+      for(let r=0;r<totalStages();r++)drawOverlay(seam,r);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
