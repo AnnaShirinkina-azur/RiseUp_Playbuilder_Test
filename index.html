@@ -343,6 +343,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="thumb" id="th-bg_seam">〰️</div>
           <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
           <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
+        </div><div class="bg-colors" style="margin-top:8px;">
+          <label class="bg-hex-wrap" title="Цвет поверх оверлея (белый = без окрашивания)"><span class="bg-color-preview" id="seam-chip-common"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-seamTint" value="#FFFFFF"></label>
+          <small style="color:var(--dim);">Overlay color</small>
         </div></div>
         <div id="seam-multi-box" class="seam-list"></div>
         <div class="row wide"><label>Seam scale<small>Start: горы закреплены снизу экрана. Mini/Finish: облака закреплены снизу своего уровня</small></label>

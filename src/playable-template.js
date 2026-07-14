@@ -43,6 +43,7 @@ function tintedSprite(img,color){
   ox.fillRect(0,0,w,h);
   ox.globalCompositeOperation='destination-in';
   ox.drawImage(img,0,0,w,h);
+  oc.__seamCacheKey=key;
   if(_tintCache.size>64)_tintCache.clear();
   _tintCache.set(key,oc);
   return oc;
@@ -54,7 +55,7 @@ function drawTintedImage(ctx,img,x,y,w,h,color){
 const _seamPreviousColorCache=new Map();
 function seamCompositedOnPreviousColor(img,color){
   if(!imgOk(img)||!color)return img;
-  const key=(img.src||'')+'|prev|'+String(color).toLowerCase();
+  const key=(img.__seamCacheKey||img.src||'canvas')+'|prev|'+String(color).toLowerCase();
   const hit=_seamPreviousColorCache.get(key);if(hit)return hit;
   const w=Math.max(1,img.naturalWidth||img.width||1),h=Math.max(1,img.naturalHeight||img.height||1);
   const oc=document.createElement('canvas');oc.width=w;oc.height=h;
@@ -1131,7 +1132,12 @@ class Game{
       tileAcrossWidth(source,y);
     };
 
-    const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
+    const seamFor=(stageIndex)=>{
+      const im=multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
+      if(!imgOk(im))return im;
+      const tint=multi?((this.cfg.stageSeamTints&&this.cfg.stageSeamTints[stageIndex])||'#ffffff'):(this.cfg.seamTint||'#ffffff');
+      return (!tint||String(tint).toLowerCase()==='#ffffff')?im:tintedSprite(im,tint);
+    };
     // Mountains are part of stage 0. Use its live world position so the image
     // stays at the opening scene and disappears below the viewport as that
     // scene moves past the player.
@@ -1540,7 +1546,7 @@ const DEF={
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,bgStageTint:'#ffffff',stageBgTints:null,
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,seamTint:'#ffffff',stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,

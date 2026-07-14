@@ -48,6 +48,8 @@ function readConfig(){
     seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?0.5:Math.max(0.3,v);})(),
     seamOverlayMode:(function(){var e=document.getElementById('cfg-seamOverlayMode');return (e&&e.value)||'perStage';})(),
     seamMulti:(function(){var m=document.getElementById('cfg-seamOverlayMode');if(m)return m.value==='perStage';var e=document.getElementById('cfg-seamMulti');return !!(e&&e.checked);})(),
+    seamTint:(function(){var e=document.getElementById('cfg-seamTint');return (e&&e.value)||'#ffffff';})(),
+    stageSeamTints:(function(){var a=[],i=0;for(;;){var e=document.getElementById('cfg-seamt'+i);if(!e)break;a.push(e.value||'#ffffff');i++;}return a.length?a:null;})(),
     bgStageTint:(function(){var e=document.getElementById('cfg-bgStageTint');return (e&&e.value)||'#ffffff';})(),
     stageBgTints:(function(){var a=[],i=0;for(;;){var e=document.getElementById('cfg-bgt'+i);if(!e)break;a.push(e.value||'#ffffff');i++;}return a.length?a:null;})(),
     googleFontUrl:g('cfg-googleFontUrl')||'',

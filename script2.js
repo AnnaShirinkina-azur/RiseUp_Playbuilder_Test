@@ -191,19 +191,31 @@ function seamKeyForBoundary(i){return seamKeyForStage(i+1);} // legacy helper: b
 function renderSeamRows(){
   const box=$('seam-multi-box');if(!box)return;
   const total=getStageCount()+2;
+  const keep={};box.querySelectorAll('input.hex-color').forEach(e=>keep[e.id]=normalizeHexColor(e.value,e.defaultValue||'#ffffff').toUpperCase());
   let h='';
   for(let i=0;i<total;i++){
-    const k=seamKeyForStage(i);
+    const k=seamKeyForStage(i),t=keep['cfg-seamt'+i]||'#FFFFFF';
     h+=`<div class="sp-row seam-row"><div class="sp-up">
       <div class="thumb" id="th-${k}" style="width:30px;height:30px;font-size:12px;">〰️</div>
       <span class="seam-label">${bgStageLabel(i,total)}</span>
       <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
+    </div><div class="bg-colors" style="margin-top:7px;">
+      <label class="bg-hex-wrap" title="Цвет поверх оверлея (белый = без окрашивания)"><span class="bg-color-preview" id="seam-chip-${i}"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-seamt${i}" value="${t}"></label>
+      <small style="color:var(--dim);">Overlay color</small>
     </div></div>`;
   }
   box.innerHTML=h;
   const sp=RiseBuilder.getSprites();
   for(let i=0;i<total;i++){const k=seamKeyForStage(i);if(sp[k]){const th=$('th-'+k);if(th)th.innerHTML=`<img src="${sp[k]}">`;}}
+  bindHexColorInputs(box);
+  const redraw=()=>{updateSeamTintPreviews();if(window.RiseLevelEditor)RiseLevelEditor.draw();};
+  box.querySelectorAll('input.hex-color').forEach(e=>{e.addEventListener('input',redraw);e.addEventListener('change',redraw);e.addEventListener('blur',redraw);});
+  updateSeamTintPreviews();
+}
+function updateSeamTintPreviews(){
+  const common=normalizeHexColor($('cfg-seamTint')?.value,'#ffffff').toUpperCase(),cc=$('seam-chip-common');if(cc)cc.style.background=common;
+  const total=getStageCount()+2;for(let i=0;i<total;i++){const c=normalizeHexColor($('cfg-seamt'+i)?.value,'#ffffff').toUpperCase(),chip=$('seam-chip-'+i);if(chip)chip.style.background=c;}
 }
 function syncSeamMode(forcedMode){
   const mode=$('cfg-seamOverlayMode'),legacy=$('cfg-seamMulti');
@@ -273,6 +285,9 @@ function updateBgStagePreviews(){
 renderBgStageRows();
 renderSeamRows();
 bindHexColorInputs(document);
+$('cfg-seamTint')?.addEventListener('input',()=>{updateSeamTintPreviews();if(window.RiseLevelEditor)RiseLevelEditor.draw();});
+$('cfg-seamTint')?.addEventListener('change',()=>{updateSeamTintPreviews();if(window.RiseLevelEditor)RiseLevelEditor.draw();});
+updateSeamTintPreviews();
 function getBgMode(){const e=$('cfg-backgroundMode');return (e&&e.value)||'perStage';}
 function setBgMode(m){
   const e=$('cfg-backgroundMode');if(e)e.value=m;
@@ -297,7 +312,7 @@ document.querySelectorAll('.orbtn[data-seammode]').forEach(b=>b.__seamBound=true
 $('cfg-seamMulti')?.addEventListener('change',syncSeamMode);
 syncSeamMode();
 $('cfg-playerSize')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
-['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor','cfg-seamTint'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
 function googleFontFamilyFromUrl(url){
   url=String(url||'').trim();
@@ -633,7 +648,7 @@ $('btn-stop').addEventListener('click',()=>{
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-chainReaction':false,'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
+  'cfg-chainReaction':false,'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
@@ -1523,10 +1538,18 @@ bindHexColorInputs(document);
       }
     }
   }
+  const _seamTintCache=new Map();
+  function seamTintedSource(im,color){
+    color=normalizeHexColor(color,'#ffffff').toLowerCase();if(!imageReady(im)||color==='#ffffff')return im;
+    const key=(im.src||'canvas')+'|seamtint|'+color,hit=_seamTintCache.get(key);if(hit)return hit;
+    const w=Math.max(1,im.naturalWidth||im.width||1),h=Math.max(1,im.naturalHeight||im.height||1),oc=document.createElement('canvas');oc.width=w;oc.height=h;
+    const ox=oc.getContext('2d');ox.drawImage(im,0,0,w,h);ox.globalCompositeOperation='multiply';ox.fillStyle=color;ox.fillRect(0,0,w,h);ox.globalCompositeOperation='destination-in';ox.drawImage(im,0,0,w,h);oc.__seamCacheKey=key;
+    if(_seamTintCache.size>64)_seamTintCache.clear();_seamTintCache.set(key,oc);return oc;
+  }
   const _seamPreviousColorCache=new Map();
   function seamCompositedOnPreviousColor(im,color){
     if(!imageReady(im)||!color)return im;
-    const key=(im.src||'')+'|prev|'+String(color).toLowerCase();
+    const key=(im.__seamCacheKey||im.src||'canvas')+'|prev|'+String(color).toLowerCase();
     const hit=_seamPreviousColorCache.get(key);if(hit)return hit;
     const w=Math.max(1,im.naturalWidth||im.width||1),h=Math.max(1,im.naturalHeight||im.height||1);
     const oc=document.createElement('canvas');oc.width=w;oc.height=h;
@@ -1602,6 +1625,8 @@ bindHexColorInputs(document);
 
     const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
+      const tint=multi?($('cfg-seamt'+r)?.value||'#ffffff'):($('cfg-seamTint')?.value||'#ffffff');
+      seam=seamTintedSource(seam,tint);
       const top=rowOf(r)*h,bottom=top+h;
       if(r===0){if(layer!=='clouds')drawMountain(seam,top,bottom);return;}
       if(layer==='mountains')return;
