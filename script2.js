@@ -1554,7 +1554,7 @@ bindHexColorInputs(document);
     const d=defs[prev%defs.length]||defs[0];
     return $('cfg-bgg'+prev+'b')?.value||d[1]||d[0]||'#ffffff';
   }
-  function drawSeamOverlays(){
+  function drawSeamOverlays(layer){
     if(!(window.RiseBgUI&&RiseBgUI.getBgMode()==='perStage'))return;
     const sm=sprMap();
     const w=GW*zoom,h=GH*zoom;
@@ -1562,36 +1562,40 @@ bindHexColorInputs(document);
     const sizeFactor=Math.max(0.6,Math.min(2.4,rawScale/0.5));
     const multi=window.RiseBgUI&&RiseBgUI.isSeamMulti&&RiseBgUI.isSeamMulti();
 
+    const drawCoverBand=(source,x,y,bw,bh)=>{
+      if(!imageReady(source)||bw<=0||bh<=0)return;
+      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
+      const scale=Math.max(bw/iw,bh/ih);
+      const dw=iw*scale,dh=ih*scale;
+      const dx=x+(bw-dw)*0.5,dy=y+(bh-dh)*0.5;
+      ctx.save();ctx.beginPath();ctx.rect(x,y,bw,bh);ctx.clip();
+      ctx.drawImage(source,dx,dy,dw,dh);
+      ctx.restore();
+    };
+
     const drawMountain=(source,top,bottom)=>{
       if(!imageReady(source))return;
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      // In the editor one Start row represents the game screen. Keep the
-      // terrain anchored to the bottom of that screen and preserve aspect.
-      const scale=Math.max(w/iw,(h*0.36*sizeFactor)/ih);
-      const dw=iw*scale,dh=ih*scale;
-      const x=(w-dw)*0.5,y=bottom-dh;
-      ctx.save();ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
-      ctx.drawImage(source,x,y,dw,dh);
-      ctx.restore();
+      // Match the playable: mountains occupy only the lower screen band.
+      // Cover-fit preserves proportions and crops the excess in landscape.
+      const bandH=h*0.36*sizeFactor;
+      drawCoverBand(source,0,bottom-bandH,w,bandH);
     };
 
     const drawCloudBand=(source,top,bottom)=>{
       if(!imageReady(source))return;
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      // Clouds are attached to the bottom of their own level. Width controls
-      // the uniform scale; no tiling or non-proportional stretching is used.
-      const scale=Math.max(0.01,(w/iw)*sizeFactor);
-      const dw=iw*scale,dh=ih*scale;
-      const x=(w-dw)*0.5,y=bottom-dh;
-      ctx.save();ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
-      ctx.drawImage(source,x,y,dw,dh);
-      ctx.restore();
+      // The cloud band is attached to the level bottom, but shifted down so
+      // 30% crosses into the level below. This is the same geometry used by
+      // the exported playable in both Portrait and Landscape.
+      const bandH=h*0.28*sizeFactor;
+      const y=bottom-bandH*0.70;
+      drawCoverBand(source,0,y,w,bandH);
     };
 
     const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
       const top=rowOf(r)*h,bottom=top+h;
-      if(r===0){drawMountain(seam,top,bottom);return;}
+      if(r===0){if(layer!=='clouds')drawMountain(seam,top,bottom);return;}
+      if(layer==='mountains')return;
       const source=seamCompositedOnPreviousColor(seam,previousStageTopColor(r));
       drawCloudBand(source,top,bottom);
     };
@@ -1833,6 +1837,7 @@ bindHexColorInputs(document);
     if(!cv.width||!cv.height)return;
     ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#080810';ctx.fillRect(0,0,cv.width,cv.height);
     if(window.RiseBgUI&&RiseBgUI.getBgMode()==='common')drawCommonBg();else drawPerStageBg();
+    drawSeamOverlays('mountains');
     const palette=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
     const accentsOn=$('cfg-stageAccents')?$('cfg-stageAccents').checked:true;
     for(let si=0;si<totalStages();si++){
@@ -1852,7 +1857,7 @@ bindHexColorInputs(document);
       (lvls[si]||[]).forEach((o,i)=>{if(!o||o.kind==='bg'||o.kind===PLAYER_KIND)return;if(o.kind==='text')drawTextItem(o,si,i);else if(o.kind==='progress')drawProgressItem(o,si,i);else if(o.kind==='health')drawHealthItem(o,si,i);else if(o.kind==='cta')drawCtaItem(o,si,i);else if(o.kind==='tutorial')drawTutorialItem(o,si,i);else drawObstacle(o,si,i);});
       drawActiveZone(top,w,h,midX,midY);
     }
-    drawSeamOverlays();
+    drawSeamOverlays('clouds');
     // Keep the hero/player marker above any seam overlay in the level editor.
     for(let si=0;si<totalStages();si++){
       (lvls[si]||[]).forEach((o,i)=>{if(o&&o.kind===PLAYER_KIND)drawPlayerItem(o,si,i);});
