@@ -1059,22 +1059,34 @@ class Game{
     const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
     const drawBeforeStage=(seam,v)=>{
-      // The seam image belongs to the INCOMING stage. Stage 0 has no previous
-      // level beneath it, so there is no transition to draw for it.
-      if(v.i<=0||!imgOk(seam))return;
+      if(!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Uniformly scale from the gameplay width while preserving aspect ratio.
-      // Oversized parts are cropped, never squeezed independently.
-      const fitScale=Math.max(1,sc);
-      const dw=Math.max(1,CW*fitScale),dh=Math.max(1,dw*(ih/iw));
+      const userScale=Math.max(1,sc);
+      if(v.i===0){
+        // Start has no older level below it. Keep its mountains/landscape
+        // width-fitted, proportional and bottom-aligned inside Start.
+        const startScale=(CW/iw)*userScale;
+        const dw=Math.max(1,iw*startScale),dh=Math.max(1,ih*startScale);
+        const x=(CW-dw)/2,y=v.top+v.H-dh;
+        if(y>CH||y+dh<0)return;
+        ctx.save();
+        ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
+        ctx.drawImage(seam,x,y,dw,dh);
+        ctx.restore();
+        return;
+      }
+      // Later transitions occupy one full stage-height centred on the
+      // boundary. The visible zone is therefore exactly 50% incoming level
+      // and 50% previous level. Cover-fit preserves proportions and crops any
+      // overflow instead of squeezing the image.
       const boundary=v.top+v.H;
-      const x=(CW-dw)/2,y=boundary;
-      if(y>CH||y+dh<0)return;
-      // Draw DOWN from the new level boundary and clip to one screen-height of
-      // the previous level. Clouds therefore cover the old screen before the
-      // incoming background becomes visible.
+      const targetY=boundary-v.H/2;
+      const coverScale=Math.max(CW/iw,v.H/ih)*userScale;
+      const dw=Math.max(1,iw*coverScale),dh=Math.max(1,ih*coverScale);
+      const x=(CW-dw)/2,y=boundary-dh/2;
+      if(targetY>CH||targetY+v.H<0)return;
       ctx.save();
-      ctx.beginPath();ctx.rect(0,boundary,CW,v.H);ctx.clip();
+      ctx.beginPath();ctx.rect(0,targetY,CW,v.H);ctx.clip();
       ctx.drawImage(seam,x,y,dw,dh);
       ctx.restore();
     };
@@ -1084,8 +1096,11 @@ class Game{
         drawBeforeStage(seam,vis[k]);
       }
     }else{
+      // In common-transition mode Start still keeps its own landscape sprite.
+      const start=vis.find(v=>v.i===0);
+      if(start)drawBeforeStage(this._spr('bg_seam_stage0'),start);
       const seam=this._spr('bg_seam');
-      for(let k=0;k<vis.length;k++)drawBeforeStage(seam,vis[k]);
+      for(let k=0;k<vis.length;k++)if(vis[k].i>0)drawBeforeStage(seam,vis[k]);
     }
   }
 
