@@ -1088,33 +1088,35 @@ class Game{
       return pair[1]||pair[0]||'#ffffff';
     };
 
-    const fullWidthHeight=(source)=>{
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      // Match the reference playable: map the complete sprite to the full
-      // gameplay width. Height is capped to half a screen so Landscape does
-      // not turn a 2:1 asset into a screen-sized foreground. Unlike cover-fit,
-      // every source pixel remains visible and there is no clipping rectangle.
-      return clamp(CW*(ih/iw)*sizeFactor,20,CH*0.5);
-    };
+    const sourceSize=(source)=>({
+      iw:source.naturalWidth||source.width||1,
+      ih:source.naturalHeight||source.height||1
+    });
 
     const drawMountain=(source,v)=>{
       if(!imgOk(source))return;
-      if(v.top>=CH||v.top+v.H<=0)return;
-      const dh=fullWidthHeight(source);
-      // Start mountains are screen-fixed and flush with the viewport bottom.
-      // Draw the complete sprite; never crop it inside an artificial band.
-      ctx.drawImage(source,0,CH-dh,CW,dh);
+      const {iw,ih}=sourceSize(source);
+      const dh=CW*(ih/iw)*sizeFactor;
+      const bottom=v.top+v.H;
+      const y=bottom-dh;
+      if(y>CH||y+dh<0)return;
+      // Mountains are part of the Start stage. Their bottom follows the
+      // stage bottom, so as gameplay advances they leave through the bottom
+      // of the viewport instead of following the balloon/camera.
+      ctx.drawImage(source,0,y,CW,dh);
     };
 
     const drawCloudBand=(source,v)=>{
       if(!imgOk(source))return;
-      const dh=fullWidthHeight(source);
+      const {iw,ih}=sourceSize(source);
+      // Keep the portrait display size as the canonical cloud tile size.
+      // Wide canvases repeat that tile horizontally rather than stretching it.
+      const tileW=390*sizeFactor;
+      const tileH=tileW*(ih/iw);
       const boundary=v.top+v.H;
-      // Keep the requested vertical placement: 70% inside the new level and
-      // 30% below its bottom boundary. The complete cloud sprite is rendered.
-      const y=boundary-dh*0.70;
-      if(y>CH||y+dh<0)return;
-      ctx.drawImage(source,0,y,CW,dh);
+      const y=boundary-tileH*0.70;
+      if(y>CH||y+tileH<0)return;
+      for(let x=0;x<CW+0.5;x+=tileW)ctx.drawImage(source,x,y,tileW,tileH);
     };
 
     const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
@@ -1132,8 +1134,8 @@ class Game{
   _draw(){
     const ctx=this.ctx;
     this._drawBackground(ctx);
-    // The static Start mountains sit behind gameplay, so a wide Landscape
-    // viewport cannot hide all moving obstacles and make the scene look frozen.
+    // Start mountains belong to the opening stage and travel down with it.
+    // They remain behind gameplay while the transition clouds stay above it.
     this._drawSeamOverlays(ctx,'mountains');
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
