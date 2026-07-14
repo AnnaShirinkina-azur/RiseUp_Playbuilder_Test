@@ -1,5 +1,6 @@
 (function(W){'use strict';
 let CW=390,CH=844;
+const START_STAGE_INITIAL_TOP=-160;
 function viewAspect(){
   try{
     const w=Math.max(1,window.innerWidth||0),h=Math.max(1,window.innerHeight||0);
@@ -690,7 +691,7 @@ class Game{
     // First wave starts just above the visible area; each following wave is
     // placed farther upward. They later fall down into the screen.
     const H=this.stages[0].H;
-    const firstTop=-160;
+    const firstTop=START_STAGE_INITIAL_TOP;
     this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H));
     this.spawnTop=firstTop-(this.stages.length-1)*H;
     this.completedStages=0;
@@ -1110,7 +1111,10 @@ class Game{
       // Mountains belong to the START scene rather than the viewport. They
       // begin flush with the bottom of the opening screen, then travel down
       // with stage 0 and naturally leave the frame as gameplay progresses.
-      const stageBottom=v.top+Math.min(v.H,CH);
+      // Stage 0 starts above the viewport. Compensate that authored offset so
+      // the mountains are flush with the physical bottom edge on frame one.
+      // As stage 0 falls, the same delta moves the mountains down and out.
+      const stageBottom=CH+(v.top-START_STAGE_INITIAL_TOP);
       const y=stageBottom-tileH;
       if(y>CH||y+tileH<0)return;
       tileAcrossWidth(source,y);
