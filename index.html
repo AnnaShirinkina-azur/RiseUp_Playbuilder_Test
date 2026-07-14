@@ -690,9 +690,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="etgroup">
           <span class="etg-label">Content</span>
-          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:110px"></div>
+          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
-          <div class="ep" id="end-text-color-wrap">Color<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
+          <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
+          <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
+          <div class="ep" id="end-text-paint-wrap"><button class="et" id="end-paint-accent" type="button" title="Paint selected text with accent color">Accent selected</button><button class="et" id="end-paint-base" type="button" title="Paint selected text with base color">Base selected</button></div>
           <div class="ep" id="end-stroke-color-wrap">Stroke<input type="color" id="cfg-endCardStrokeColor" value="#000000"></div>
           <div class="ep" id="end-stroke-width-wrap">Stroke W<input type="number" id="cfg-endCardStrokeWidth" value="0" min="0" max="30" step="0.5" style="width:58px"></div>
           <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
@@ -802,9 +804,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=47-seam-before-next"></script>
+<script src="src/playable-template.js?v=49-endcard-text"></script>
 <script src="src/builder.js?v=40-tutorial-hand"></script>
-<script src="script2.js?v=seam-before-next-1"></script>
+<script src="script2.js?v=endcard-text-1"></script>
 
 </body>
 </html>
