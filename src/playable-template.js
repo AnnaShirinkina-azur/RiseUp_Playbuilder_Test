@@ -50,29 +50,6 @@ function drawTintedImage(ctx,img,x,y,w,h,color){
   if(!color||String(color).toLowerCase()==='#ffffff'){ctx.drawImage(img,x,y,w,h);return;}
   ctx.drawImage(tintedSprite(img,color),x,y,w,h);
 }
-const _seamPreviousColorCache=new Map();
-function seamCompositedOnPreviousColor(img,color){
-  if(!imgOk(img)||!color)return img;
-  const key=(img.src||'')+'|prev|'+String(color).toLowerCase();
-  const hit=_seamPreviousColorCache.get(key);if(hit)return hit;
-  const w=Math.max(1,img.naturalWidth||img.width||1),h=Math.max(1,img.naturalHeight||img.height||1);
-  const oc=document.createElement('canvas');oc.width=w;oc.height=h;
-  const ox=oc.getContext('2d',{willReadFrequently:true});ox.drawImage(img,0,0,w,h);
-  try{
-    const px=ox.getImageData(0,0,w,h),d=px.data,rgb=hr(color);
-    for(let i=0;i<d.length;i+=4){
-      const a=d[i+3]/255;
-      if(a<=.002){d[i+3]=0;continue;}
-      d[i]=Math.round(d[i]*a+rgb[0]*(1-a));
-      d[i+1]=Math.round(d[i+1]*a+rgb[1]*(1-a));
-      d[i+2]=Math.round(d[i+2]*a+rgb[2]*(1-a));
-      d[i+3]=Math.min(255,Math.round(d[i+3]*4));
-    }
-    ox.putImageData(px,0,0);
-  }catch(e){return img;}
-  if(_seamPreviousColorCache.size>64)_seamPreviousColorCache.clear();
-  _seamPreviousColorCache.set(key,oc);return oc;
-}
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
@@ -1079,50 +1056,41 @@ class Game{
     }
     if(!vis.length)return;
     vis.sort((a,b)=>a.top-b.top);
-    const rawScale=Number(this.cfg.seamScale)||0.5;
-    const sizeFactor=clamp(rawScale/0.5,0.6,2.4);
+    const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
-    const grads=this.cfg.stageBgGradients||BG_GRADS;
-    const previousTopColor=(stageIndex)=>{
-      const prev=Math.max(0,stageIndex-1),pair=grads[prev%grads.length]||BG_GRADS[prev%BG_GRADS.length]||BG_GRADS[0];
-      return pair[1]||pair[0]||'#ffffff';
+    const drawAt=(seam,y)=>{
+      if(!imgOk(seam))return;
+      const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
+      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
+      if(y<-sh||y>CH+sh)return;
+      ctx.drawImage(seam,0,y,CW,sh);
     };
-
-    const drawMountain=(source,v,k)=>{
-      if(!imgOk(source))return;
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      let bottom=v.top+v.H;
-      if(k===vis.length-1)bottom=Math.max(bottom,CH);
-      const scale=Math.max(CW/iw,(v.H*0.36*sizeFactor)/ih);
-      const dw=iw*scale,dh=ih*scale;
-      const x=(CW-dw)*0.5,y=bottom-dh;
-      if(y>CH||bottom<0)return;
-      ctx.save();ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
-      ctx.drawImage(source,x,y,dw,dh);
-      ctx.restore();
+    const overlayY=(k,seam)=>{
+      const v=vis[k];
+      const iw=seam&&(seam.naturalWidth||seam.width)||1;
+      const ih=seam&&(seam.naturalHeight||seam.height)||1;
+      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
+      const stageBottom=v.top+v.H;
+      if(v.i===0){
+        // Start has no previous level below it, so its overlay stays fully
+        // inside the start band and is flush with the visible bottom edge.
+        let bottom=stageBottom;
+        if(k===vis.length-1)bottom=Math.max(bottom,CH);
+        return bottom-sh;
+      }
+      // Every later level owns the overlay on its lower junction. Center the
+      // image on the boundary: 50% stays on this/new level, 50% drops onto
+      // the previous level below.
+      return stageBottom-sh*0.5;
     };
-
-    const drawCloudBand=(source,v)=>{
-      if(!imgOk(source))return;
-      const iw=source.naturalWidth||source.width||1,ih=source.naturalHeight||source.height||1;
-      const bandH=clamp(v.H*0.30*sizeFactor,48,v.H*0.46);
-      const boundary=v.top+v.H;
-      const y=boundary-bandH*0.5+v.H*0.08;
-      if(y>CH||y+bandH<0)return;
-      const tileW=iw*(bandH/ih);
-      const count=Math.max(1,Math.ceil(CW/tileW)+2);
-      let x=(CW-count*tileW)*0.5;
-      ctx.save();ctx.beginPath();ctx.rect(0,y,CW,bandH);ctx.clip();
-      for(let i=0;i<count;i++,x+=tileW)ctx.drawImage(source,x,y,tileW,bandH);
-      ctx.restore();
-    };
-
-    const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
-    for(let k=0;k<vis.length;k++){
-      const v=vis[k],seam=seamFor(v.i);
-      if(!imgOk(seam))continue;
-      if(v.i===0)drawMountain(seam,v,k);
-      else drawCloudBand(seamCompositedOnPreviousColor(seam,previousTopColor(v.i)),v);
+    if(multi){
+      for(let k=0;k<vis.length;k++){
+        const seam=this._spr('bg_seam_stage'+vis[k].i);
+        drawAt(seam,overlayY(k,seam));
+      }
+    }else{
+      const seam=this._spr('bg_seam');
+      for(let k=0;k<vis.length;k++)drawAt(seam,overlayY(k,seam));
     }
   }
 
