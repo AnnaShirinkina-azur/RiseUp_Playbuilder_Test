@@ -1403,13 +1403,12 @@ bindHexColorInputs(document);
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // The editor strip is visually flipped: Start is the bottom row and
-      // Finish is the top row. Start has no row after it, so its overlay stays
-      // inside Start. Every later level draws its cloud/seam fully AFTER its
-      // own colour band, rather than half-overlapping that band.
+      // Clouds belong to the current stage and appear after it in the
+      // upward progression. Put the sprite on the stage's upper boundary and
+      // shift it upward by half its height, so it visibly overlaps the level
+      // above while the lower half remains on its own colour band.
       const top=rowOf(r)*h;
-      const bottom=top+h;
-      const y=(r===0)?(bottom-sh):bottom;
+      const y=(r===totalStages()-1)?top:(top-sh*0.5);
       ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){

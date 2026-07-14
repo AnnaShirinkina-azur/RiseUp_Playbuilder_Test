@@ -1070,19 +1070,18 @@ class Game{
       const iw=seam&&(seam.naturalWidth||seam.width)||1;
       const ih=seam&&(seam.naturalHeight||seam.height)||1;
       const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
-      const stageBottom=v.top+v.H;
-      if(v.i===0){
-        // Start has no previous level below it, so its overlay stays fully
-        // inside the start band and is flush with the visible bottom edge.
-        let bottom=stageBottom;
-        if(k===vis.length-1)bottom=Math.max(bottom,CH);
-        return bottom-sh;
+      const stageTop=v.top;
+      if(v.i===this.stages.length-1){
+        // Finish has no next level above it, so keep its overlay inside the
+        // finish band and flush with the visible top edge.
+        let top=stageTop;
+        if(k===0)top=Math.min(top,0);
+        return top;
       }
-      // Every later level owns the cloud/seam that follows it. Keep the whole
-      // sprite AFTER the level's colour band instead of centring it on the
-      // boundary. This prevents neighbouring level clouds from visually
-      // stacking on top of the colour band they belong to.
-      return stageBottom;
+      // The cloud belongs to this level but marks its transition upward.
+      // Center it on the upper boundary: half stays on the current colour
+      // band and half overlaps the next level above.
+      return stageTop-sh*0.5;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
