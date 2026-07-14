@@ -183,7 +183,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .seam-mode-row{align-items:center;}
 .seam-mode-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);}
 .seam-list{display:flex;flex-direction:column;gap:5px;margin:4px 0 8px 0;}
-.seam-row{padding:3px 0;}
+.seam-row{padding:6px 0;border-bottom:1px solid var(--brd);}
+.seam-row:last-child{border-bottom:0;}
+.seam-color-control{display:flex;align-items:center;gap:7px;margin-left:auto;}
+.seam-color-control span{font-size:12px;color:var(--dim);}
+.seam-color-picker{width:42px!important;height:32px!important;padding:2px!important;border:1px solid var(--brd)!important;border-radius:8px!important;background:var(--surf2)!important;cursor:pointer;}
 .seam-row .sp-up{display:flex;align-items:center;gap:8px;min-width:0;}
 .seam-label{font-size:12px;color:var(--dim);min-width:92px;}
 .lbl-empty{color:var(--dim);font-size:12px;padding:4px 2px;}
@@ -343,9 +347,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="thumb" id="th-bg_seam">〰️</div>
           <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
           <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
-        </div><div class="bg-colors" style="margin-top:8px;">
-          <label class="bg-hex-wrap" title="Цвет поверх оверлея (белый = без окрашивания)"><span class="bg-color-preview" id="seam-chip-common"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-seamTint" value="#FFFFFF"></label>
-          <small style="color:var(--dim);">Overlay color</small>
+          <label class="seam-color-control" title="Окрасить изображение между уровнями"><span>Цвет</span><input type="color" class="seam-color-picker" id="cfg-seamTint" value="#ffffff"></label>
         </div></div>
         <div id="seam-multi-box" class="seam-list"></div>
         <div class="row wide"><label>Seam scale<small>Start: горы закреплены снизу экрана. Mini/Finish: облака закреплены снизу своего уровня</small></label>
@@ -811,9 +813,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=62-cloud-default-start-mountains"></script>
-<script src="src/builder.js?v=41-seam-scale"></script>
-<script src="script2.js?v=cloud-default-start-mountains-1"></script>
+<script src="src/playable-template.js?v=63-seam-color-visible"></script>
+<script src="src/builder.js?v=42-seam-color-visible"></script>
+<script src="script2.js?v=seam-color-visible-2"></script>
 
 </body>
 </html>

@@ -200,9 +200,7 @@ function renderSeamRows(){
       <span class="seam-label">${bgStageLabel(i,total)}</span>
       <label class="ul-btn" style="font-size:11px;">+ PNG<input type="file" accept="image/*" style="display:none" onchange="loadSpr('${k}',this)"></label>
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
-    </div><div class="bg-colors" style="margin-top:7px;">
-      <label class="bg-hex-wrap" title="Цвет поверх оверлея (белый = без окрашивания)"><span class="bg-color-preview" id="seam-chip-${i}"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-seamt${i}" value="${t}"></label>
-      <small style="color:var(--dim);">Overlay color</small>
+      <label class="seam-color-control" title="Окрасить изображение между уровнями"><span>Цвет</span><input type="color" class="seam-color-picker" id="cfg-seamt${i}" value="${t.toLowerCase()}"></label>
     </div></div>`;
   }
   box.innerHTML=h;
