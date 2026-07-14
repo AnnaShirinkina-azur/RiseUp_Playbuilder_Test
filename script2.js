@@ -620,7 +620,7 @@ $('btn-stop').addEventListener('click',()=>{
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-chainReaction':false,'cfg-scatterBounciness':0.1,'cfg-seamScale':1,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
+  'cfg-chainReaction':false,'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage',
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
@@ -1519,19 +1519,16 @@ bindHexColorInputs(document);
     const drawOverlay=(seam,r)=>{
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Uniformly scale from the level width, preserving the source aspect
-      // ratio. Never allow the transition to become narrower than the level;
-      // any overflow is cropped by the stage clip instead of distorted.
-      const fitScale=Math.max(1,sc);
-      const dw=Math.max(1,w*fitScale),dh=Math.max(1,dw*(ih/iw));
-      const top=rowOf(r)*h,bottom=top+h;
-      const x=(w-dw)/2,y=bottom-dh;
-      // The transition belongs to the OLD/current stage and is pinned to its
-      // bottom edge. Anything outside that stage is cropped.
-      ctx.save();
-      ctx.beginPath();ctx.rect(0,top,w,h);ctx.clip();
-      ctx.drawImage(seam,x,y,dw,dh);
-      ctx.restore();
+      const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
+      // The editor strip is visually flipped: Start is the bottom row and
+      // Finish is the top row. Start has no previous level, so its overlay is
+      // fully inside Start and flush to the bottom. Every later level draws
+      // its overlay centered on its lower boundary: half on this/new level,
+      // half on the previous level below.
+      const top=rowOf(r)*h;
+      const bottom=top+h;
+      const y=(r===0)?(bottom-sh):(bottom-sh*0.5);
+      ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){
       for(let r=0;r<totalStages();r++){

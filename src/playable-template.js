@@ -1058,31 +1058,39 @@ class Game{
     vis.sort((a,b)=>a.top-b.top);
     const sc=this.cfg.seamScale||1;
     const multi=(this.cfg.seamOverlayMode==='perStage')||!!this.cfg.seamMulti;
-    const drawInStage=(seam,v)=>{
+    const drawAt=(seam,y)=>{
       if(!imgOk(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
-      // Uniformly scale from the gameplay width while preserving aspect
-      // ratio. The sprite always covers the full width; oversized parts are
-      // cropped by the old-stage bounds instead of stretched independently.
-      const fitScale=Math.max(1,sc);
-      const dw=Math.max(1,CW*fitScale),dh=Math.max(1,dw*(ih/iw));
-      const x=(CW-dw)/2,y=v.top+v.H-dh;
-      if(y>CH||y+dh<0)return;
-      // Pin the transition to the bottom of the OLD/current stage. The clip
-      // keeps it out of the next stage and crops any oversized part.
-      ctx.save();
-      ctx.beginPath();ctx.rect(0,v.top,CW,v.H);ctx.clip();
-      ctx.drawImage(seam,x,y,dw,dh);
-      ctx.restore();
+      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
+      if(y<-sh||y>CH+sh)return;
+      ctx.drawImage(seam,0,y,CW,sh);
+    };
+    const overlayY=(k,seam)=>{
+      const v=vis[k];
+      const iw=seam&&(seam.naturalWidth||seam.width)||1;
+      const ih=seam&&(seam.naturalHeight||seam.height)||1;
+      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
+      const stageBottom=v.top+v.H;
+      if(v.i===0){
+        // Start has no previous level below it, so its overlay stays fully
+        // inside the start band and is flush with the visible bottom edge.
+        let bottom=stageBottom;
+        if(k===vis.length-1)bottom=Math.max(bottom,CH);
+        return bottom-sh;
+      }
+      // Every later level owns the overlay on its lower junction. Center the
+      // image on the boundary: 50% stays on this/new level, 50% drops onto
+      // the previous level below.
+      return stageBottom-sh*0.5;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
         const seam=this._spr('bg_seam_stage'+vis[k].i);
-        drawInStage(seam,vis[k]);
+        drawAt(seam,overlayY(k,seam));
       }
     }else{
       const seam=this._spr('bg_seam');
-      for(let k=0;k<vis.length;k++)drawInStage(seam,vis[k]);
+      for(let k=0;k<vis.length;k++)drawAt(seam,overlayY(k,seam));
     }
   }
 
@@ -1472,7 +1480,7 @@ const DEF={
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:1,seamOverlayMode:'perStage',seamMulti:true,bgStageTint:'#ffffff',stageBgTints:null,
+  backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
