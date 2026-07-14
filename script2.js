@@ -1403,12 +1403,11 @@ bindHexColorInputs(document);
       if(!imageReady(seam))return;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // Clouds belong to the current stage and appear after it in the
-      // upward progression. Put the sprite on the stage's upper boundary and
-      // shift it upward by half its height, so it visibly overlaps the level
-      // above while the lower half remains on its own colour band.
+      // The transition belongs to the OLD/current stage. Its top edge is
+      // anchored to that stage's upper boundary and the image grows downward,
+      // entirely over the old colour band. The next stage above stays clean.
       const top=rowOf(r)*h;
-      const y=(r===totalStages()-1)?top:(top-sh*0.5);
+      const y=top;
       ctx.drawImage(seam,0,y,w,sh);
     };
     if(multi){

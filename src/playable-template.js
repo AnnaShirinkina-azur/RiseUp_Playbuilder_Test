@@ -1067,21 +1067,11 @@ class Game{
     };
     const overlayY=(k,seam)=>{
       const v=vis[k];
-      const iw=seam&&(seam.naturalWidth||seam.width)||1;
-      const ih=seam&&(seam.naturalHeight||seam.height)||1;
-      const sh=clamp(CW*(ih/iw)*sc,20,CH*.5);
       const stageTop=v.top;
-      if(v.i===this.stages.length-1){
-        // Finish has no next level above it, so keep its overlay inside the
-        // finish band and flush with the visible top edge.
-        let top=stageTop;
-        if(k===0)top=Math.min(top,0);
-        return top;
-      }
-      // The cloud belongs to this level but marks its transition upward.
-      // Center it on the upper boundary: half stays on the current colour
-      // band and half overlaps the next level above.
-      return stageTop-sh*0.5;
+      // Draw the transition from the boundary downward, fully over the
+      // old/current stage. This makes the clouds appear at the end of the old
+      // level before the next stage arrives, without covering the new stage.
+      return stageTop;
     };
     if(multi){
       for(let k=0;k<vis.length;k++){
