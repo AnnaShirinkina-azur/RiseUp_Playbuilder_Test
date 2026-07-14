@@ -1570,26 +1570,34 @@ bindHexColorInputs(document);
       ih:source.naturalHeight||source.height||1
     });
 
+    const tileAcrossWidth=(source,y)=>{
+      const {iw,ih}=sourceSize(source);
+      // Preserve the canonical portrait display size. Adjacent tiles overlap
+      // by exactly 5% so transparent/antialiased edges never reveal a seam.
+      const tileW=390*zoom*sizeFactor;
+      const tileH=tileW*(ih/iw);
+      const step=tileW*0.95;
+      for(let x=0;x<w;x+=step)ctx.drawImage(source,x,y,tileW,tileH);
+      return tileH;
+    };
+
     const drawMountain=(source,top,bottom)=>{
       if(!imageReady(source))return;
       const {iw,ih}=sourceSize(source);
-      // The Start mountains belong to the Start level itself. Fit the full
-      // artwork to the level width, attach it to that level's bottom edge,
-      // and let it travel down with the level instead of pinning it to screen.
-      const dh=w*(ih/iw)*sizeFactor;
-      ctx.drawImage(source,0,bottom-dh,w,dh);
+      const tileW=390*zoom*sizeFactor;
+      const tileH=tileW*(ih/iw);
+      // In the editor the Start scene is the screen reference. Mountains sit
+      // flush against its bottom edge with no vertical padding.
+      tileAcrossWidth(source,bottom-tileH);
     };
 
     const drawCloudBand=(source,top,bottom)=>{
       if(!imageReady(source))return;
       const {iw,ih}=sourceSize(source);
-      // A cloud tile keeps the same display size it has in the standard
-      // 390px-wide portrait scene. Landscape adds more identical tiles
-      // instead of stretching one sprite across the wider viewport.
       const tileW=390*zoom*sizeFactor;
       const tileH=tileW*(ih/iw);
       const y=bottom-tileH*0.70;
-      for(let x=0;x<w+0.5;x+=tileW)ctx.drawImage(source,x,y,tileW,tileH);
+      tileAcrossWidth(source,y);
     };
 
     const drawOverlay=(seam,r)=>{

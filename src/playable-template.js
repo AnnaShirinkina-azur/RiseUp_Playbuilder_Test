@@ -1043,7 +1043,6 @@ class Game{
       const s=this.stages[i];if(s.done)continue;
       vis.push({i,top:s.worldY,H:s.H});
     }
-    if(!vis.length)return;
     vis.sort((a,b)=>a.top-b.top);
     for(let k=0;k<vis.length;k++){
       const v=vis[k];
@@ -1077,7 +1076,6 @@ class Game{
       const s=this.stages[i];if(s.done)continue;
       vis.push({i,top:s.worldY,H:s.H});
     }
-    if(!vis.length)return;
     vis.sort((a,b)=>a.top-b.top);
     const rawScale=Number(this.cfg.seamScale)||0.5;
     const sizeFactor=clamp(rawScale/0.5,0.6,2.4);
@@ -1093,49 +1091,61 @@ class Game{
       ih:source.naturalHeight||source.height||1
     });
 
+    const tileAcrossWidth=(source,y)=>{
+      const {iw,ih}=sourceSize(source);
+      // Keep the standard portrait tile size in every orientation. Tiles
+      // overlap by 5% to eliminate visible gaps at transparent edges.
+      const tileW=390*sizeFactor;
+      const tileH=tileW*(ih/iw);
+      const step=tileW*0.95;
+      for(let x=0;x<CW;x+=step)ctx.drawImage(source,x,y,tileW,tileH);
+      return tileH;
+    };
+
     const drawMountain=(source,v)=>{
       if(!imgOk(source))return;
       const {iw,ih}=sourceSize(source);
-      const dh=CW*(ih/iw)*sizeFactor;
-      const bottom=v.top+v.H;
-      const y=bottom-dh;
-      if(y>CH||y+dh<0)return;
-      // Mountains are part of the Start stage. Their bottom follows the
-      // stage bottom, so as gameplay advances they leave through the bottom
-      // of the viewport instead of following the balloon/camera.
-      ctx.drawImage(source,0,y,CW,dh);
+      const tileW=390*sizeFactor;
+      const tileH=tileW*(ih/iw);
+      // Mountains are screen scenery: pin them directly to the viewport bottom
+      // with zero padding, independent of stage/camera movement.
+      tileAcrossWidth(source,CH-tileH);
     };
 
     const drawCloudBand=(source,v)=>{
       if(!imgOk(source))return;
       const {iw,ih}=sourceSize(source);
-      // Keep the portrait display size as the canonical cloud tile size.
-      // Wide canvases repeat that tile horizontally rather than stretching it.
       const tileW=390*sizeFactor;
       const tileH=tileW*(ih/iw);
       const boundary=v.top+v.H;
       const y=boundary-tileH*0.70;
       if(y>CH||y+tileH<0)return;
-      for(let x=0;x<CW+0.5;x+=tileW)ctx.drawImage(source,x,y,tileW,tileH);
+      tileAcrossWidth(source,y);
     };
 
     const seamFor=(stageIndex)=>multi?this._spr('bg_seam_stage'+stageIndex):this._spr('bg_seam');
+    // Mountains are viewport scenery and must remain visible even after the
+    // Start stage itself has completed and left the active stage list.
+    if(layer==='mountains'){
+      const mountain=seamFor(0);
+      if(imgOk(mountain))drawMountain(mountain);
+      return;
+    }
+    if(!vis.length)return;
     for(let k=0;k<vis.length;k++){
-      const v=vis[k],seam=seamFor(v.i);
+      const v=vis[k];
+      if(v.i===0)continue;
+      const seam=seamFor(v.i);
       if(!imgOk(seam))continue;
-      if(v.i===0){
-        if(layer!=='clouds')drawMountain(seam,v);
-      }else if(layer!=='mountains'){
-        drawCloudBand(seamCompositedOnPreviousColor(seam,previousTopColor(v.i)),v);
-      }
+      drawCloudBand(seamCompositedOnPreviousColor(seam,previousTopColor(v.i)),v);
     }
   }
 
   _draw(){
     const ctx=this.ctx;
     this._drawBackground(ctx);
-    // Start mountains belong to the opening stage and travel down with it.
-    // They remain behind gameplay while the transition clouds stay above it.
+    // Mountains are pinned flush to the viewport bottom and remain behind
+    // gameplay, while transition clouds stay above stage content.
     this._drawSeamOverlays(ctx,'mountains');
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
