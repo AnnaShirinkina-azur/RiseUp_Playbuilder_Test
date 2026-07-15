@@ -1471,20 +1471,20 @@ class Game{
     };
     const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
     ctx.save();ctx.globalAlpha=this.endA;
-    let bg=null;
-    if(layout&&layout.background)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
-    if(!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
-    if(imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+    let bg=null,bgHidden=!!(layout&&layout.background&&layout.background.hidden);
+    if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
+    if(!bgHidden&&!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
+    if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
     ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
     if(layout){
       const io=layout.image||{},ip=point(io),art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
       const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);
-      contain(art,ip.x,ip.y,iw,ih);
+      if(!io.hidden)contain(art,ip.x,ip.y,iw,ih);
       const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts,tw=parseFloat(to.width)>0?to.width*ts:null,th=parseFloat(to.height)>0?to.height*ts:null;
-      drawRich(to,tp.x,tp.y,tfz,fam,ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
-      if(ec.showCta!==false){
+      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,fam,ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
+      if(ec.showCta!==false&&!(layout.cta&&layout.cta.hidden)){
         const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs,bh=baseH*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
-        if(imgOk(btn))ctx.drawImage(btn,bx,by,bw,bh);else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
+        const tint=co.bgTint||'#ffffff';if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,tint);else{ctx.fillStyle=tint;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
         const cfz=(co.fontSize==null?17:co.fontSize)*cs,ctaFallback=typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW';
         drawRich(co,bx+bw/2,by+bh/2,cfz,fam,cs,ctaFallback);
       }
