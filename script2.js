@@ -559,7 +559,7 @@ try{
   ['background','image','text','cta'].forEach(k=>$('end-sel-'+k)&&$('end-sel-'+k).addEventListener('click',()=>setSelected(k)));
   $('end-delete-object')&&$('end-delete-object').addEventListener('click',toggleSelectedObject);
   ['cfg-endCardScale','cfg-endCardX','cfg-endCardY'].forEach(id=>$(id)&&$(id).addEventListener('input',()=>{if(selected==='background')return;const o=item();o.scale=num('cfg-endCardScale',1);o.x=num('cfg-endCardX',0);o.y=num('cfg-endCardY',0);draw();markPreviewDirty();}));
-  ['cfg-endCardCtaWidth','cfg-endCardCtaHeight'].forEach(id=>$(id)&&$(id).addEventListener('input',()=>{if(selected!=='cta')return;const o=item();o.width=Math.max(20,num('cfg-endCardCtaWidth',220));o.height=Math.max(12,num('cfg-endCardCtaHeight',54));draw();markPreviewDirty();}));
+  ['cfg-endCardCtaWidth','cfg-endCardCtaHeight'].forEach(id=>$(id)&&$(id).addEventListener('input',()=>{if(selected!=='cta')return;const o=item(),aspect=parseFloat(o.spriteAspect)||0;if(id==='cfg-endCardCtaWidth'){o.width=Math.max(20,num(id,220));if(aspect>0){o.height=Math.max(12,Math.round(o.width/aspect));$('cfg-endCardCtaHeight').value=o.height;}}else{o.height=Math.max(12,num(id,54));if(aspect>0){o.width=Math.max(20,Math.round(o.height*aspect));$('cfg-endCardCtaWidth').value=o.width;}}draw();markPreviewDirty();}));
   $('cfg-endCardCtaTint')&&$('cfg-endCardCtaTint').addEventListener('input',()=>{if(selected!=='cta')return;const o=item();o.bgTint=normalizeHexColor($('cfg-endCardCtaTint').value,o.bgTint||'#ffffff');draw();markPreviewDirty();});
   ['cfg-endCardTextWidth','cfg-endCardTextHeight'].forEach(id=>$(id)&&$(id).addEventListener('input',()=>{if(selected!=='text')return;const o=ensureTextPixelSize(item());o.width=Math.max(1,num('cfg-endCardTextWidth',o.width||1));o.height=Math.max(1,num('cfg-endCardTextHeight',o.height||1));draw();markPreviewDirty();}));
   $('cfg-endCardCtaText')&&$('cfg-endCardCtaText').addEventListener('input',()=>{const o=textItem();if(!o)return;const ratios=selected==='text'?textPixelRatios(o):null,colors=expandedColors(o),text=$('cfg-endCardCtaText').value;while(colors.length<text.length)colors.push(o.baseColor);rebuildSegments(o,text,colors);if(selected==='text'){applyTextPixelRatios(o,ratios);$('cfg-endCardTextWidth').value=o.width;$('cfg-endCardTextHeight').value=o.height;}draw();markPreviewDirty();});
@@ -576,7 +576,16 @@ try{
   document.querySelectorAll('#end-anchor button').forEach(b=>b.addEventListener('click',()=>{if(selected==='background')return;item().anchor=b.dataset.a;syncFields();markPreviewDirty();}));
   $('end-import')&&$('end-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'image').catch(err=>alert('End card import failed: '+err.message)));
   $('end-bg-import')&&$('end-bg-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'background').catch(err=>alert('Background import failed: '+err.message)));
-  $('end-cta-bg-import')&&$('end-cta-bg-import').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const src=await readFileAsDataUrl(f);cur().cta.bgSrc=src;cur().cta.hidden=false;RiseBuilder.setSprite('endcard_'+state+'_'+orientation+'_cta_bg',src);imgs.ctaBg.src=src;syncFields();markPreviewDirty();}catch(err){alert('CTA background import failed: '+err.message);}});
+  function imageNaturalSize(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve({w:im.naturalWidth||1,h:im.naturalHeight||1});im.onerror=()=>reject(new Error('Unsupported CTA sprite image.'));im.src=src;});}
+  async function handleCtaSpriteImport(file){
+    if(!file)return;
+    const src=/\.unitypackage$/i.test(file.name)?await importUnityPackage(file):await readFileAsDataUrl(file),size=await imageNaturalSize(src),o=cur().cta;
+    o.bgSrc=src;o.hidden=false;o.spriteAspect=Math.max(.01,size.w/Math.max(1,size.h));
+    const maxW=220,maxH=120;let w=maxW,h=w/o.spriteAspect;if(h>maxH){h=maxH;w=h*o.spriteAspect;}
+    o.width=Math.max(20,Math.round(w));o.height=Math.max(12,Math.round(h));
+    RiseBuilder.setSprite('endcard_'+state+'_'+orientation+'_cta_bg',src);syncFields();markPreviewDirty();
+  }
+  $('end-cta-bg-import')&&$('end-cta-bg-import').addEventListener('change',e=>{const input=e.target,f=input.files&&input.files[0];handleCtaSpriteImport(f).catch(err=>alert('CTA sprite import failed: '+err.message)).finally(()=>{input.value='';});});
   let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();o.x=Math.max(-200,Math.min(200,(o.x||0)+dx/r.width*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+dy/r.height*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
   Object.values(imgs).forEach(im=>im.onload=draw);
   window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts))};
