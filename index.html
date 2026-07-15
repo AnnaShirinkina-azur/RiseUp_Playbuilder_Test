@@ -145,6 +145,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .et{padding:4px 9px;border-radius:var(--r2);background:var(--surf2);border:1px solid var(--brd);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
 .et.on{background:var(--acc);color:#fff;border-color:var(--acc);}
 .et:hover:not(.on){border-color:var(--acc);color:var(--acc);}
+.et.deleted{text-decoration:line-through;opacity:.55;}
+.et.danger{border-color:rgba(224,82,82,.35);color:var(--red);}
+.et.danger:hover{border-color:var(--red);color:#fff;background:rgba(224,82,82,.18);}
 .esep{width:1px;height:18px;background:var(--brd);margin:0 1px;}
 .etgroup{display:flex;align-items:center;gap:5px;padding:4px 8px 4px 6px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.02);}
 .etg-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-right:2px;white-space:nowrap;}
@@ -671,10 +674,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="etbar">
         <div class="etgroup">
           <span class="etg-label">Objects</span>
-          <button class="et" id="end-sel-bg" type="button">Background</button>
+          <button class="et" id="end-sel-background" type="button">Background</button>
           <button class="et on" id="end-sel-image" type="button">Image</button>
           <button class="et" id="end-sel-text" type="button">Text</button>
           <button class="et" id="end-sel-cta" type="button">CTA</button>
+          <button class="et danger" id="end-delete-object" type="button">Delete object</button>
         </div>
         <div class="etgroup">
           <span class="etg-label">Assets</span>
@@ -701,6 +705,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <span class="etg-label">Content</span>
           <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
+          <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
           <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
           <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
           <div class="ep" id="end-text-paint-wrap"><button class="et" id="end-paint-accent" type="button" title="Paint selected text with accent color">Accent selected</button><button class="et" id="end-paint-base" type="button" title="Paint selected text with base color">Base selected</button></div>
@@ -813,9 +818,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=63-seam-color-visible"></script>
-<script src="src/builder.js?v=42-seam-color-visible"></script>
-<script src="script2.js?v=seam-color-visible-2"></script>
+<script src="src/playable-template.js?v=64-endcard-object-controls"></script>
+<script src="src/builder.js?v=43-endcard-object-controls"></script>
+<script src="script2.js?v=endcard-object-controls-1"></script>
 
 </body>
 </html>
