@@ -1483,9 +1483,16 @@ class Game{
     const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
     ctx.save();ctx.globalAlpha=this.endA;
     let bg=null,bgHidden=!!(layout&&layout.background&&layout.background.hidden);
-    if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
-    if(!bgHidden&&!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
-    if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+    const bgo=(layout&&layout.background)||{},bgFill=bgo.fillMode||'image';
+    if(!bgHidden&&(bgFill==='solid'||bgFill==='gradient')){
+      if(bgFill==='gradient'){const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bgo.colorA||'#69c5ec');gr.addColorStop(1,bgo.colorB||'#39a2d8');ctx.fillStyle=gr;}
+      else ctx.fillStyle=bgo.colorA||'#69c5ec';
+      ctx.fillRect(0,0,W,H);
+    }else{
+      if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
+      if(!bgHidden&&!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
+      if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+    }
     ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
     if(layout){
       const io=layout.image||{},ip=point(io),art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
