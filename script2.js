@@ -419,6 +419,10 @@ try{
     }
   };
   const layouts=JSON.parse(JSON.stringify(defaults));
+  // Endcard settings are shared between orientations: editing portrait also
+  // applies to landscape (and vice-versa), so both stay identical.
+  layouts.win.landscape=layouts.win.portrait;
+  layouts.lose.landscape=layouts.lose.portrait;
   function cur(){return layouts[state][orientation];}
   function item(){return cur()[selected];}
   function num(id,def){const e=$(id),v=e?parseFloat(e.value):NaN;return isNaN(v)?def:v;}
@@ -547,7 +551,7 @@ try{
   function parseTarEntries(u8){const out=[];let off=0;while(off+512<=u8.length){const head=u8.slice(off,off+512);off+=512;if(head.every(b=>b===0))break;const name=bytesToText(head.slice(0,100)).replace(/\0.*$/,'');const size=parseInt(bytesToText(head.slice(124,136)).replace(/\0.*$/,'').trim()||'0',8)||0,data=u8.slice(off,off+size);off+=Math.ceil(size/512)*512;if(name)out.push({name,data});}return out;}
   function dataUrlFromBytes(bytes,mime){let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.slice(i,i+0x8000));return 'data:'+mime+';base64,'+btoa(bin);}
   async function importUnityPackage(file){const u=await maybeGunzip(await file.arrayBuffer()),entries=parseTarEntries(u);let best=null;for(const e of entries){if(/\/asset$/.test(e.name)&&e.data[0]===137&&e.data[1]===80){best=e;break;}}if(!best)throw new Error('PNG assets not found in package.');return dataUrlFromBytes(best.data,'image/png');}
-  async function handleImport(file,type){if(!file)return;const src=/\.unitypackage$/i.test(file.name)?await importUnityPackage(file):await readFileAsDataUrl(file);if(type==='background'){cur().background.dataSrc=src;cur().background.hidden=false;RiseBuilder.setSprite('endcard_'+state+'_'+orientation+'_background',src);}else{cur().image.hidden=false;RiseBuilder.setSprite(state==='win'?'endcard_win':'endcard_lose_logo',src);(state==='win'?imgs.win:imgs.loseLogo).src=src;}syncFields();markPreviewDirty();}
+  async function handleImport(file,type){if(!file)return;const src=/\.unitypackage$/i.test(file.name)?await importUnityPackage(file):await readFileAsDataUrl(file);if(type==='background'){cur().background.dataSrc=src;cur().background.hidden=false;['portrait','landscape'].forEach(function(or){RiseBuilder.setSprite('endcard_'+state+'_'+or+'_background',src);});}else{cur().image.hidden=false;RiseBuilder.setSprite(state==='win'?'endcard_win':'endcard_lose_logo',src);(state==='win'?imgs.win:imgs.loseLogo).src=src;}syncFields();markPreviewDirty();}
   function paintRange(kind){
     const o=textItem(),inp=$('cfg-endCardCtaText');if(!o||!inp)return;
     let a=inp.selectionStart,b=inp.selectionEnd;if(a==null)a=0;if(b==null)b=inp.value.length;if(a===b){a=0;b=inp.value.length;}
@@ -583,7 +587,7 @@ try{
     o.bgSrc=src;o.hidden=false;o.spriteAspect=Math.max(.01,size.w/Math.max(1,size.h));
     const maxW=220,maxH=120;let w=maxW,h=w/o.spriteAspect;if(h>maxH){h=maxH;w=h*o.spriteAspect;}
     o.width=Math.max(20,Math.round(w));o.height=Math.max(12,Math.round(h));
-    RiseBuilder.setSprite('endcard_'+state+'_'+orientation+'_cta_bg',src);syncFields();markPreviewDirty();
+    ['portrait','landscape'].forEach(function(or){RiseBuilder.setSprite('endcard_'+state+'_'+or+'_cta_bg',src);});syncFields();markPreviewDirty();
   }
   $('end-cta-bg-import')&&$('end-cta-bg-import').addEventListener('change',e=>{const input=e.target,f=input.files&&input.files[0];handleCtaSpriteImport(f).catch(err=>alert('CTA sprite import failed: '+err.message)).finally(()=>{input.value='';});});
   let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();o.x=Math.max(-200,Math.min(200,(o.x||0)+dx/r.width*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+dy/r.height*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
