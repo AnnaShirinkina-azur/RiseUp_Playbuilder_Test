@@ -182,6 +182,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .bg-gradient-preview{width:44px;height:28px;border:1px solid var(--brd);border-radius:8px;background:linear-gradient(180deg,#69c5ec,#39a2d8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
 .bg-hex-wrap{display:flex;align-items:center;gap:4px;}
 .bg-color-preview{width:20px;height:26px;border:1px solid var(--brd);border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
+.hex-auto-chip{display:inline-block;vertical-align:middle;width:18px;height:22px;margin-right:5px;}
 .bg-stage-row .hex-color{width:82px;height:26px;}
 .seam-mode-row{align-items:center;}
 .seam-mode-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);}
@@ -719,7 +720,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
           <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
           <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
+          <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.55" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
+          <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
           <input type="hidden" id="cfg-endCardCtaY" value="74">
         </div>
       </div>

@@ -1490,10 +1490,9 @@ class Game{
       ctx.fillRect(0,0,W,H);
     }else{
       if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
-      if(!bgHidden&&!imgOk(bg))bg=this.isWin?this._spr('endcard_win_frame'):this._spr('endcard_lose_bg');
       if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
     }
-    ctx.fillStyle='rgba(0,0,0,'+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);
+    {const _oc=ec.overlayColor||'#000000';ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);}
     if(layout){
       const io=layout.image||{},ip=point(io),art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
       const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);

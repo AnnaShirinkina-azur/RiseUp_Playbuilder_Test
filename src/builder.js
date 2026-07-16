@@ -74,6 +74,7 @@ function readConfig(){
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
       y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
+      overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
       ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
       fontFamily:(function(){var e=document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),

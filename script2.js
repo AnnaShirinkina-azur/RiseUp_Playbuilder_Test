@@ -1,6 +1,6 @@
 function $(i){return document.getElementById(i);}
 function sv(i,v){const e=$(i);if(e)e.textContent=v;}
-function setHexValue(id,v,fallback){const e=$(id);if(e)e.value=normalizeHexColor(v,fallback||e.defaultValue||'#ffffff').toUpperCase();}
+function setHexValue(id,v,fallback){const e=$(id);if(e){e.value=normalizeHexColor(v,fallback||e.defaultValue||'#ffffff').toUpperCase();if(e.__chip)e.__chip.style.background=e.value;}}
 function normalizeHexColor(v,fallback){
   fallback=fallback||'#ffffff';
   v=String(v==null?'':v).trim();
@@ -19,16 +19,24 @@ function normalizeHexColor(v,fallback){
 function bindHexColorInputs(root){
   (root||document).querySelectorAll('input.hex-color').forEach(e=>{
     if(e.__hexBound)return;e.__hexBound=true;
-    const normalize=()=>{const old=e.value;const next=normalizeHexColor(old,e.dataset.fallback||e.defaultValue||'#ffffff');e.value=next.toUpperCase();e.classList.remove('invalid');};
+    if(e.type!=='color'&&!(e.previousElementSibling&&e.previousElementSibling.classList&&e.previousElementSibling.classList.contains('bg-color-preview'))){
+      const chip=document.createElement('span');chip.className='bg-color-preview hex-auto-chip';chip.title='Текущий цвет';
+      if(e.parentNode)e.parentNode.insertBefore(chip,e);
+      e.__chip=chip;
+    }
+    const syncChip=()=>{if(e.__chip)e.__chip.style.background=normalizeHexColor(e.value,e.dataset.fallback||e.defaultValue||'#ffffff');};
+    const normalize=()=>{const old=e.value;const next=normalizeHexColor(old,e.dataset.fallback||e.defaultValue||'#ffffff');e.value=next.toUpperCase();e.classList.remove('invalid');syncChip();};
     e.value=normalizeHexColor(e.value||e.defaultValue||'#ffffff').toUpperCase();
     e.addEventListener('input',()=>{
       const v=String(e.value||'').trim();
       const ok=/^#?[0-9a-fA-F]{3}$/.test(v)||/^#?[0-9a-fA-F]{6}$/.test(v)||/^rgba?\s*\(/i.test(v);
       e.classList.toggle('invalid',!!v&&!ok);
       if(ok){e.value=normalizeHexColor(v,e.dataset.fallback||e.defaultValue||'#ffffff').toUpperCase();e.classList.remove('invalid');}
+      syncChip();
     });
     e.addEventListener('change',normalize);
     e.addEventListener('blur',normalize);
+    syncChip();
   });
 }
 document.addEventListener('DOMContentLoaded',()=>bindHexColorInputs(document));
@@ -420,12 +428,12 @@ try{
   const ctaDefaults=(anchor,x,y,scale)=>({anchor,x,y,scale,width:220,height:54,bgTint:'#ffffff',text:'PLAY NOW',fontSize:17,baseColor:'#ffffff',accentColor:'#52e08a',color:'#ffffff',stroke:'#000000',strokeW:0,segments:[{t:'PLAY NOW',color:'#ffffff'}]});
   const defaults={
     win:{
-      portrait:{background:{srcKey:'endcard_win_frame'},image:{anchor:'cc',x:0,y:-5,scale:1},text:Object.assign(textDefaults('YOU WIN!',28),{anchor:'tc',x:0,y:10}),cta:ctaDefaults('bc',0,-12,1)},
-      landscape:{background:{srcKey:'endcard_win_frame'},image:{anchor:'cc',x:0,y:0,scale:.72},text:Object.assign(textDefaults('YOU WIN!',26),{anchor:'tc',x:0,y:8,scale:.85}),cta:ctaDefaults('bc',0,-9,.85)}
+      portrait:{background:{srcKey:'endcard_win_frame',fillMode:'gradient',colorA:'#69c5ec',colorB:'#39a2d8'},image:{anchor:'cc',x:0,y:-5,scale:1},text:Object.assign(textDefaults('YOU WIN!',28),{anchor:'tc',x:0,y:10}),cta:ctaDefaults('bc',0,-12,1)},
+      landscape:{background:{srcKey:'endcard_win_frame',fillMode:'gradient',colorA:'#69c5ec',colorB:'#39a2d8'},image:{anchor:'cc',x:0,y:0,scale:.72},text:Object.assign(textDefaults('YOU WIN!',26),{anchor:'tc',x:0,y:8,scale:.85}),cta:ctaDefaults('bc',0,-9,.85)}
     },
     lose:{
-      portrait:{background:{srcKey:'endcard_lose_bg'},image:{anchor:'tc',x:0,y:15,scale:1},text:Object.assign(textDefaults('TRY AGAIN',28),{anchor:'cc',x:0,y:-3}),cta:ctaDefaults('bc',0,-12,1)},
-      landscape:{background:{srcKey:'endcard_lose_bg'},image:{anchor:'cl',x:21,y:0,scale:.72},text:Object.assign(textDefaults('TRY AGAIN',26),{anchor:'tr',x:-18,y:25,scale:.85}),cta:ctaDefaults('br',-18,-16,.85)}
+      portrait:{background:{srcKey:'endcard_lose_bg',fillMode:'gradient',colorA:'#69c5ec',colorB:'#39a2d8'},image:{anchor:'tc',x:0,y:15,scale:1},text:Object.assign(textDefaults('TRY AGAIN',28),{anchor:'cc',x:0,y:-3}),cta:ctaDefaults('bc',0,-12,1)},
+      landscape:{background:{srcKey:'endcard_lose_bg',fillMode:'gradient',colorA:'#69c5ec',colorB:'#39a2d8'},image:{anchor:'cl',x:21,y:0,scale:.72},text:Object.assign(textDefaults('TRY AGAIN',26),{anchor:'tr',x:-18,y:25,scale:.85}),cta:ctaDefaults('br',-18,-16,.85)}
     }
   };
   const layouts=JSON.parse(JSON.stringify(defaults));
@@ -447,7 +455,7 @@ try{
     if(endTintCache.size>32)endTintCache.clear();endTintCache.set(key,oc);return oc;
   }
   function drawEndCardTinted(ctx,im,x,y,w,h,color){if(!im||!im.complete||!im.naturalWidth)return false;color=normalizeHexColor(color,'#ffffff');ctx.drawImage(color.toLowerCase()==='#ffffff'?im:tintedEndCardSprite(im,color),x,y,w,h);return true;}
-  function imageForBackground(){const l=cur().background;if(l.dataSrc)return dynamicImg(l.dataSrc);return state==='win'?imgs.winFrame:imgs.loseBg;}
+  function imageForBackground(){const l=cur().background;if(l.dataSrc)return dynamicImg(l.dataSrc);return null;}
   function imageForArtwork(){return state==='win'?imgs.win:imgs.loseLogo;}
   function defaultText(kind){return kind==='cta'?'PLAY NOW':(state==='win'?'YOU WIN!':'TRY AGAIN');}
   function defaultSize(kind){return kind==='cta'?17:(orientation==='landscape'?26:28);}
@@ -523,7 +531,7 @@ try{
   function draw(){
     const c=cv();if(!c)return;
     const ctx=c.getContext('2d'),W=c.width,H=c.height,z=Math.min(W/390,H/390),famName=($('tx-font')&&$('tx-font').value)||'system-ui',family=fontCssFamily(famName);
-    ctx.clearRect(0,0,W,H);ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);const bg=cur().background,bgFill=bg.fillMode||'image';if(!bg.hidden){if(bgFill==='gradient'){var _gr=ctx.createLinearGradient(0,0,0,H);_gr.addColorStop(0,bg.colorA||'#69c5ec');_gr.addColorStop(1,bg.colorB||'#39a2d8');ctx.fillStyle=_gr;ctx.fillRect(0,0,W,H);}else if(bgFill==='solid'){ctx.fillStyle=bg.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else drawCover(ctx,imageForBackground(),0,0,W,H);}ctx.fillStyle='rgba(0,0,0,'+num('cfg-endCardOverlay',.55)+')';ctx.fillRect(0,0,W,H);
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);const bg=cur().background,bgFill=bg.fillMode||'image';if(!bg.hidden){if(bgFill==='gradient'){var _gr=ctx.createLinearGradient(0,0,0,H);_gr.addColorStop(0,bg.colorA||'#69c5ec');_gr.addColorStop(1,bg.colorB||'#39a2d8');ctx.fillStyle=_gr;ctx.fillRect(0,0,W,H);}else if(bgFill==='solid'){ctx.fillStyle=bg.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else drawCover(ctx,imageForBackground(),0,0,W,H);}(function(){var _ov=num('cfg-endCardOverlay',.55),_oc=($('cfg-endCardOverlayColor')&&$('cfg-endCardOverlayColor').value)||'#000000';ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+_ov+')';ctx.fillRect(0,0,W,H);})();
     const io=cur().image,ip=pos(io,W,H),art=imageForArtwork(),iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale||1),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale||1),ir=io.hidden?null:drawContain(ctx,art,ip.x,ip.y,iw,ih);
     const to=ensureTextPixelSize(ensureTextItem(cur().text,'text')),tp=pos(to,W,H),ts=to.scale==null?1:to.scale,fs=to.fontSize*z*ts,tw=Math.max(1,to.width)*z*ts,th=Math.max(1,to.height)*z*ts,tr=to.hidden?null:drawRichCentered(ctx,to,tp.x,tp.y,fs,family,z*ts,defaultText('text'),tw,th);
     let cr=null;
@@ -591,7 +599,7 @@ try{
   $('cfg-endCardBgFill')&&$('cfg-endCardBgFill').addEventListener('change',()=>{if(selected!=='background')return;cur().background.fillMode=$('cfg-endCardBgFill').value;syncFields();draw();markPreviewDirty();});
   $('cfg-endCardBgColorA')&&$('cfg-endCardBgColorA').addEventListener('input',()=>{if(selected!=='background')return;cur().background.colorA=$('cfg-endCardBgColorA').value;draw();markPreviewDirty();});
   $('cfg-endCardBgColorB')&&$('cfg-endCardBgColorB').addEventListener('input',()=>{if(selected!=='background')return;cur().background.colorB=$('cfg-endCardBgColorB').value;draw();markPreviewDirty();});
-  ['end-zoom','cfg-endCardEnabled','cfg-endCardOverlay','cfg-endCardCta'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
+  ['end-zoom','cfg-endCardEnabled','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardOverlayColor'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
   document.querySelectorAll('#end-anchor button').forEach(b=>b.addEventListener('click',()=>{if(selected==='background')return;item().anchor=b.dataset.a;syncFields();markPreviewDirty();}));
   $('end-import')&&$('end-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'image').catch(err=>alert('End card import failed: '+err.message)));
   $('end-bg-import')&&$('end-bg-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'background').catch(err=>alert('Background import failed: '+err.message)));
