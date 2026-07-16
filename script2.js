@@ -670,7 +670,7 @@ $('btn-stop').addEventListener('click',()=>{
 const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
-  'cfg-chainReaction':false,'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
+  'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
