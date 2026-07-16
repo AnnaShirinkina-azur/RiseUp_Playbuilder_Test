@@ -2014,7 +2014,7 @@ bindHexColorInputs(document);
       document.querySelectorAll('#pb-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cl')));
     } else if(isHealth){
       if(o.anchorOffsetX==null||o.anchorOffsetY==null){const l={x:o.x||0,y:o.y||0},b=progressAnchorBaseLocal(o.anchor);o.anchorOffsetX=Math.round(((l.x-b.x)/GW)*1000)/10;o.anchorOffsetY=Math.round(((l.y-b.y)/GH)*1000)/10;}
-      ensureResponsiveBase(o);$('hb-size').value=o.baseHeartW||o.heartW||36;$('hb-gap').value=o.baseGap==null?(o.gap==null?6:o.gap):o.baseGap;$('hb-empty').value=o.emptyAlpha==null ? .28 : o.emptyAlpha;setHexValue('hb-tint',o.tint,'#ffffff');$('hb-offx').value=o.anchorOffsetX||0;$('hb-offy').value=o.anchorOffsetY||0;
+      ensureResponsiveBase(o);$('hb-size').value=o.baseHeartW||o.heartW||36;$('hb-gap').value=o.baseGap==null?(o.gap==null?6:o.gap):o.baseGap;setHexValue('hb-tint',o.tint,'#ffffff');$('hb-offx').value=o.anchorOffsetX||0;$('hb-offy').value=o.anchorOffsetY||0;
       document.querySelectorAll('#hb-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'tc')));
     } else if(o&&o.kind==='bg'){
       $('os').value=1;$('osx').value=1;$('osy').value=1;setHexValue('oc',o.tint,'#ffffff');$('om').value=0;
@@ -2083,7 +2083,7 @@ bindHexColorInputs(document);
   document.querySelectorAll('#tut-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='tutorial')return;o.anchor=b.dataset.a;setTutorialLocalFromOffset(o);document.querySelectorAll('#tut-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
   function bindHb(id,field,tf){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='health')return;o[field]=tf?tf(e.value):(e.classList&&e.classList.contains('hex-color')?normalizeHexColor(e.value,o[field]||e.defaultValue||'#ffffff'):e.value);if(field==='baseHeartW')o.heartW=o.baseHeartW;if(field==='baseGap')o.gap=o.baseGap;draw();});}
   function bindHbOffset(id,field){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='health')return;o[field]=parseFloat(e.value)||0;setHealthLocalFromOffset(o);draw();});}
-  bindHb('hb-size','baseHeartW',v=>Math.max(8,parseFloat(v)||36));bindHb('hb-gap','baseGap',v=>parseFloat(v)||0);bindHb('hb-empty','emptyAlpha',v=>Math.max(0,Math.min(1,parseFloat(v)||0)));bindHb('hb-tint','tint');bindHbOffset('hb-offx','anchorOffsetX');bindHbOffset('hb-offy','anchorOffsetY');
+  bindHb('hb-size','baseHeartW',v=>Math.max(8,parseFloat(v)||36));bindHb('hb-gap','baseGap',v=>parseFloat(v)||0);bindHb('hb-tint','tint');bindHbOffset('hb-offx','anchorOffsetX');bindHbOffset('hb-offy','anchorOffsetY');
   window.loadHealthPart=function(inp){const o=selItem();if(!o||o.kind!=='health'||!inp.files||!inp.files[0])return;const r=new FileReader();r.onload=e=>{o.heartSrc=e.target.result;draw();};r.readAsDataURL(inp.files[0]);inp.value='';};
   $('hb-heart-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='health'){o.heartSrc='Assets/textures/heart.png';draw();}});
 
