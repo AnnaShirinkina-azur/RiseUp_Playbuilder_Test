@@ -127,6 +127,16 @@ function applyPlayableDefaultSprites(){
 applyPlayableDefaultSprites();
 
 // ── Sounds ──────────────────────────────────────────────────────────────────
+// ── Ball size control (Main ball panel <-> level-editor cfg-playerSize) ──────
+function ballSizeFromUI(v){
+  var el=$('cfg-playerSize');if(el){el.value=v;try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){if(window.RiseLevelEditor)RiseLevelEditor.draw();markPreviewDirty();}}
+  var lab=$('cfg-ballSizeUI-v');if(lab)lab.textContent=(parseFloat(v)||2).toFixed(1);
+}
+(function(){
+  var src=$('cfg-playerSize'),s=$('cfg-ballSizeUI'),lab=$('cfg-ballSizeUI-v');
+  if(src&&s){s.value=src.value;if(lab)lab.textContent=(parseFloat(src.value)||2).toFixed(1);
+    src.addEventListener('input',function(){if(document.activeElement!==s){s.value=src.value;if(lab)lab.textContent=(parseFloat(src.value)||2).toFixed(1);}});}
+})();
 const SND_DEFAULTS={bgm:'Assets/audio/bgm.wav',win:'Assets/audio/sfx_win.wav',lose:'Assets/audio/sfx_lose.wav',hit:'Assets/audio/sfx_wrong.wav',shield:'Assets/audio/sfx_correct.wav'};
 const SND_ICON={bgm:'🎵',win:'🏆',lose:'💀',hit:'💥',shield:'🛡️'};
 let sndPreview=null;
