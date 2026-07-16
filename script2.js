@@ -127,39 +127,6 @@ function applyPlayableDefaultSprites(){
 applyPlayableDefaultSprites();
 
 // ── Sounds ──────────────────────────────────────────────────────────────────
-// ── Shield ball gallery (multiple images) ──────────────────────────────────
-var shieldImages=[];
-function shieldRegisterSprites(){
-  for(var i=0;i<32;i++)RiseBuilder.setSprite('shield_'+i,null);
-  shieldImages.forEach(function(src,i){RiseBuilder.setSprite('shield_'+i,src);});
-}
-function shieldRenderGallery(){
-  var g=$('shield-gallery');if(!g)return;g.innerHTML='';
-  shieldImages.forEach(function(src,i){
-    var cell=document.createElement('div');cell.className='sp-up';
-    cell.innerHTML='<div class="thumb"><img src="'+src+'"></div><button class="x-btn" type="button" title="Удалить">✕</button>';
-    cell.querySelector('.x-btn').addEventListener('click',function(){shieldRemoveImage(i);});
-    g.appendChild(cell);
-  });
-}
-function shieldSyncCount(){
-  var c=$('cfg-shieldCount');if(!c)return;var n=shieldImages.length;
-  if(n>0&&parseInt(c.value,10)<n){c.value=Math.min(parseInt(c.max,10)||6,n);var v=$('cfg-shieldCount-v');if(v)v.textContent=c.value;}
-}
-function shieldAddImages(files){
-  if(!files||!files.length)return;var max=6,arr=Array.prototype.slice.call(files);
-  var loadOne=function(file){return new Promise(function(res){var r=new FileReader();r.onload=function(e){if(shieldImages.length<max)shieldImages.push(String(e.target.result||''));res();};r.onerror=function(){res();};r.readAsDataURL(file);});};
-  Promise.all(arr.map(loadOne)).then(function(){shieldRegisterSprites();shieldRenderGallery();shieldSyncCount();markPreviewDirty();});
-}
-function shieldRemoveImage(i){shieldImages.splice(i,1);shieldRegisterSprites();shieldRenderGallery();markPreviewDirty();}
-function shieldSyncMode(){
-  var multi=!!($('cfg-shieldMulti')&&$('cfg-shieldMulti').checked);
-  var s=$('shield-single-wrap'),m=$('shield-multi-wrap');
-  if(s)s.style.display=multi?'none':'';if(m)m.style.display=multi?'':'none';
-}
-if($('cfg-shieldMulti'))$('cfg-shieldMulti').addEventListener('change',function(){shieldSyncMode();markPreviewDirty();});
-if($('shield-add-input'))$('shield-add-input').addEventListener('change',function(e){shieldAddImages(e.target.files);e.target.value='';});
-shieldSyncMode();
 const SND_DEFAULTS={bgm:'Assets/audio/bgm.wav',win:'Assets/audio/sfx_win.wav',lose:'Assets/audio/sfx_lose.wav',hit:'Assets/audio/sfx_wrong.wav',shield:'Assets/audio/sfx_correct.wav'};
 const SND_ICON={bgm:'🎵',win:'🏆',lose:'💀',hit:'💥',shield:'🛡️'};
 let sndPreview=null;
@@ -452,8 +419,7 @@ try{
     }
   };
   const layouts=JSON.parse(JSON.stringify(defaults));
-  // Endcard settings are shared between orientations: editing portrait also
-  // applies to landscape (and vice-versa), so both stay identical.
+  // Endcard settings are shared between orientations (portrait == landscape).
   layouts.win.landscape=layouts.win.portrait;
   layouts.lose.landscape=layouts.lose.portrait;
   function cur(){return layouts[state][orientation];}
@@ -705,7 +671,7 @@ $('btn-stop').addEventListener('click',()=>{
 
 // reset
 const DEFS={
-  'cfg-lives':3,'cfg-playerSize':2,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,'cfg-shieldCount':1,'cfg-shieldMulti':false,
+  'cfg-lives':3,'cfg-playerSize':2,'cfg-balloonCount':1,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
   'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialAnimEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,

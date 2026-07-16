@@ -296,6 +296,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
+      <div class="row wide"><label>Кол-во шаров / Balloon count<small>Расставляются пирамидой (1 сверху, шире книзу)</small></label>
+        <div class="rr"><input type="range" id="cfg-balloonCount" value="1" min="1" max="10" step="1" oninput="sv('cfg-balloonCount-v',this.value)"><span id="cfg-balloonCount-v">1</span></div></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
@@ -308,22 +310,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-shield" data-title="Shield">
       <div class="sec">Shield (защитник)</div>
-      <div class="row"><label>Много картинок / Multiple images<small>Каждая картинка — отдельный шарик в ряду</small></label><input type="checkbox" id="cfg-shieldMulti"></div>
-      <div class="row wide"><label>Кол-во шариков / Ball count<small>Сколько шариков-защитников движется в ряду</small></label>
-        <div class="rr"><input type="range" id="cfg-shieldCount" value="1" min="1" max="6" step="1" oninput="sv('cfg-shieldCount-v',this.value)"><span id="cfg-shieldCount-v">1</span></div></div>
-      <div id="shield-single-wrap">
-        <div class="sec">Custom sprite</div>
-        <div class="sp-row"><div class="sp-up">
-          <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
-          <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
-          <button class="x-btn" onclick="clearSpr('shield')">✕</button>
-        </div></div>
-      </div>
-      <div id="shield-multi-wrap" style="display:none">
-        <div class="sec">Картинки шариков / Ball images</div>
-        <div class="sp-row" id="shield-gallery"></div>
-        <label class="ul-btn">+ Добавить картинку<input type="file" accept="image/*" multiple style="display:none" id="shield-add-input"></label>
-      </div>
+      <div class="sec">Custom sprite</div>
+      <div class="sp-row"><div class="sp-up">
+        <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
+        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
+        <button class="x-btn" onclick="clearSpr('shield')">✕</button>
+      </div></div>
       <div class="row"><label>Sprite color</label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
     </div>
 

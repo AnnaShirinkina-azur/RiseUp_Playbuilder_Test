@@ -351,14 +351,9 @@ class Shield{
     this.vx=0;this.vy=0;this._px=this.x;this._py=this.y;
     this.dragging=false;
     this.dead=false;this.da=0;this.ra=0;this.flash=0;
-    this.spr=null;this.sprs=null;
-    this.count=Math.max(1,Math.round((cfg&&cfg.shieldCount)||1));
+    this.spr=null;
   }
   get r(){return 26*this.cfg.shieldSize;}
-  _step(){return this.r*2+this.r*.18;}
-  _halfSpan(){return (this.count-1)*this._step()/2;}
-  centers(){const cs=[],half=this._halfSpan(),st=this._step();for(let i=0;i<this.count;i++)cs.push({x:this.x-half+i*st,y:this.y});return cs;}
-  _sprFor(i){const a=this.sprs;return (a&&a.length)?a[i%a.length]:this.spr;}
   down(x,y){this.dragging=true;this.tx=x;this.ty=y;}
   move(x,y){if(this.dragging&&!this.dead){this.tx=x;this.ty=y;}}
   up(){this.dragging=false;}
@@ -373,30 +368,30 @@ class Shield{
       this.x=lerp(this.x,this.tx,.2);
       this.y=lerp(this.y,this.ty,.2);
     }
-    const r=this.r,edge=r+this._halfSpan();
-    this.x=clamp(this.x,Math.min(edge,CW/2),Math.max(CW-edge,CW/2));
+    const r=this.r;
+    this.x=clamp(this.x,r,CW-r);
     this.y=clamp(this.y,r,CH*.8);
     const k=16.6667/Math.max(1,dt);
     this.vx=(this.x-ox)*k;
     this.vy=(this.y-oy)*k;
   }
   draw(ctx){
-    const centers=this.centers();
     if(this.dead){
-      const sc=lerp(1,.05,this.da),al=lerp(1,0,this.da);
-      centers.forEach((c,i)=>{ctx.save();ctx.globalAlpha=al;ctx.translate(c.x,c.y);ctx.scale(sc,sc);this._paint(ctx,0,0,this._sprFor(i));ctx.restore();});
-      return;
+      ctx.save();ctx.globalAlpha=lerp(1,0,this.da);
+      ctx.translate(this.x,this.y);ctx.scale(lerp(1,.05,this.da),lerp(1,.05,this.da));
+      this._paint(ctx,0,0);ctx.restore();return;
     }
     const pop=this.ra<1?(.5+.5*Math.sin(this.ra*Math.PI)):1;
-    const al=this.flash>0?(.5+.5*Math.sin(this.flash*.04)):1;
-    centers.forEach((c,i)=>{ctx.save();ctx.translate(c.x,c.y);ctx.scale(pop,pop);ctx.globalAlpha=al;this._paint(ctx,0,0,this._sprFor(i));ctx.restore();});
+    ctx.save();ctx.translate(this.x,this.y);ctx.scale(pop,pop);
+    if(this.flash>0)ctx.globalAlpha=.5+.5*Math.sin(this.flash*.04);
+    this._paint(ctx,0,0);ctx.restore();
   }
-  _paint(ctx,x,y,spr){
-    const r=this.r;spr=spr||this.spr;
-    if(imgOk(spr)){
-      const iw=spr.naturalWidth||spr.width||1, ih=spr.naturalHeight||spr.height||1;
+  _paint(ctx,x,y){
+    const r=this.r;
+    if(imgOk(this.spr)){
+      const iw=this.spr.naturalWidth||this.spr.width||1, ih=this.spr.naturalHeight||this.spr.height||1;
       const h=r*2.25, w=h*(iw/ih);
-      drawTintedImage(ctx,spr,x-w/2,y-h/2,w,h,this.cfg.shieldSpriteColor);
+      drawTintedImage(ctx,this.spr,x-w/2,y-h/2,w,h,this.cfg.shieldSpriteColor);
       return;
     }
     // glow ring
@@ -427,9 +422,13 @@ class Ball{
     this.deathT=0;
     this.spr=null;
     this.deathSpr=null;
+    this.count=Math.max(1,Math.round((cfg&&cfg.balloonCount)||1));
   }
   get r(){return 20*this.cfg.playerSize;}
   get worldY(){return this.travel;}
+  _rows(){const n=Math.max(1,this.count|0);if(n<=2)return [n];const bottom=Math.ceil(n/2);return [n-bottom,bottom];}
+  offsets(){const r=this.r,rows=this._rows(),dx=r*2.4,dy=r*2.4,out=[];for(let ri=0;ri<rows.length;ri++){const cnt=rows[ri],rowW=(cnt-1)*dx;for(let ci=0;ci<cnt;ci++)out.push({dx:-rowW/2+ci*dx,dy:ri*dy});}return out;}
+  points(){return this.offsets().map(p=>({x:this.x+p.dx,y:this.y+p.dy}));}
   die(){this.dead=true;this.da=0;this.deathT=0;}
   respawn(){
     const ps=playerStartPoint(this.cfg);
@@ -459,18 +458,23 @@ class Ball{
     }
   }
   draw(ctx){
+    const offs=this.offsets();
     if(this.dead){
-      if(this._paintDeath(ctx))return;
-      ctx.save();ctx.globalAlpha=lerp(1,0,this.da);
-      ctx.translate(this.x,this.y);ctx.scale(lerp(1,.05,this.da),lerp(1,.05,this.da));
-      this._paint(ctx,0,0);ctx.restore();return;
+      const al=lerp(1,0,this.da),sc=lerp(1,.05,this.da);
+      offs.forEach(p=>{
+        if(this._paintDeath(ctx,p.dx,p.dy))return;
+        ctx.save();ctx.globalAlpha=al;
+        ctx.translate(this.x+p.dx,this.y+p.dy);ctx.scale(sc,sc);
+        this._paint(ctx,0,0);ctx.restore();
+      });
+      return;
     }
     const pop=this.ra<1?(.5+.5*Math.sin(this.ra*Math.PI)):1;
-    ctx.save();ctx.translate(this.x,this.y);ctx.scale(pop,pop);
-    if(this.flash>0)ctx.globalAlpha=.5+.5*Math.sin(this.flash*.04);
-    this._paint(ctx,0,0);ctx.restore();
+    const al=this.flash>0?(.5+.5*Math.sin(this.flash*.04)):1;
+    offs.forEach(p=>{ctx.save();ctx.translate(this.x+p.dx,this.y+p.dy);ctx.scale(pop,pop);ctx.globalAlpha=al;this._paint(ctx,0,0);ctx.restore();});
   }
-  _paintDeath(ctx){
+  _paintDeath(ctx,ox,oy){
+    ox=ox||0;oy=oy||0;
     const sheet=this.deathSpr;
     if(!imgOk(sheet))return false;
     const r=this.r;
@@ -489,7 +493,7 @@ class Ball{
     const rot=Math.sin(t*1.65)*0.035;
     ctx.save();
     ctx.globalAlpha=alpha;
-    ctx.translate(this.x+sway,this.y+r*.15);
+    ctx.translate(this.x+ox+sway,this.y+oy+r*.15);
     ctx.rotate(rot);
     ctx.save();
     ctx.beginPath();
@@ -574,7 +578,6 @@ class Game{
   }
 
   _spr(key){const s=this.assets[key];return imgOk(s)?s:null;}
-  _buildShieldSprites(){const cfg=this.cfg,out=[];if(cfg.shieldMulti&&cfg.shieldImageCount>0){for(let i=0;i<cfg.shieldImageCount;i++){const s=this._spr('shield_'+i);if(imgOk(s))out.push(s);}}if(!out.length)out.push(this.shield&&this.shield.spr);return out;}
 
   _buildStages(){
     const c=this.cfg;
@@ -637,8 +640,6 @@ class Game{
     this.shield=new Shield(this.cfg);
     this.ball=new Ball(this.cfg);
     this.shield.spr=this._spr('shield')||makeImg(this.cfg.defaultShieldSrc);
-    this.shield.count=Math.max(1,Math.round((this.cfg.shieldCount)||1));
-    this.shield.sprs=this._buildShieldSprites();
     this.ball.spr=this._spr('player')||makeImg(this.cfg.defaultPlayerSrc);
     this.ball.deathSpr=this._spr('player_death')||makeImg(this.cfg.defaultPlayerDeathSrc);
     this._resetFallingStages();
@@ -860,22 +861,20 @@ class Game{
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
-      const scenters=this.shield.centers(),SR=this.shield.r,seenSh=new Set();
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
-        if(!this.stages[i].hits)continue;
-        for(let ci=0;ci<scenters.length;ci++){
-          const c=scenters[ci],hits=this.stages[i].hits(c.x,c.y,SR,top,false);
-          for(const sh of hits){if(seenSh.has(sh))continue;seenSh.add(sh);this._hit(sh,top,'shield',c);}
-        }
+        const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
+        for(const sh of hits)this._hit(sh,top,'shield');
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
         // Ball checks include already-pushed / dynamic obstacles too.
-        // A shield bump no longer makes an obstacle harmless; it can still
-        // fly or fall into the player and pop the balloon.
-        const bh=this.stages[i].hit(this.ball.x,this.ball.y,this.ball.r,top,true);
-        if(bh){this._hit(bh,top,'ball');break outer;}
+        // Every balloon in the pyramid can be popped by an unblocked obstacle.
+        const bpts=this.ball.points();
+        for(let bi=0;bi<bpts.length;bi++){
+          const bh=this.stages[i].hit(bpts[bi].x,bpts[bi].y,this.ball.r,top,true);
+          if(bh){this._hit(bh,top,'ball');break outer;}
+        }
       }
     }
 
@@ -894,9 +893,9 @@ class Game{
     if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
   }
 
-  _hit(obs,top,who,cpt){
-    const hx=who==='shield'?((cpt&&cpt.x!=null)?cpt.x:this.shield.x):this.ball.x;
-    const hy=who==='shield'?((cpt&&cpt.y!=null)?cpt.y:this.shield.y):this.ball.y;
+  _hit(obs,top,who){
+    const hx=who==='shield'?this.shield.x:this.ball.x;
+    const hy=who==='shield'?this.shield.y:this.ball.y;
     const dx=obs.x-hx,dy=(obs.y+top)-hy;
     const len=Math.sqrt(dx*dx+dy*dy)||1;
     const f=this.cfg.obstaclePushForce;
