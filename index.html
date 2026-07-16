@@ -298,6 +298,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="sec">Main ball</div>
       <div class="row wide"><label>Кол-во шаров / Balloon count<small>Расставляются пирамидой (1 сверху, шире книзу)</small></label>
         <div class="rr"><input type="range" id="cfg-balloonCount" value="1" min="1" max="10" step="1" oninput="sv('cfg-balloonCount-v',this.value)"><span id="cfg-balloonCount-v">1</span></div></div>
+      <div class="row wide"><label>Расстояние между шарами / Ball spacing<small>Зазор между шарами, px</small></label>
+        <div class="rr"><input type="range" id="cfg-balloonSpacing" value="30" min="0" max="120" step="1" oninput="sv('cfg-balloonSpacing-v',this.value+' px')"><span id="cfg-balloonSpacing-v">30 px</span></div></div>
       <div class="row wide"><label>Размер шара / Ball size<small>Scale ×</small></label>
         <div class="rr"><input type="range" id="cfg-ballSizeUI" value="2" min="0.5" max="4" step="0.1" oninput="ballSizeFromUI(this.value)"><span id="cfg-ballSizeUI-v">2.0</span></div></div>
       <div class="sec">Custom sprite</div>

@@ -427,7 +427,7 @@ class Ball{
   get r(){return 20*this.cfg.playerSize;}
   get worldY(){return this.travel;}
   _rows(){const n=Math.max(1,this.count|0);if(n<=2)return [n];const bottom=Math.ceil(n/2);return [n-bottom,bottom];}
-  offsets(){const r=this.r,rows=this._rows(),dx=r*2.4,dy=r*2.4,out=[];for(let ri=0;ri<rows.length;ri++){const cnt=rows[ri],rowW=(cnt-1)*dx;for(let ci=0;ci<cnt;ci++)out.push({dx:-rowW/2+ci*dx,dy:ri*dy});}return out;}
+  offsets(){const r=this.r,rows=this._rows(),gap=(this.cfg.balloonSpacing!=null?this.cfg.balloonSpacing:30),dx=2*r+gap,dy=2*r+gap,out=[];for(let ri=0;ri<rows.length;ri++){const cnt=rows[ri],rowW=(cnt-1)*dx;for(let ci=0;ci<cnt;ci++)out.push({dx:-rowW/2+ci*dx,dy:ri*dy});}return out;}
   points(){return this.offsets().map(p=>({x:this.x+p.dx,y:this.y+p.dy}));}
   die(){this.dead=true;this.da=0;this.deathT=0;}
   respawn(){
