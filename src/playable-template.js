@@ -1399,7 +1399,8 @@ class Game{
     // text
     const fs=Math.max(6,((T&&parseFloat(T.textSize))||18)*(S/(Math.min(CW,CH)*0.14)));
     ctx.fillStyle=(T&&T.textColor)||'rgba(255,255,255,.92)';
-    ctx.font='bold '+fs+'px sans-serif';ctx.textAlign='center';
+    var _tf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[this.cfg.tutorialFont])?RiseFontCSS[this.cfg.tutorialFont]:(this.cfg.tutorialFont||'sans-serif');
+    ctx.font='bold '+fs+'px '+_tf;ctx.textAlign='center';
     const lines=String((T&&T.text!=null)?T.text:'Move the circle\nto break the block').split('\n');
     let ty=this._tutU(0,2.9).y;
     const tx=this._tutAnchor.ax;

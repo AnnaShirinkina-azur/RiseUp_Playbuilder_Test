@@ -368,8 +368,7 @@ function syncGoogleFontOption(){
   if(!link){link=document.createElement('link');link.id='google-font-link';link.rel='stylesheet';document.head.appendChild(link);}
   if(href)link.href=href;
   FONT_CSS[fam]=fontCssFamily(fam);
-  let opt=[...sel.options].find(o=>o.value===fam);
-  if(!opt){opt=document.createElement('option');opt.value=fam;opt.textContent=fam+' (Google)';sel.appendChild(opt);}
+  document.querySelectorAll('select.font-select').forEach(function(s){if(![...s.options].some(o=>o.value===fam)){var o=document.createElement('option');o.value=fam;o.textContent=fam+' (Google)';s.appendChild(o);}});
   if(st)st.textContent='Loaded: '+fam;
   if(document.fonts&&document.fonts.load)document.fonts.load('700 40px '+fontCssFamily(fam)).then(()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();}).catch(()=>{});
 }
@@ -379,7 +378,7 @@ $('cfg-googleFontFamily')?.addEventListener('change',syncGoogleFontOption);
 function syncLocalFontOption(dataUrl){
   const famEl=$('cfg-localFontFamily'), st=$('cfg-localFontStatus'), sel=$('tx-font');
   const fam=(famEl&&famEl.value.trim())||'CustomFont';
-  if(sel && !Array.from(sel.options).some(o=>o.value===fam)){const opt=document.createElement('option');opt.value=fam;opt.textContent=fam+' (local)';sel.appendChild(opt);}
+  document.querySelectorAll('select.font-select').forEach(function(s){if(!Array.from(s.options).some(o=>o.value===fam)){var o=document.createElement('option');o.value=fam;o.textContent=fam+' (local)';s.appendChild(o);}});
   FONT_CSS[fam]=fontCssFamily(fam);
   if(dataUrl){
     let style=$('local-font-style');
@@ -481,7 +480,7 @@ try{
     return lines;
   }
   const endTextMeasureCanvas=document.createElement('canvas'),endTextMeasureCtx=endTextMeasureCanvas.getContext('2d');
-  function endTextFamily(){const famName=($('tx-font')&&$('tx-font').value)||'system-ui';return fontCssFamily(famName);}
+  function endTextFamily(){const famName=($('cfg-endCardFont')&&$('cfg-endCardFont').value)||($('tx-font')&&$('tx-font').value)||'system-ui';return fontCssFamily(famName);}
   function naturalTextMetrics(o,size,family){
     const ctx=endTextMeasureCtx,lines=textLines(o,defaultText('text')),lineH=size*1.16,totalH=Math.max(lineH,lines.length*lineH);
     ctx.save();ctx.font='800 '+size+'px '+family;let maxW=1;
@@ -521,7 +520,7 @@ try{
   function selectionRect(ctx,r,z){if(!r)return;ctx.save();ctx.strokeStyle='#52e08a';ctx.lineWidth=Math.max(1,2*z);ctx.setLineDash([7*z,5*z]);ctx.strokeRect(r.x-4*z,r.y-4*z,r.w+8*z,r.h+8*z);ctx.restore();}
   function draw(){
     const c=cv();if(!c)return;
-    const ctx=c.getContext('2d'),W=c.width,H=c.height,z=Math.min(W/390,H/390),famName=($('tx-font')&&$('tx-font').value)||'system-ui',family=fontCssFamily(famName);
+    const ctx=c.getContext('2d'),W=c.width,H=c.height,z=Math.min(W/390,H/390),famName=($('cfg-endCardFont')&&$('cfg-endCardFont').value)||($('tx-font')&&$('tx-font').value)||'system-ui',family=fontCssFamily(famName);
     ctx.clearRect(0,0,W,H);ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);const bg=cur().background,bgFill=bg.fillMode||'image';if(!bg.hidden){if(bgFill==='gradient'){var _gr=ctx.createLinearGradient(0,0,0,H);_gr.addColorStop(0,bg.colorA||'#69c5ec');_gr.addColorStop(1,bg.colorB||'#39a2d8');ctx.fillStyle=_gr;ctx.fillRect(0,0,W,H);}else if(bgFill==='solid'){ctx.fillStyle=bg.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else drawCover(ctx,imageForBackground(),0,0,W,H);}(function(){var _ov=num('cfg-endCardOverlay',.55),_oc=($('cfg-endCardOverlayColor')&&$('cfg-endCardOverlayColor').value)||'#000000';ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+_ov+')';ctx.fillRect(0,0,W,H);})();
     const io=cur().image,ip=pos(io,W,H),art=imageForArtwork(),iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale||1),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale||1),ir=io.hidden?null:drawContain(ctx,art,ip.x,ip.y,iw,ih);
     const to=ensureTextPixelSize(ensureTextItem(cur().text,'text')),tp=pos(to,W,H),ts=to.scale==null?1:to.scale,fs=to.fontSize*z*ts,tw=Math.max(1,to.width)*z*ts,th=Math.max(1,to.height)*z*ts,tr=to.hidden?null:drawRichCentered(ctx,to,tp.x,tp.y,fs,family,z*ts,defaultText('text'),tw,th);
@@ -590,7 +589,7 @@ try{
   $('cfg-endCardBgFill')&&$('cfg-endCardBgFill').addEventListener('change',()=>{if(selected!=='background')return;cur().background.fillMode=$('cfg-endCardBgFill').value;syncFields();draw();markPreviewDirty();});
   $('cfg-endCardBgColorA')&&$('cfg-endCardBgColorA').addEventListener('input',()=>{if(selected!=='background')return;cur().background.colorA=$('cfg-endCardBgColorA').value;draw();markPreviewDirty();});
   $('cfg-endCardBgColorB')&&$('cfg-endCardBgColorB').addEventListener('input',()=>{if(selected!=='background')return;cur().background.colorB=$('cfg-endCardBgColorB').value;draw();markPreviewDirty();});
-  ['end-zoom','cfg-endCardEnabled','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardOverlayColor'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
+  ['end-zoom','cfg-endCardEnabled','cfg-endCardOverlay','cfg-endCardCta','cfg-endCardOverlayColor','cfg-endCardFont'].forEach(id=>{$(id)&&$(id).addEventListener('input',()=>{resize();markPreviewDirty();});$(id)&&$(id).addEventListener('change',()=>{resize();markPreviewDirty();});});
   document.querySelectorAll('#end-anchor button').forEach(b=>b.addEventListener('click',()=>{if(selected==='background')return;item().anchor=b.dataset.a;syncFields();markPreviewDirty();}));
   $('end-import')&&$('end-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'image').catch(err=>alert('End card import failed: '+err.message)));
   $('end-bg-import')&&$('end-bg-import').addEventListener('change',e=>handleImport(e.target.files&&e.target.files[0],'background').catch(err=>alert('Background import failed: '+err.message)));
@@ -689,7 +688,7 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-balloonCount':1,'cfg-balloonSpacing':30,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
-  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialEnabled':true,'cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
+  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialEnabled':true,'cfg-endCardFont':'Baloo2','cfg-tutorialFont':'Baloo2','cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',

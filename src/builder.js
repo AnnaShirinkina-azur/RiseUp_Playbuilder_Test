@@ -34,6 +34,7 @@ function readConfig(){
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
+    tutorialFont:(function(){var e=document.getElementById('cfg-tutorialFont');return (e&&e.value)||'Baloo2';})(),
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
     tutorialFailEnabled:(function(){var e=document.getElementById('cfg-tutorialFailEnabled');return e?e.checked:true;})(),
     tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
@@ -78,7 +79,7 @@ function readConfig(){
       overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
       ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
-      fontFamily:(function(){var e=document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),
+      fontFamily:(function(){var e=document.getElementById('cfg-endCardFont')||document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),
       ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})(),
       layouts:(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null
     },
