@@ -1482,7 +1482,7 @@ class Game{
     if(imgOk(b.bgImg))drawTintedImage(ctx,b.bgImg,x,y,w,h,b.bgTint||'#ffffff');
     else{ctx.fillStyle=b.bgTint||this.cfg.obstacleColor;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,h*.22):ctx.rect(x,y,w,h);ctx.fill();}
     if(imgOk(b.textImg))drawTintedImage(ctx,b.textImg,x,y,w,h,b.textTint||'#ffffff');
-    else{ctx.fillStyle=b.textTint||'#ffffff';ctx.font='bold '+Math.max(12,h*.28)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((b.text==null||b.text==='')?'PLAY NOW':b.text,r.cx,r.cy);}
+    else{ctx.fillStyle=b.textTint||'#ffffff';var _cf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[b.font])?RiseFontCSS[b.font]:(b.font||'sans-serif');ctx.font='bold '+Math.max(12,h*.28)+'px '+_cf;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((b.text==null||b.text==='')?'PLAY NOW':b.text,r.cx,r.cy);}
   }
 
   _drawCtas(ctx){
@@ -1519,6 +1519,7 @@ class Game{
       ctx.restore();
     };
     const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
+    const famOf=(o)=>{const fn=(o&&o.font)||ec.fontFamily;return (typeof RiseFontCSS!=='undefined'&&RiseFontCSS[fn])?RiseFontCSS[fn]:(fn||'sans-serif');};
     ctx.save();ctx.globalAlpha=this.endA;
     let bg=null,bgHidden=!!(layout&&layout.background&&layout.background.hidden);
     const bgo=(layout&&layout.background)||{},bgFill=bgo.fillMode||'image';
@@ -1536,12 +1537,12 @@ class Game{
       const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);
       if(!io.hidden)contain(art,ip.x,ip.y,iw,ih);
       const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts,tw=parseFloat(to.width)>0?to.width*ts:null,th=parseFloat(to.height)>0?to.height*ts:null;
-      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,fam,ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
+      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,famOf(to),ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
       if(ec.showCta!==false&&!(layout.cta&&layout.cta.hidden)){
         const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs,bh=baseH*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
         const tint=co.bgTint||'#ffffff';if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,tint);else{ctx.fillStyle=tint;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
         const cfz=(co.fontSize==null?17:co.fontSize)*cs,ctaFallback=typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW';
-        drawRich(co,bx+bw/2,by+bh/2,cfz,fam,cs,ctaFallback);
+        drawRich(co,bx+bw/2,by+bh/2,cfz,famOf(co),cs,ctaFallback);
       }
     }else{
       if(this.isWin){const card=this._spr('endcard_win');if(imgOk(card)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;contain(card,cx,cy,W*.88*sc,H*.38*sc);}else{ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU WIN!',W/2,H*.35);}}

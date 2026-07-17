@@ -633,6 +633,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Button bg<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('bg',this)"></label><button class="x-btn" id="cta-bg-clear" type="button">✕</button>
         <label class="ul-btn">+ Text image<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('text',this)"></label><button class="x-btn" id="cta-text-clear" type="button">✕</button>
         <div class="lp">Text<input type="text" id="cta-text" value="PLAY NOW" style="width:120px"></div>
+        <div class="lp">Font<select id="cta-font" class="font-select cfg-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
         <div class="lp">W<input type="number" id="cta-w" value="260" min="30" max="900" step="1"></div>
         <div class="lp">H<input type="number" id="cta-h" value="86" min="20" max="400" step="1"></div>
         <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
@@ -718,6 +719,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <span class="etg-label">Content</span>
           <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
+          <div class="ep" id="end-obj-font-wrap">Font<select id="cfg-endCardObjFont" class="font-select"><option value="">General</option><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
           <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
           <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
           <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
