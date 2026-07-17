@@ -1054,7 +1054,20 @@ class Game{
     //               an optional seam sprite covers the junction between bands.
     if(this.cfg.backgroundMode==='common'){
       const bg=this._spr('background');
-      if(imgOk(bg))this._drawCoverFade(ctx,bg,0,0,CW,CH,0,this.cfg.backgroundSpriteColor);
+      if(imgOk(bg)){
+        // Seamless vertical tiling: stretch to screen width, keep aspect for the
+        // tile height, and repeat down the screen scrolling with the world so a
+        // seamless texture continues across every stage (no blur, no per-stage cut).
+        const iw=bg.naturalWidth||bg.width||1, ih=bg.naturalHeight||bg.height||1;
+        const tileW=CW, tileH=Math.max(1,tileW*(ih/iw));
+        const scroll=((this.ball&&this.ball.travel)||0)*0.5;
+        let off=((scroll%tileH)+tileH)%tileH;
+        const tint=this.cfg.backgroundSpriteColor;
+        for(let y=off-tileH;y<CH+1;y+=tileH){
+          if(tint&&String(tint).toLowerCase()!=='#ffffff')drawTintedImage(ctx,bg,0,y,tileW,tileH,tint);
+          else ctx.drawImage(bg,0,y,tileW,tileH);
+        }
+      }
       return;
     }
     const grads=(this.cfg.stageBgGradients&&this.cfg.stageBgGradients.length)?this.cfg.stageBgGradients:BG_GRADS;

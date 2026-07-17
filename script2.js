@@ -1559,7 +1559,9 @@ bindHexColorInputs(document);
     const im=getEditorImage(sm.background);
     if(!imageReady(im))return;
     const tint=$('cfg-bgSpriteColor')?$('cfg-bgSpriteColor').value:'#ffffff';
-    for(let r=0;r<totalStages();r++)drawCoverImageFade(im,0,r*GH*zoom,GW*zoom,GH*zoom,0,tint);
+    const iw=im.naturalWidth||im.width||1,ih=im.naturalHeight||im.height||1;
+    const tileW=GW*zoom,tileH=Math.max(1,tileW*(ih/iw)),totalH=totalStages()*GH*zoom;
+    for(let y=0;y<totalH;y+=tileH)drawTintedImage(im,0,y,tileW,tileH,tint);
   }
   function drawPerStageBg(){
     // Per-mini-level bands: uploaded image (cover) or a 2-colour gradient,
