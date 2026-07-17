@@ -418,6 +418,7 @@ try{
 // End Card editor
 (function(){
   let state='win', orientation='portrait', selected='image';
+  let lastRects={};
   const cv=()=>$('end-canvas'), wrap=()=>$('end-wrap');
   function img(src){const im=new Image();im.src=src||'';return im;}
   const dynamicImageCache=new Map();
@@ -532,6 +533,7 @@ try{
       drawRichCentered(ctx,co,bx+bw/2,by+bh/2,co.fontSize*z*cs,family,z*cs,defaultText('cta'));
       cr={x:bx,y:by,w:bw,h:bh};
     }
+    lastRects={image:ir,text:tr,cta:cr};
     if(selected==='image')selectionRect(ctx,ir,z);else if(selected==='text')selectionRect(ctx,tr,z);else if(selected==='cta')selectionRect(ctx,cr,z);else if(selected==='background'&&!bg.hidden)selectionRect(ctx,{x:2,y:2,w:W-4,h:H-4},z);
   }
   function syncFields(){
@@ -603,7 +605,10 @@ try{
     ['portrait','landscape'].forEach(function(or){RiseBuilder.setSprite('endcard_'+state+'_'+or+'_cta_bg',src);});syncFields();markPreviewDirty();
   }
   $('end-cta-bg-import')&&$('end-cta-bg-import').addEventListener('change',e=>{const input=e.target,f=input.files&&input.files[0];handleCtaSpriteImport(f).catch(err=>alert('CTA sprite import failed: '+err.message)).finally(()=>{input.value='';});});
-  let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();o.x=Math.max(-200,Math.min(200,(o.x||0)+dx/r.width*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+dy/r.height*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
+  function hitRect(r,x,y){return !!(r&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);}
+  function pickAt(x,y){const o=cur();if(!(o.cta&&o.cta.hidden)&&$('cfg-endCardCta')&&$('cfg-endCardCta').checked&&hitRect(lastRects.cta,x,y))return 'cta';if(!(o.text&&o.text.hidden)&&hitRect(lastRects.text,x,y))return 'text';if(!(o.image&&o.image.hidden)&&hitRect(lastRects.image,x,y))return 'image';return null;}
+  document.addEventListener('keydown',e=>{if(e.key!=='Delete'&&e.key!=='Backspace')return;var c=cv();if(!c||c.offsetParent===null)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;e.preventDefault();toggleSelectedObject();});
+  let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{const rc=ecv.getBoundingClientRect(),hx=(e.clientX-rc.left)*(ecv.width/rc.width),hy=(e.clientY-rc.top)*(ecv.height/rc.height),pk=pickAt(hx,hy);if(pk)setSelected(pk);if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();o.x=Math.max(-200,Math.min(200,(o.x||0)+dx/r.width*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+dy/r.height*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
   Object.values(imgs).forEach(im=>im.onload=draw);
   window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts))};
   setTimeout(()=>{setOrientation('portrait');syncFields();},50);
