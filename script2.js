@@ -328,7 +328,7 @@ document.querySelectorAll('.orbtn[data-seammode]').forEach(b=>b.__seamBound=true
 $('cfg-seamMulti')?.addEventListener('change',syncSeamMode);
 syncSeamMode();
 $('cfg-playerSize')?.addEventListener('input',()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();});
-['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor','cfg-seamTint'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
+['cfg-stageAccents','cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4','cfg-bgSpriteColor','cfg-seamTint','cfg-lives'].forEach(id=>{const e=$(id);if(!e)return;const redraw=()=>{if(window.RiseLevelEditor)RiseLevelEditor.draw();};e.addEventListener('input',redraw);e.addEventListener('change',redraw);});
 
 function googleFontFamilyFromUrl(url){
   url=String(url||'').trim();
@@ -1347,7 +1347,7 @@ bindHexColorInputs(document);
   function setHealthLocalFromOffset(o){if(!o||o.kind!=='health')return;const l=healthLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
   function anchorBoxLocal(anchor,ax,ay,w,h){const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return{x:ah==='l'?ax:(ah==='r'?ax-w:ax-w/2),y:av==='t'?ay:(av==='b'?ay-h:ay-h/2),w,h};}
   function progressBoxLocal(o){const l=progressLocal(o),d=progressDrawSize(o);return anchorBoxLocal(o.anchor||'cl',l.x,l.y,d.w,d.h);}
-  function healthBoxLocal(o){const l=healthLocal(o),d=healthDrawSize(o),cnt=o.count||3,w=cnt*d.heartW+(cnt-1)*d.gap,h=d.heartW;return anchorBoxLocal(o.anchor||'tc',l.x,l.y,w,h);}
+  function healthBoxLocal(o){const l=healthLocal(o),d=healthDrawSize(o),cnt=Math.max(1,parseInt(($('cfg-lives')||{}).value,10)||o.count||3),w=cnt*d.heartW+(cnt-1)*d.gap,h=d.heartW;return anchorBoxLocal(o.anchor||'tc',l.x,l.y,w,h);}
   function ctaDrawSize(o){ensureResponsiveBase(o);const k=uiBaseScale(o);return {w:(o.baseW||o.w||260)*k,h:(o.baseH||o.h||86)*k};}
   function ctaBoxLocal(o){const l=ctaLocal(o),d=ctaDrawSize(o);return anchorBoxLocal(o.anchor||'bc',l.x,l.y,d.w,d.h);}
   function uiCenterLocal(o){if(o.kind==='progress'){const b=progressBoxLocal(o);return{x:b.x+b.w/2,y:b.y+b.h/2};}if(o.kind==='health'){const b=healthBoxLocal(o);return{x:b.x+b.w/2,y:b.y+b.h/2};}if(o.kind==='cta'){const b=ctaBoxLocal(o);return{x:b.x+b.w/2,y:b.y+b.h/2};}if(o.kind==='tutorial'){const b=tutorialBoxLocal(o);return{x:b.x+b.w/2,y:b.y+b.h/2};}return itemLocal(o);}
@@ -1757,7 +1757,7 @@ bindHexColorInputs(document);
   }
 
   function drawHealthItem(o,si,i){
-    const b=healthBoxLocal(o),ds=healthDrawSize(o),size=ds.heartW*zoom,gap=ds.gap*zoom,cnt=o.count||3,total=cnt*size+(cnt-1)*gap;
+    const b=healthBoxLocal(o),ds=healthDrawSize(o),size=ds.heartW*zoom,gap=ds.gap*zoom,cnt=Math.max(1,parseInt(($('cfg-lives')||{}).value,10)||o.count||3),total=cnt*size+(cnt-1)*gap;
     let x=(GW/2+b.x)*zoom,y=(rowOf(si)*GH+GH/2+b.y)*zoom;const im=progressImg(o.heartSrc||'Assets/textures/heart.png');
     for(let k=0;k<cnt;k++){
       ctx.save();ctx.globalAlpha=1;

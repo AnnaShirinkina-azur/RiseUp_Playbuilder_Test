@@ -1243,7 +1243,7 @@ class Game{
     const bars=(this.healthBars&&this.healthBars.length)?this.healthBars:[];
     if(!bars.length)return;
     for(const b of bars){
-      const count=Math.max(1,parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
+      const count=Math.max(1,parseInt(this.cfg.lives,10)||parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
       const box=healthBoxLocal(b), total=count*size+(count-1)*gap;
       let x=CW/2+box.x, y=CH/2+box.y;
       for(let i=0;i<count;i++){
