@@ -709,6 +709,13 @@ class Game{
   }
   _start(){
     this.state='playing';
+    if(this.cfg.tutorialEnabled===false){
+      // No tutorial: go straight to gameplay, no learn phase, no delay.
+      this.tutDone=true;this.tutA=0;this.tutPhase='done';
+      this.ball.start(this._ballSpeed(),this.camY);
+      this.snd.play('bgm');
+      return;
+    }
     this.tutPhase='fly';this.tutPhaseT=0;this.tutT=0;this.tutA=0;
     this._tutCruiseSpeed=this._ballSpeed()*.72;
     this.ball.start(this._tutCruiseSpeed,this.camY);
