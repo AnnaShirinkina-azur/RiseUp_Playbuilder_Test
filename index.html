@@ -673,6 +673,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
         <div class="esep"></div>
         <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
+        <div class="esep"></div>
+        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
       </div>
       <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
@@ -719,7 +721,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
           <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
           <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Font<select id="cfg-endCardFont" class="font-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
           <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.55" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
           <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
           <input type="hidden" id="cfg-endCardCtaY" value="74">
