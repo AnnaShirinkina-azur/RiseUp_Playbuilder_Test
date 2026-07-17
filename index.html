@@ -597,6 +597,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">H<input type="number" id="pb-h" value="300" min="60" max="900" step="1"></div>
         <div class="lp">Fill <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
         <div class="lp">Line <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
+        <div class="lp">Appear<select id="pb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="pb-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -616,6 +617,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Bg image<input type="file" accept="image/*" style="display:none" onchange="loadHealthBg(this)"></label><button class="x-btn" id="hb-bg-clear" type="button">✕</button>
         <div class="lp">Bg pad<input type="number" id="hb-bgpad" value="12" min="0" max="200" step="1"></div>
         <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-bgtint" value="#ffffff"></div>
+        <div class="lp">Appear<select id="hb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="hb-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>

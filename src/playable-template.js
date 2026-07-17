@@ -578,6 +578,7 @@ class Game{
   }
 
   _spr(key){const s=this.assets[key];return imgOk(s)?s:null;}
+  _revealAlpha(mode){if(mode==='tap')return this._startedAt?clamp((Date.now()-this._startedAt)/400,0,1):0;if(mode==='death')return this._firstDeathAt?clamp((Date.now()-this._firstDeathAt)/400,0,1):0;return 1;}
 
   _buildStages(){
     const c=this.cfg;
@@ -628,6 +629,7 @@ class Game{
   _reset(){
     this.camY=0;
     this.state='start';
+    this._startedAt=0;this._firstDeathAt=0;
     this.lives=this.cfg.lives;
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
@@ -709,6 +711,7 @@ class Game{
   }
   _start(){
     this.state='playing';
+    this._startedAt=this._startedAt||Date.now();
     if(this.cfg.tutorialEnabled===false){
       // No tutorial: go straight to gameplay, no learn phase, no delay.
       this.tutDone=true;this.tutA=0;this.tutPhase='done';
@@ -987,7 +990,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){this.lives--;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this.fadeDir=1;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
@@ -1253,8 +1256,9 @@ class Game{
     if(st&&!st.done)frac=clamp((st.worldY-firstTop)/(threshold-firstTop),0,1);
     const p=clamp(((this.completedStages||0)+frac)/denom,0,1);
     for(const b of bars){
+      const ra=this._revealAlpha(b.appear||'start');if(ra<=0)continue;
       const box=progressBoxLocal(b),x=CW/2+box.x,y=CH/2+box.y;
-      this._drawFlask(ctx,x,y,box.w,box.h,p,b.fill,b.line,b);
+      ctx.save();ctx.globalAlpha=ra;this._drawFlask(ctx,x,y,box.w,box.h,p,b.fill,b.line,b);ctx.restore();
     }
   }
 
@@ -1265,11 +1269,12 @@ class Game{
     for(const b of bars){
       const count=Math.max(1,parseInt(this.cfg.lives,10)||parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
       const box=healthBoxLocal(b), total=count*size+(count-1)*gap;
+      const ra=this._revealAlpha(b.appear||'start');if(ra<=0)continue;
       let x=CW/2+box.x, y=CH/2+box.y;
-      if(imgOk(b.bgImg)){const pad=(b.bgPad==null?12:b.bgPad);drawTintedImage(ctx,b.bgImg,x-pad,y-pad,total+pad*2,size+pad*2,b.bgTint||'#ffffff');}
+      if(imgOk(b.bgImg)){ctx.save();ctx.globalAlpha=ra;const pad=(b.bgPad==null?12:b.bgPad);drawTintedImage(ctx,b.bgImg,x-pad,y-pad,total+pad*2,size+pad*2,b.bgTint||'#ffffff');ctx.restore();}
       for(let i=0;i<count;i++){
         ctx.save();
-        ctx.globalAlpha=i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha);
+        ctx.globalAlpha=(i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha))*ra;
         const im=b.heartImg;
         if(imgOk(im))drawTintedImage(ctx,im,x,y,size,size,b.tint||'#ffffff');
         else{ctx.font=Math.round(size*.86)+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=i<this.lives?'#ff6b6b':'#444';ctx.fillText('♥',x+size/2,y+size/2);}
