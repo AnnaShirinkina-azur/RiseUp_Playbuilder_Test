@@ -1415,7 +1415,7 @@ bindHexColorInputs(document);
     }
     if(mode==='cta'){
       const x=Math.round(g.x),y=Math.round(localY),base=progressAnchorBaseLocal('bc');
-      const C={kind:'cta',coordMode:'screen',x,y,w:260,h:86,baseW:260,baseH:86,designW:GW,designH:GH,anchor:'bc',anchorOffsetX:Math.round(((x-base.x)/GW)*1000)/10,anchorOffsetY:Math.round(((y-base.y)/GH)*1000)/10,bgTint:'#ffffff',textTint:'#ffffff',bgSrc:null,textSrc:null,text:'PLAY NOW',font:'Baloo2'};
+      const C={kind:'cta',coordMode:'screen',x,y,w:260,h:86,baseW:260,baseH:86,designW:GW,designH:GH,anchor:'bc',anchorOffsetX:Math.round(((x-base.x)/GW)*1000)/10,anchorOffsetY:Math.round(((y-base.y)/GH)*1000)/10,bgTint:'#ffffff',textTint:'#ffffff',bgSrc:null,textSrc:null,text:'PLAY NOW',font:'Baloo2',fontSize:24};
       lvls[si].push(C);setSelection(lvls[si].length-1,false);syncProps();draw();return;
     }
     if(mode==='tutorial'){
@@ -1785,7 +1785,7 @@ bindHexColorInputs(document);
     const b=ctaBoxLocal(o),ds=ctaDrawSize(o),sw=ds.w*zoom,sh=ds.h*zoom,x=(GW/2+b.x)*zoom,y=(rowOf(si)*GH+GH/2+b.y)*zoom,c={x:x+sw/2,y:y+sh/2};
     const bg=progressImg(o.bgSrc),tx=progressImg(o.textSrc);
     if(bg&&imageReady(bg))drawTintedImage(bg,x,y,sw,sh,o.bgTint);else{ctx.fillStyle=o.bgTint||'#e05252';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,sw,sh,sh*.22):ctx.rect(x,y,sw,sh);ctx.fill();}
-    if(tx&&imageReady(tx))drawTintedImage(tx,x,y,sw,sh,o.textTint);else{ctx.fillStyle=o.textTint||'#ffffff';ctx.font='700 '+Math.max(12,sh*.28)+'px '+fontCssFamily(o.font||'Baloo2');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((o.text==null||o.text==='')?'PLAY NOW':o.text,c.x,c.y);}
+    if(tx&&imageReady(tx))drawTintedImage(tx,x,y,sw,sh,o.textTint);else{ctx.fillStyle=o.textTint||'#ffffff';ctx.font='700 '+Math.max(12,sh*(o.fontSize!=null?o.fontSize/Math.max(1,(o.baseH||o.h||86)):0.28))+'px '+fontCssFamily(o.font||'Baloo2');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((o.text==null||o.text==='')?'PLAY NOW':o.text,c.x,c.y);}
     if(isSelected(si,i)){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect(x-5,y-5,sw+10,sh+10);ctx.setLineDash([]);}
   }
   const TUT_HAND_SVG='Assets/textures/tutorial_hand.svg';
@@ -1995,6 +1995,7 @@ bindHexColorInputs(document);
     if(isCta){
       if($('cta-text'))$('cta-text').value=(o.text==null?'PLAY NOW':o.text);
       if($('cta-font'))$('cta-font').value=o.font||'Baloo2';
+      if($('cta-fontsize'))$('cta-fontsize').value=(o.fontSize!=null?o.fontSize:Math.round((o.baseH||o.h||86)*0.28));
       if($('cta-w'))$('cta-w').value=o.baseW||o.w||260;if($('cta-h'))$('cta-h').value=o.baseH||o.h||86;
       setHexValue('cta-bg-tint',o.bgTint,'#ffffff');setHexValue('cta-text-tint',o.textTint,'#ffffff');
       if($('cta-offx'))$('cta-offx').value=o.anchorOffsetX||0;if($('cta-offy'))$('cta-offy').value=o.anchorOffsetY||0;
@@ -2107,7 +2108,7 @@ bindHexColorInputs(document);
   document.querySelectorAll('#cta-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='cta')return;o.anchor=b.dataset.a;setCtaLocalFromOffset(o);document.querySelectorAll('#cta-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
   function bindCta(id,field,tf){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='cta')return;o[field]=tf?tf(e.value):(e.classList&&e.classList.contains('hex-color')?normalizeHexColor(e.value,o[field]||e.defaultValue||'#ffffff'):e.value);if(field==='w')o.baseW=o.w;if(field==='h')o.baseH=o.h;draw();});}
   function bindCtaOffset(id,field){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='cta')return;o[field]=parseFloat(e.value)||0;setCtaLocalFromOffset(o);draw();});}
-  bindCta('cta-w','w',v=>Math.max(30,parseFloat(v)||260));bindCta('cta-h','h',v=>Math.max(20,parseFloat(v)||86));bindCta('cta-bg-tint','bgTint');bindCta('cta-text-tint','textTint');bindCta('cta-text','text');bindCta('cta-font','font');bindCtaOffset('cta-offx','anchorOffsetX');bindCtaOffset('cta-offy','anchorOffsetY');
+  bindCta('cta-w','w',v=>Math.max(30,parseFloat(v)||260));bindCta('cta-h','h',v=>Math.max(20,parseFloat(v)||86));bindCta('cta-bg-tint','bgTint');bindCta('cta-text-tint','textTint');bindCta('cta-text','text');bindCta('cta-font','font');bindCta('cta-fontsize','fontSize',v=>Math.max(6,parseFloat(v)||24));bindCtaOffset('cta-offx','anchorOffsetX');bindCtaOffset('cta-offy','anchorOffsetY');
   window.loadCtaPart=function(part,inp){const o=selItem();if(!o||o.kind!=='cta'||!inp.files||!inp.files[0])return;const r=new FileReader();r.onload=e=>{if(part==='bg')o.bgSrc=e.target.result;else o.textSrc=e.target.result;draw();};r.readAsDataURL(inp.files[0]);inp.value='';};
   $('cta-bg-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.bgSrc=null;draw();}});
   $('cta-text-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.textSrc=null;draw();}});
