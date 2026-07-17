@@ -600,7 +600,7 @@ class Game{
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
           if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
-          if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;this.healthBars.push(ho);return;}
+          if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
@@ -629,7 +629,7 @@ class Game{
   _reset(){
     this.camY=0;
     this.state='start';
-    this._startedAt=0;this._firstDeathAt=0;
+    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;
     this.lives=this.cfg.lives;
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
@@ -990,7 +990,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this.fadeDir=1;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
@@ -1273,6 +1273,15 @@ class Game{
       let x=CW/2+box.x, y=CH/2+box.y;
       if(imgOk(b.bgImg)){ctx.save();ctx.globalAlpha=ra;const pad=(b.bgPad==null?12:b.bgPad);drawTintedImage(ctx,b.bgImg,x-pad,y-pad,total+pad*2,size+pad*2,b.bgTint||'#ffffff');ctx.restore();}
       for(let i=0;i<count;i++){
+        if(b.breakAnim!==false&&i===this._heartBreakIdx&&this._heartBreakAt&&imgOk(b.breakLImg)&&imgOk(b.breakRImg)){
+          const bt=(Date.now()-this._heartBreakAt)/650;
+          if(bt<1){
+            const al=(1-bt)*ra,sep=bt*size*0.55,drop=bt*bt*size*1.3,rot=bt*0.6,hw=size/2,hh=size;
+            ctx.save();ctx.globalAlpha=al;ctx.translate(x+size*0.25-sep,y+size*0.5+drop);ctx.rotate(-rot);drawTintedImage(ctx,b.breakLImg,-hw/2,-hh/2,hw,hh,b.tint||'#ffffff');ctx.restore();
+            ctx.save();ctx.globalAlpha=al;ctx.translate(x+size*0.75+sep,y+size*0.5+drop);ctx.rotate(rot);drawTintedImage(ctx,b.breakRImg,-hw/2,-hh/2,hw,hh,b.tint||'#ffffff');ctx.restore();
+            x+=size+gap;continue;
+          }
+        }
         ctx.save();
         ctx.globalAlpha=(i<this.lives?1:(b.emptyAlpha==null ? .28 : b.emptyAlpha))*ra;
         const im=b.heartImg;
