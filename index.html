@@ -613,6 +613,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">Size<input type="number" id="hb-size" value="36" min="8" max="180" step="1"></div>
         <div class="lp">Gap<input type="number" id="hb-gap" value="6" min="-20" max="80" step="1"></div>
         <div class="lp">Tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
+        <label class="ul-btn">+ Bg image<input type="file" accept="image/*" style="display:none" onchange="loadHealthBg(this)"></label><button class="x-btn" id="hb-bg-clear" type="button">✕</button>
+        <div class="lp">Bg pad<input type="number" id="hb-bgpad" value="12" min="0" max="200" step="1"></div>
+        <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-bgtint" value="#ffffff"></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="hb-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
