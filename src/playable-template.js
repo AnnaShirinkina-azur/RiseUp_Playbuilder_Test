@@ -1482,7 +1482,7 @@ class Game{
     if(imgOk(b.bgImg))drawTintedImage(ctx,b.bgImg,x,y,w,h,b.bgTint||'#ffffff');
     else{ctx.fillStyle=b.bgTint||this.cfg.obstacleColor;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,h*.22):ctx.rect(x,y,w,h);ctx.fill();}
     if(imgOk(b.textImg))drawTintedImage(ctx,b.textImg,x,y,w,h,b.textTint||'#ffffff');
-    else{ctx.fillStyle=b.textTint||'#ffffff';var _cf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[b.font])?RiseFontCSS[b.font]:(b.font||'sans-serif');ctx.font='bold '+Math.max(12,h*(b.fontSize!=null?b.fontSize/Math.max(1,(b.baseH||b.h||86)):0.28))+'px '+_cf;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((b.text==null||b.text==='')?'PLAY NOW':b.text,r.cx,r.cy);}
+    else{ctx.fillStyle=b.textTint||'#ffffff';var _cf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[b.font])?RiseFontCSS[b.font]:(b.font||'sans-serif');ctx.font='bold '+Math.max(12,h*(b.fontSize!=null?b.fontSize/Math.max(1,(b.baseH||b.h||86)):0.28))+'px '+_cf;ctx.textAlign='center';ctx.textBaseline='alphabetic';var _t=(b.text==null||b.text==='')?'PLAY NOW':b.text,_m=ctx.measureText(_t),_a=_m.actualBoundingBoxAscent||0,_d=_m.actualBoundingBoxDescent||0;if(!_a){_a=Math.max(12,h*(b.fontSize!=null?b.fontSize/Math.max(1,(b.baseH||b.h||86)):0.28))*0.7;_d=_a*0.28;}ctx.fillText(_t,r.cx,r.cy+(_a-_d)/2);}
   }
 
   _drawCtas(ctx){
