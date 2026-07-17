@@ -845,7 +845,7 @@ class Game{
         this.tutA=reveal*reveal*(3-2*reveal);
         this._updateTutorial(dt);
         if(this.tutT>this.cfg.tutorialDisplayTime){
-          if(this.cfg.tutorialFailEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){
+          if(this.cfg.tutorialFailEnabled!==false&&this.cfg.tutorialAnimEnabled!==false&&!this._tutSmashed&&!this._tutorialFailed){
             this._tutorialFailed=true;this.tutDone=true;this._die();
           }else{
             this.tutDone=true;this.tutA=0;this.ball.speed=this._ballSpeed();
