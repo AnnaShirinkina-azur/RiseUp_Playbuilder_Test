@@ -629,7 +629,7 @@ class Game{
   _reset(){
     this.camY=0;
     this.state='start';
-    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;
+    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;this._breakPauseT=0;this._afterDeathDone=false;
     this.lives=this.cfg.lives;
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
@@ -892,7 +892,9 @@ class Game{
     if(st==='playing'&&this.tutDone)this._recycleStages();
 
     // death sequence
-    if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(this.dtimer>((this.cfg.playerDeathDuration||900)/ds))this._afterDeath();}
+    if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(!this._afterDeathDone&&this.dtimer>((this.cfg.playerDeathDuration||900)/ds)){this._afterDeathDone=true;this._afterDeath();}}
+    // pause after death so the heart-break animation is fully visible before fading to respawn
+    if(this._breakPauseT>0){this._breakPauseT-=dt;if(this._breakPauseT<=0){this._breakPauseT=0;this.fadeDir=1;}}
 
     // fade
     if(this.fadeDir!==0){
@@ -990,7 +992,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this.fadeDir=1;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=700;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
