@@ -248,7 +248,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
-      <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -314,6 +313,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-shield" data-title="Shield">
       <div class="sec">Shield (защитник)</div>
+      <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
