@@ -992,7 +992,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=700;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=1100;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
@@ -1272,7 +1272,7 @@ class Game{
       const count=Math.max(1,parseInt(this.cfg.lives,10)||parseInt(b.count,10)||3), ds=healthDrawSize(b), size=ds.heartW, gap=ds.gap;
       const box=healthBoxLocal(b), total=count*size+(count-1)*gap;
       let ra=this._revealAlpha(b.appear||'start');
-      if(b.hideAfterBreak){if(!this._heartBreakAt)ra=0;else{const el=Date.now()-this._heartBreakAt,B=650,O=350;ra=el<B?1:(el<B+O?1-(el-B)/O:0);}}
+      if(b.hideAfterBreak){if(!this._heartBreakAt)ra=0;else{const el=Date.now()-this._heartBreakAt,B=650,O=400;ra=el<B?1:(el<B+O?1-(el-B)/O:0);}}
       if(ra<=0)continue;
       let x=CW/2+box.x, y=CH/2+box.y;
       if(imgOk(b.bgImg)){ctx.save();ctx.globalAlpha=ra;const pad=(b.bgPad==null?12:b.bgPad);drawTintedImage(ctx,b.bgImg,x-pad,y-pad,total+pad*2,size+pad*2,b.bgTint||'#ffffff');ctx.restore();}
