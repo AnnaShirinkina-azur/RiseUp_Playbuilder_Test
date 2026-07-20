@@ -322,7 +322,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Sprite color</label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
@@ -373,7 +373,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Background image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
         <button class="x-btn" onclick="clearSpr('background')">✕</button>
       </div></div>
-      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgSpriteColor" value="#ffffff"></div>
+      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgSpriteColor" value="#ffffff"></div>
       </div>
     </div>
 
@@ -381,11 +381,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="sec">Stage debug colors</div>
       <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
       <div class="cgrid">
-        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
-        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
-        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
-        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
-        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
       </div>
     </div>
 
@@ -533,7 +533,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep">Scale<input type="number" id="os" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale X<input type="number" id="osx" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale Y<input type="number" id="osy" value="1" min="0.05" max="20" step="0.05"></div>
-          <div class="ep">Color<input type="text" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
+          <div class="ep">Color<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
           <div class="ep">Move±<input type="number" id="om" value="0" min="0" max="180"></div>
           <div class="ep">Anchor
             <div class="anchor-grid" id="ob-anchor">
@@ -565,8 +565,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="txtbar" style="display:none">
         <div class="lp">Text <textarea id="tx-text" placeholder="TAP TO PLAY" rows="3" style="width:170px;min-height:58px;resize:vertical;line-height:1.25"></textarea></div>
-        <div class="lp">Base <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-base" value="#ffffff"></div>
-        <div class="lp">Accent <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-accent" value="#52e08a"></div>
+        <div class="lp">Base <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-base" value="#ffffff"></div>
+        <div class="lp">Accent <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-accent" value="#52e08a"></div>
         <div class="lp"><button class="et" id="tx-paint-acc" title="Покрасить выделенный текст в акцент">Paint accent</button><button class="et" id="tx-paint-base" title="Покрасить выделенный текст в базовый">Base</button></div>
         <div class="esep"></div>
         <div class="lp">Font <select id="tx-font" class="font-select">
@@ -587,7 +587,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
         <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
-        <div class="lp">Stroke <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
+        <div class="lp">Stroke <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
         <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
       </div>
       <div class="lblbar" id="pbar" style="display:none">
@@ -596,8 +596,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Fill image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('fill',this)"></label><button class="x-btn" id="pb-fill-clear" type="button">✕</button>
         <div class="lp">W<input type="number" id="pb-w" value="64" min="20" max="260" step="1"></div>
         <div class="lp">H<input type="number" id="pb-h" value="300" min="60" max="900" step="1"></div>
-        <div class="lp">Fill <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
-        <div class="lp">Line <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
+        <div class="lp">Fill <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
+        <div class="lp">Line <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
         <div class="lp">Appear<select id="pb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="pb-anchor">
@@ -614,9 +614,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Heart image<input type="file" accept="image/*" style="display:none" onchange="loadHealthPart(this)"></label><button class="x-btn" id="hb-heart-clear" type="button">✕</button>
         <div class="lp">Size<input type="number" id="hb-size" value="36" min="8" max="180" step="1"></div>
         <div class="lp">Gap<input type="number" id="hb-gap" value="6" min="-20" max="80" step="1"></div>
-        <div class="lp">Tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
+        <div class="lp">Tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
         <label class="ul-btn">+ Bg image<input type="file" accept="image/*" style="display:none" onchange="loadHealthBg(this)"></label><button class="x-btn" id="hb-bg-clear" type="button">✕</button>
-        <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-bgtint" value="#ffffff"></div>
+        <div class="lp">Bg tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="hb-bgtint" value="#ffffff"></div>
         <div class="lp">Plate W<input type="number" id="hb-bgw" value="0" min="0" max="1200" step="1" title="0 = авто по сердечкам"></div>
         <div class="lp">Plate H<input type="number" id="hb-bgh" value="0" min="0" max="1200" step="1" title="0 = авто по сердечкам"></div>
         <div class="lp">Appear<select id="hb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
@@ -640,8 +640,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">Font<select id="cta-font" class="font-select cfg-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
         <div class="lp">W<input type="number" id="cta-w" value="260" min="30" max="900" step="1"></div>
         <div class="lp">H<input type="number" id="cta-h" value="86" min="20" max="400" step="1"></div>
-        <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
-        <div class="lp">Text tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-text-tint" value="#ffffff"></div>
+        <div class="lp">Bg tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
+        <div class="lp">Text tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cta-text-tint" value="#ffffff"></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="cta-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -656,10 +656,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">Tutorial</div>
         <div class="lp">Text <textarea id="tut-text" rows="2" style="width:180px;min-height:44px;resize:vertical;line-height:1.25"></textarea></div>
         <div class="lp">Text size <input type="number" id="tut-tsize" value="18" min="8" max="72" step="1"></div>
-        <div class="lp">Text color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
+        <div class="lp">Text color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
         <div class="esep"></div>
         <div class="lp">Blocks <select id="tut-shape"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
-        <div class="lp">Block color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-bcolor" value="#373843"></div>
+        <div class="lp">Block color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-bcolor" value="#373843"></div>
         <div class="lp">Scale <input type="number" id="tut-scale" value="1" min="0.3" max="3" step="0.05"></div>
         <div class="esep"></div>
         <div class="lp">Anchor

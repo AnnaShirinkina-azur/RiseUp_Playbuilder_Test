@@ -269,9 +269,9 @@ function renderBgStageRows(){
       <button class="x-btn" style="padding:3px 5px;" onclick="clearSpr('${k}')">✕</button>
     </div><div class="bg-colors">
       <div class="bg-gradient-preview" id="bg-grad-prev-${i}" title="Превью градиента"></div>
-      <label class="bg-hex-wrap" title="Нижний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}a"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}a" value="${normalizeHexColor(a).toUpperCase()}"></label>
-      <label class="bg-hex-wrap" title="Верхний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}b"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}b" value="${normalizeHexColor(b).toUpperCase()}"></label>
-      <label class="bg-hex-wrap" title="Тинт картинки уровня (белый = без тинта)"><span class="bg-color-preview" id="bg-chip-${i}t"></span><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgt${i}" value="${normalizeHexColor(t).toUpperCase()}"></label>
+      <label class="bg-hex-wrap" title="Нижний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}a"></span><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}a" value="${normalizeHexColor(a).toUpperCase()}"></label>
+      <label class="bg-hex-wrap" title="Верхний цвет градиента"><span class="bg-color-preview" id="bg-chip-${i}b"></span><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgg${i}b" value="${normalizeHexColor(b).toUpperCase()}"></label>
+      <label class="bg-hex-wrap" title="Тинт картинки уровня (белый = без тинта)"><span class="bg-color-preview" id="bg-chip-${i}t"></span><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgt${i}" value="${normalizeHexColor(t).toUpperCase()}"></label>
     </div></div>`;
   }
   box.innerHTML=h;
