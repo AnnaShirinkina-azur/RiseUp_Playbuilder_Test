@@ -600,7 +600,7 @@ class Game{
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
           if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
-          if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
+          if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.count=Math.max(1,parseInt(this.cfg.lives,10)||ho.count||3);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
