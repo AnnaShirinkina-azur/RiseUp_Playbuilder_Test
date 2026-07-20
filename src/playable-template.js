@@ -992,7 +992,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=5000;}
+  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=(this.cfg.deathPause!=null?this.cfg.deathPause:1500);}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._resetFallingStages();
