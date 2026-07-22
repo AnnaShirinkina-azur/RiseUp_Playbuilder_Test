@@ -772,7 +772,7 @@ const LE=(function(){
     if(anchorPoint){setObstacleCenterFromAnchorPoint(o,anchorPoint.x,anchorPoint.y);writeObstacleAnchorOffsetFromPoint(o,anchorPoint.x,anchorPoint.y);}
   }
   function scaleUiValues(){return {scale:clampScale($('os')?.value),scaleX:clampScale($('osx')?.value),scaleY:clampScale($('osy')?.value)};}
-  function makeBuiltInObstacle(kind,x,y){const b=BUILTIN_SHAPES[kind]||BUILTIN_SHAPES.rect,v=scaleUiValues();const o={x,y,coordMode:'center',shape:'custom',customName:b.name,points:b.points.map(p=>({x:p.x,y:p.y})),imageSrc:b.imageSrc,baseW:b.baseW,baseH:b.baseH,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc')?.value||'#ffffff',moveX:parseInt($('om')?.value)||0,moveSpeed:1800,anchor:'cc'};applyObstacleScale(o);writeObstacleAnchorOffsetFromPoint(o,x,y);return o;}
+  function makeBuiltInObstacle(kind,x,y){const b=BUILTIN_SHAPES[kind]||BUILTIN_SHAPES.rect,v=scaleUiValues();const o={x,y,coordMode:'center',shape:'custom',customName:b.name,points:b.points.map(p=>({x:p.x,y:p.y})),imageSrc:b.imageSrc,baseW:b.baseW,baseH:b.baseH,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc')?.value||'#ffffff',moveX:parseInt($('om')?.value)||0,moveSpeed:1800,anchor:'cc',rotation:0};applyObstacleScale(o);writeObstacleAnchorOffsetFromPoint(o,x,y);return o;}
   const svgTemplates=[];
   const DEFAULT_SVG_TEMPLATES=[
     {id:'unity_obstacle_1',name:'Unity package: Obstacle 1',svg:"<svg width=\"193.26\" height=\"252.78\" viewBox=\"0 0 193.26 252.78\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"12.00\" y=\"39.90\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"151.50\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"12.00\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"39.90\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"67.80\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"179.40\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"207.30\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"235.20\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"123.60\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"123.60\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"12.00\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"235.20\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"95.70\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"95.70\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"151.50\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"67.80\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"12.00\" y=\"207.30\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/><rect x=\"97.56\" y=\"179.40\" width=\"83.70\" height=\"5.58\" fill=\"#ffffff\"/></svg>"},
@@ -1250,7 +1250,7 @@ bindHexColorInputs(document);
     wrap.scrollTop=Math.max(0,cy*zoom-wrap.clientHeight/2);
   });
 
-  ['os','osx','osy','oc','om'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;ids.forEach(i=>{const o=lvls[cur][i];if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='health'||o.kind==='cta'||o.kind==='tutorial')return;if(o.kind==='bg'){o.tint=$('oc').value;return;}ensureObstacleAnchor(o);o.scale=clampScale($('os').value);o.scaleX=clampScale($('osx').value);o.scaleY=clampScale($('osy').value);applyObstacleScale(o);o.color=$('oc').value;o.moveX=parseInt($('om').value)||0;});draw();});});
+  ['os','osx','osy','oc','om','orot'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;ids.forEach(i=>{const o=lvls[cur][i];if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='health'||o.kind==='cta'||o.kind==='tutorial')return;if(o.kind==='bg'){o.tint=$('oc').value;return;}ensureObstacleAnchor(o);o.scale=clampScale($('os').value);o.scaleX=clampScale($('osx').value);o.scaleY=clampScale($('osy').value);applyObstacleScale(o);o.color=$('oc').value;o.moveX=parseInt($('om').value)||0;o.rotation=parseFloat($('orot').value)||0;});draw();});});
   document.querySelectorAll('#ob-anchor button').forEach(b=>b.addEventListener('click',()=>{const ids=selectionIndices();if(!ids.length)return;if(hasMultiSelection()){groupAnchorUI.anchor=b.dataset.a;const base=obstacleAnchorBaseLocal(groupAnchorUI.anchor),ox=parseFloat($('ob-offx').value)||0,oy=parseFloat($('ob-offy').value)||0;moveSelectionCenterTo(base.x+ox*obstacleDesignWidth()/100,base.y+oy*obstacleDesignSize()/100);syncGroupAnchorFields();}
     else{const o=selItem();if(!isObstacleItem(o))return;ensureObstacleScale(o);const keep={x:o.x||0,y:o.y||0,w:o.w||60,h:o.h||60};o.anchor=b.dataset.a;const p=obstacleAnchorPointFromCenter(o.anchor,keep.x,keep.y,keep.w,keep.h);writeObstacleAnchorOffsetFromPoint(o,p.x,p.y);setObstacleLocalFromOffset(o);document.querySelectorAll('#ob-anchor button').forEach(x=>x.classList.toggle('on',x===b));}
     draw();}));
@@ -1388,7 +1388,10 @@ bindHexColorInputs(document);
       } else if(o.kind==='tutorial'){
         const b=tutorialBoxLocal(o);if(gx>=b.x-8&&gx<=b.x+b.w+8&&gyLocal>=b.y-8&&gyLocal<=b.y+b.h+8)return i;
       } else {
-        if(Math.abs(gx-o.x)<=o.w/2+8&&Math.abs(gyLocal-o.y)<=o.h/2+8)return i;
+        const rot=(parseFloat(o.rotation)||0)*Math.PI/180;
+        let lx=gx-o.x,ly=gyLocal-o.y;
+        if(rot){const co=Math.cos(-rot),si2=Math.sin(-rot),rx=lx*co-ly*si2,ry=lx*si2+ly*co;lx=rx;ly=ry;}
+        if(Math.abs(lx)<=o.w/2+8&&Math.abs(ly)<=o.h/2+8)return i;
       }
     }
     return -1;
@@ -1454,7 +1457,7 @@ bindHexColorInputs(document);
       syncProps();draw();return;
     }
     let o;
-    if(shape==='custom'&&customShape){const v=scaleUiValues();o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',shape:'custom',customName:customShape.name,points:customShape.points.map(p=>({x:p.x,y:p.y})),imageSrc:customShape.imageSrc,baseW:60,baseH:60,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800,anchor:'cc'};applyObstacleScale(o);writeObstacleAnchorOffsetFromPoint(o,o.x,o.y);} 
+    if(shape==='custom'&&customShape){const v=scaleUiValues();o={x:Math.round(g.x),y:Math.round(localY),coordMode:'center',shape:'custom',customName:customShape.name,points:customShape.points.map(p=>({x:p.x,y:p.y})),imageSrc:customShape.imageSrc,baseW:60,baseH:60,scale:v.scale,scaleX:v.scaleX,scaleY:v.scaleY,color:$('oc').value,moveX:parseInt($('om').value)||0,moveSpeed:1800,anchor:'cc',rotation:0};applyObstacleScale(o);writeObstacleAnchorOffsetFromPoint(o,o.x,o.y);} 
     else o=makeBuiltInObstacle(shape,Math.round(g.x),Math.round(localY));
     lvls[si].push(o);setSelection(lvls[si].length-1,false);syncProps();draw();
   });
@@ -1839,19 +1842,25 @@ bindHexColorInputs(document);
   function drawObstacle(o,si,i){
     if(o.kind==='svgTemplate')ensureObstacleScale(o);else if(!o.kind)ensureObstacleScale(o);
     const c=toC(si,o.x,o.y),sw=o.w*zoom,sh=o.h*zoom;
-    ctx.save();ctx.fillStyle=o.color||'#e05252';ctx.strokeStyle=(isSelected(si,i))?'#fff':'rgba(255,255,255,.24)';ctx.lineWidth=(isSelected(si,i))?2.5:1.5;
+    const rot=(parseFloat(o.rotation)||0)*Math.PI/180;
+    // Shapes are drawn around the object's own center so rotation pivots on the
+    // center, matching the runtime. The move-path indicator is kept in world
+    // space (unrotated) because moveX oscillates along the world X axis.
+    ctx.save();ctx.translate(c.x,c.y);if(rot)ctx.rotate(rot);
+    ctx.fillStyle=o.color||'#e05252';ctx.strokeStyle=(isSelected(si,i))?'#fff':'rgba(255,255,255,.24)';ctx.lineWidth=(isSelected(si,i))?2.5:1.5;
     if(o.kind==='svgTemplate'){
       const im=getEditorImage(o.imageSrc);
-      if(imageReady(im))drawTintedImage(im,c.x-sw/2,c.y-sh/2,sw,sh,o.color||'#ffffff');
-      else{ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(c.x-sw/2,c.y-sh/2,sw,sh);}
-      ctx.strokeRect(c.x-sw/2,c.y-sh/2,sw,sh);
-      if(isSelected(si,i)){ctx.setLineDash([6,4]);ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.strokeRect(c.x-sw/2-5,c.y-sh/2-5,sw+10,sh+10);ctx.setLineDash([]);}
+      if(imageReady(im))drawTintedImage(im,-sw/2,-sh/2,sw,sh,o.color||'#ffffff');
+      else{ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(-sw/2,-sh/2,sw,sh);}
+      ctx.strokeRect(-sw/2,-sh/2,sw,sh);
+      if(isSelected(si,i)){ctx.setLineDash([6,4]);ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.strokeRect(-sw/2-5,-sh/2-5,sw+10,sh+10);ctx.setLineDash([]);}
     }
-    else if(o.shape==='circle'){ctx.beginPath();ctx.arc(c.x,c.y,sw/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
-    else if(o.shape==='triangle'){ctx.beginPath();ctx.moveTo(c.x,c.y-sh/2);ctx.lineTo(c.x+sw/2,c.y+sh/2);ctx.lineTo(c.x-sw/2,c.y+sh/2);ctx.closePath();ctx.fill();ctx.stroke();}
-    else if(o.shape==='custom'&&o.points&&o.points.length>=3){const im=getEditorImage(o.imageSrc);if(imageReady(im))drawTintedImage(im,c.x-sw/2,c.y-sh/2,sw,sh,o.color||'#ffffff');else{ctx.fillStyle=o.color||'#ffffff';ctx.fillRect(c.x-sw/2,c.y-sh/2,sw,sh);}ctx.beginPath();o.points.forEach((p,pi)=>{const px=c.x+p.x*sw,py=c.y+p.y*sh;if(pi===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.stroke();}
-    else{ctx.beginPath();ctx.rect(c.x-sw/2,c.y-sh/2,sw,sh);ctx.fill();ctx.stroke();}
-    if(o.moveX>0){const mx=o.moveX*zoom;ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);}ctx.restore();
+    else if(o.shape==='circle'){ctx.beginPath();ctx.arc(0,0,sw/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    else if(o.shape==='triangle'){ctx.beginPath();ctx.moveTo(0,-sh/2);ctx.lineTo(sw/2,sh/2);ctx.lineTo(-sw/2,sh/2);ctx.closePath();ctx.fill();ctx.stroke();}
+    else if(o.shape==='custom'&&o.points&&o.points.length>=3){const im=getEditorImage(o.imageSrc);if(imageReady(im))drawTintedImage(im,-sw/2,-sh/2,sw,sh,o.color||'#ffffff');else{ctx.fillStyle=o.color||'#ffffff';ctx.fillRect(-sw/2,-sh/2,sw,sh);}ctx.beginPath();o.points.forEach((p,pi)=>{const px=p.x*sw,py=p.y*sh;if(pi===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.stroke();}
+    else{ctx.beginPath();ctx.rect(-sw/2,-sh/2,sw,sh);ctx.fill();ctx.stroke();}
+    ctx.restore();
+    if(o.moveX>0){const mx=o.moveX*zoom;ctx.save();ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(c.x-mx,c.y);ctx.lineTo(c.x+mx,c.y);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   }
 
   function drawPlayerItem(o,si,i){
@@ -2034,9 +2043,9 @@ bindHexColorInputs(document);
       ensureResponsiveBase(o);$('hb-size').value=o.baseHeartW||o.heartW||36;$('hb-gap').value=o.baseGap==null?(o.gap==null?6:o.gap):o.baseGap;setHexValue('hb-tint',o.tint,'#ffffff');setHexValue('hb-bgtint',o.bgTint,'#ffffff');if($('hb-bgw'))$('hb-bgw').value=o.bgW||0;if($('hb-bgh'))$('hb-bgh').value=o.bgH||0;if($('hb-appear'))$('hb-appear').value=o.appear||'start';if($('hb-hideafterbreak'))$('hb-hideafterbreak').checked=!!o.hideAfterBreak;$('hb-offx').value=o.anchorOffsetX||0;$('hb-offy').value=o.anchorOffsetY||0;
       document.querySelectorAll('#hb-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'tc')));
     } else if(o&&o.kind==='bg'){
-      $('os').value=1;$('osx').value=1;$('osy').value=1;setHexValue('oc',o.tint,'#ffffff');$('om').value=0;
+      $('os').value=1;$('osx').value=1;$('osy').value=1;setHexValue('oc',o.tint,'#ffffff');$('om').value=0;if($('orot'))$('orot').value=0;
     } else if(o){
-      ensureObstacleScale(o);$('os').value=Number(o.scale||1).toFixed(2);$('osx').value=Number(o.scaleX||1).toFixed(2);$('osy').value=Number(o.scaleY||1).toFixed(2);setHexValue('oc',o.color,'#ffffff');$('om').value=o.moveX||0;
+      ensureObstacleScale(o);$('os').value=Number(o.scale||1).toFixed(2);$('osx').value=Number(o.scaleX||1).toFixed(2);$('osy').value=Number(o.scaleY||1).toFixed(2);setHexValue('oc',o.color,'#ffffff');$('om').value=o.moveX||0;if($('orot'))$('orot').value=o.rotation||0;
       if(hasMultiSelection())syncGroupAnchorFields();else{ensureObstacleAnchor(o);$('ob-offx').value=o.anchorOffsetX||0;$('ob-offy').value=o.anchorOffsetY||0;document.querySelectorAll('#ob-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cc')));}
     }
   }

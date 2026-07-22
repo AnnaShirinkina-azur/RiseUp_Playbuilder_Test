@@ -258,6 +258,9 @@ class Obs{
     this.moveSpeed=o.moveSpeed||1800;
     this.t=o.phaseOffset||0;
     this.ix=this.x;this.iy=this.y;
+    // Authored rotation from the level editor (radians). Kept separate from
+    // `rot`, which is the physics spin accumulated after the protector push.
+    this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
@@ -286,16 +289,21 @@ class Obs{
     if(!this.live)return false;
     if(!includeDynamic&&!this.kin)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
-    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>({x:this.x+p.x*this.w,y:this.y+p.y*this.h}));return circlePolyHit(cx,cy,cr,pts);}
-    const nx=clamp(cx,this.x-this.w/2,this.x+this.w/2),ny=clamp(cy,this.y-this.h/2,this.y+this.h/2);
-    return(cx-nx)**2+(cy-ny)**2<cr*cr;
+    const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
+    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>{const lx=p.x*this.w,ly=p.y*this.h;return{x:this.x+lx*co-ly*si,y:this.y+lx*si+ly*co};});return circlePolyHit(cx,cy,cr,pts);}
+    // Rotate the test point into the box's local (unrotated) frame, then do the
+    // usual closest-point-on-AABB check. Circle radius is rotation-invariant.
+    const rx=cx-this.x,ry=cy-this.y,lx=rx*co+ry*si,ly=-rx*si+ry*co;
+    const nx=clamp(lx,-this.w/2,this.w/2),ny=clamp(ly,-this.h/2,this.h/2);
+    return(lx-nx)**2+(ly-ny)**2<cr*cr;
   }
   draw(ctx,sy){
     if(!this.live)return;
     const dx=this.x,dy=this.y+sy;
     ctx.save();
     ctx.translate(dx,dy);
-    if(!this.kin)ctx.rotate(this.rot);
+    const ang=this.baseRot+(this.kin?0:this.rot);
+    if(ang)ctx.rotate(ang);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
     if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
     else{
