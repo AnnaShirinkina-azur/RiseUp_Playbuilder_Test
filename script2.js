@@ -783,7 +783,8 @@ const LE=(function(){
       try{
         const items=parseSvgPrefabItems(t.svg);
         const imageSrc=templateDataUrl(t.svg);getEditorImage(imageSrc);
-        if(!svgTemplates.some(x=>x.id===t.id))svgTemplates.push({id:t.id,name:t.name,items,imageSrc,lockedDefault:true});
+        const aspect=Math.max(.1,Math.min(10,items.aspect||1)),baseH=170,baseW=Math.round(baseH*aspect);
+        if(!svgTemplates.some(x=>x.id===t.id))svgTemplates.push({id:t.id,name:t.name,items,imageSrc,lockedDefault:true,baseW,baseH});
       }catch(e){console.warn('Default SVG template failed',t.name,e);}
     });
   }
@@ -1011,11 +1012,38 @@ bindHexColorInputs(document);
       if(imageSrc){if(shape==='rect'){shape='custom';points=RECT_POINTS.map(p=>({x:p.x,y:p.y}));}color='#ffffff';}
       items.push({shape:shape||'rect',dx:((x+w/2)-(rootX+rootW/2))/rootW,dy:((y+h/2)-(rootY+rootH/2))/rootH,wRel:w/rootW,hRel:h/rootH,points:points||null,color:color||null,imageSrc:imageSrc||null});
     }
+    const strokeFrames=new Set();
+    function strokeInfo(el){
+      let n=el,col='',w='';
+      while(n&&n.nodeType===1){
+        if(!col){let c=(n.getAttribute&&n.getAttribute('stroke')||'').trim();if(!c){const st=(n.getAttribute&&n.getAttribute('style')||'').match(/(?:^|;)\s*stroke\s*:\s*([^;]+)/i);if(st)c=st[1].trim();}if(c&&!/^none$/i.test(c))col=c;}
+        if(!w){let sw=(n.getAttribute&&n.getAttribute('stroke-width')||'').trim();if(!sw){const st=(n.getAttribute&&n.getAttribute('style')||'').match(/(?:^|;)\s*stroke-width\s*:\s*([^;]+)/i);if(st)sw=st[1].trim();}if(sw)w=sw;}
+        n=n.parentNode;
+      }
+      return {color:col||null,width:parseFloat(w)||0};
+    }
     doc.querySelectorAll('rect').forEach(r=>{
       const x=parseFloat(r.getAttribute('x')||0),y=parseFloat(r.getAttribute('y')||0),w=parseFloat(r.getAttribute('width')||1),h=parseFloat(r.getAttribute('height')||1);
       const m=matrixFor(r),bb=bbox([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].map(p=>applyM(m,p)));
+      const fill=elFill(r);
+      if(fill.type==='none'){
+        // Hollow stroked rectangle (e.g. a Figma frame border) → import as 4 thin
+        // wall bars, so it becomes a real bounding frame ("створки") instead of a
+        // solid block. Duplicate frames at the same spot (border + glow) collapse.
+        const s=strokeInfo(r);
+        if(s.color&&s.width>0){
+          const key=Math.round(bb.x)+'_'+Math.round(bb.y)+'_'+Math.round(bb.w)+'_'+Math.round(bb.h);
+          if(strokeFrames.has(key))return;strokeFrames.add(key);
+          const sc=(Math.hypot(m[0],m[1])+Math.hypot(m[2],m[3]))/2||1,t=Math.max(1,s.width*sc),wf={type:'color',color:s.color};
+          addItem('rect',bb.x,bb.y,bb.w,t,null,wf);         // top
+          addItem('rect',bb.x,bb.y+bb.h-t,bb.w,t,null,wf);  // bottom
+          addItem('rect',bb.x,bb.y,t,bb.h,null,wf);         // left
+          addItem('rect',bb.x+bb.w-t,bb.y,t,bb.h,null,wf);  // right
+        }
+        return;
+      }
       // Keep SVG rects as rect obstacles. Prefab mode preserves each element's own shape and its position inside the SVG viewBox.
-      addItem('rect',bb.x,bb.y,bb.w,bb.h,null,elFill(r));
+      addItem('rect',bb.x,bb.y,bb.w,bb.h,null,fill);
     });
     doc.querySelectorAll('circle,ellipse').forEach(c=>{
       const cx=parseFloat(c.getAttribute('cx')||0),cy=parseFloat(c.getAttribute('cy')||0),rx=parseFloat(c.getAttribute('r')||c.getAttribute('rx')||1),ry=parseFloat(c.getAttribute('r')||c.getAttribute('ry')||rx);
@@ -1032,6 +1060,7 @@ bindHexColorInputs(document);
       addItem('custom',bb.x,bb.y,bb.w,bb.h,points,elFill(el));
     });
     if(items.length<1)throw new Error('В SVG нет залитых фигур для импорта (только контуры/обводки без заливки). Экспортируйте фигуры с заливкой или картинкой.');
+    items.aspect=(rootW&&rootH)?rootW/rootH:1;
     return items;
   }
   function applyCustomSvgText(svgText,name){
@@ -1070,7 +1099,10 @@ bindHexColorInputs(document);
     const items=parseSvgPrefabItems(svgText);
     const imageSrc=templateDataUrl(svgText);getEditorImage(imageSrc);
     const id='tpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
-    svgTemplates.push({id,name:name||('svg_template_'+svgTemplates.length),items,imageSrc,type:'svg',baseW:180,baseH:170});
+    // Preserve the SVG's real aspect ratio so relative positions of the parts
+    // (e.g. columns of spikes and the side frames) are not squished on placement.
+    const aspect=Math.max(.1,Math.min(10,items.aspect||1)),baseH=170,baseW=Math.round(baseH*aspect);
+    svgTemplates.push({id,name:name||('svg_template_'+svgTemplates.length),items,imageSrc,type:'svg',baseW,baseH});
     renderTemplateList();selectSvgTemplate(id);
   }
   function readFileAsDataUrl(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>resolve(String(e.target.result||''));r.onerror=()=>reject(r.error||new Error('Read failed'));r.readAsDataURL(file);});}
