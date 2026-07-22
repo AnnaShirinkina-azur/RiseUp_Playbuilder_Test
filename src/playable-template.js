@@ -1,6 +1,10 @@
 (function(W){'use strict';
 let CW=390,CH=844;
 const START_STAGE_INITIAL_TOP=-160;
+// Empty transition band inserted before every numbered mini-level. At the
+// default speed, half a stage creates a clear beat for the large numeral
+// without freezing input, physics or animation.
+const LEVEL_INTERLUDE_RATIO=.5;
 function viewAspect(){
   try{
     const w=Math.max(1,window.innerWidth||0),h=Math.max(1,window.innerHeight||0);
@@ -981,12 +985,13 @@ class Game{
   _ballSpeed(){return this.cfg.gameSpeed/16.6667;}
   _obstacleFallSpeed(){return this.cfg.gameSpeed/16.6667;}
   _resetFallingStages(){
-    // First wave starts just above the visible area; each following wave is
-    // placed farther upward. They later fall down into the screen.
-    const H=this.stages[0].H;
+    // First wave starts just above the visible area. Numbered mini-levels are
+    // separated by a real empty band equal to half a normal stage. FINISH
+    // follows level 4 directly, so no unused blank screen is added at the end.
+    const H=this.stages[0].H, gap=this._levelInterludeHeight();
     const firstTop=START_STAGE_INITIAL_TOP;
-    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H));
-    this.spawnTop=firstTop-(this.stages.length-1)*H;
+    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H-this._levelGapCountBefore(i)*gap));
+    this.spawnTop=Math.min(...this.stages.map(s=>s.worldY));
     this.completedStages=0;
     this.si=0;
   }
@@ -1032,35 +1037,47 @@ class Game{
   getState(){return this.state;}
 
   _sst(i){return this.stages[i].worldY;}
+  _lastMiniIndex(){return Math.min(this.stages.length-2,Math.max(1,parseInt(this.cfg.stageCount,10)||1));}
+  _levelInterludeHeight(){
+    const H=this.stages&&this.stages[0]?this.stages[0].H:CH;
+    return H*LEVEL_INTERLUDE_RATIO;
+  }
+  _levelGapCountBefore(stageIndex){
+    // Add a gap before levels 1..N, but not between the last numbered level
+    // and the FINISH scene. This yields exactly N numbered interludes.
+    return Math.max(0,Math.min(stageIndex,this._lastMiniIndex()));
+  }
+  _levelGapRect(levelIndex){
+    const stage=this.stages[levelIndex];
+    if(!stage||stage.done||levelIndex<1||levelIndex>this._lastMiniIndex())return null;
+    const h=this._levelInterludeHeight();
+    return {top:stage.worldY+stage.H,h,bottom:stage.worldY+stage.H+h};
+  }
 
   _updateLevelNumber(dt){
-    if(this.state!=='playing'||!this.tutDone)return;
-    if(this._levelNumberT>0){
-      this._levelNumberT=Math.max(0,this._levelNumberT-dt);
-      return;
+    if(this.state!=='playing'||!this.tutDone){this._levelNumberIndex=0;this._levelNumberT=0;return;}
+    // The numeral is screen-space, but its lifetime is controlled by the real
+    // half-stage empty band. It stays fixed while that band crosses the label
+    // line, so faster/slower gameplay naturally changes the transition time.
+    const labelY=CH*.34;
+    let active=0;
+    for(let i=1;i<=this._lastMiniIndex();i++){
+      const gap=this._levelGapRect(i);
+      if(gap&&gap.top<=labelY&&gap.bottom>=labelY){active=i;break;}
     }
-    const lastMini=Math.min(this.stages.length-2,Math.max(1,parseInt(this.cfg.stageCount,10)||1));
-    for(let i=1;i<=lastMini;i++){
-      const stage=this.stages[i];
-      if(!stage||stage.done||this._shownLevelNumbers.has(i))continue;
-      // A stage falls into view from above. Its bottom crossing y=0 is the
-      // first frame of the new level and occurs before its main obstacle pack
-      // reaches the balloon. This also stays correct in both orientations.
-      if(stage.worldY+stage.H>=0){
-        this._shownLevelNumbers.add(i);
-        this._levelNumberIndex=i;
-        this._levelNumberT=this._levelNumberDuration;
-        break;
-      }
-    }
+    this._levelNumberIndex=active;
+    this._levelNumberT=active?1:0;
+    if(active)this._shownLevelNumbers.add(active);
   }
 
   _drawLevelNumber(ctx){
-    if(this.state!=='playing'||!this._levelNumberIndex||this._levelNumberT<=0)return;
-    const duration=this._levelNumberDuration||1100;
-    const elapsed=duration-this._levelNumberT;
-    const fadeIn=180,fadeOut=360;
-    const a=Math.min(1,elapsed/fadeIn,this._levelNumberT/fadeOut)*.62;
+    const i=this._levelNumberIndex;
+    if(this.state!=='playing'||!i||this._levelNumberT<=0)return;
+    const gap=this._levelGapRect(i);if(!gap)return;
+    const y=CH*.34,p=clamp((y-gap.top)/Math.max(1,gap.h),0,1);
+    // Fade only near the physical edges of the transition band. The middle
+    // remains fully readable for most of the half-screen pause.
+    const edge=.16,a=Math.min(1,p/edge,(1-p)/edge)*.62;
     if(a<=0)return;
     const size=Math.round(Math.min(CW,CH)*.18);
     const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, sans-serif';
@@ -1070,7 +1087,7 @@ class Game{
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font='700 '+size+'px '+family;
     ctx.shadowColor='rgba(0,0,0,.08)';ctx.shadowBlur=Math.max(2,size*.035);ctx.shadowOffsetY=Math.max(1,size*.015);
-    ctx.fillText(String(this._levelNumberIndex),CW/2,CH*.34);
+    ctx.fillText(String(i),CW/2,y);
     ctx.restore();
   }
 
@@ -1117,7 +1134,7 @@ class Game{
       // other wave. This creates new obstacles at the top instead of moving
       // old level chunks upward with the camera.
       if(st.worldY>CH+CH*.35){
-        highest-=H;
+        highest-=H+this._levelInterludeHeight();
         this.completedStages++;
         // Win as soon as the FINISH scene is the one on screen (i.e. start +
         // all mini-levels have passed), so the ball flies up through the
@@ -1163,10 +1180,13 @@ class Game{
       // Keep the whole tutorial inside the fixed START zone. While the intro
       // is active, the first playable level must not enter the viewport.
       // All stage bands move together, so clamp their shared travel exactly
-      // when stage 1 reaches the top edge (its bottom is at y=0).
+      // when the interlude before stage 1 reaches the top edge.
       if(st==='playing'&&!this.tutDone&&this.stages.length>1){
         const next=this.stages[1];
-        const limit=-next.H;
+        // Keep START aligned to the viewport during the tutorial. The new
+        // half-stage number band waits immediately above y=0 and only begins
+        // entering after the tutorial has completed.
+        const limit=-next.H-this._levelInterludeHeight();
         if(next.worldY>limit){
           const overshoot=next.worldY-limit;
           this.stages.forEach(s=>{if(!s.done)s.worldY-=overshoot;});
@@ -1440,6 +1460,16 @@ class Game{
       return;
     }
     const grads=(this.cfg.stageBgGradients&&this.cfg.stageBgGradients.length)?this.cfg.stageBgGradients:BG_GRADS;
+    // Draw the empty number interludes as proper background bands. Use the
+    // upcoming level's gradient so there is no dark/base-colour hole between
+    // two stage rectangles in per-stage background mode.
+    for(let i=1;i<=this._lastMiniIndex();i++){
+      const gap=this._levelGapRect(i);if(!gap||gap.bottom<0||gap.top>CH)continue;
+      const top=Math.max(0,gap.top),bot=Math.min(CH,gap.bottom),g=grads[i%grads.length]||grads[0];
+      const lg=ctx.createLinearGradient(0,gap.top,0,gap.bottom);
+      lg.addColorStop(0,g[1]);lg.addColorStop(1,g[0]);
+      ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
+    }
     const vis=[];
     for(let i=0;i<this.stages.length;i++){
       const s=this.stages[i];if(s.done)continue;
@@ -1568,7 +1598,7 @@ class Game{
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
     // Transition clouds stay above stage content. The large level numeral is
-    // a screen-space overlay like the original Rise Up presentation.
+    // held in screen-space while its physical half-stage interlude passes.
     this._drawSeamOverlays(ctx,'clouds');
     this._drawLevelNumber(ctx);
     // ball below shield, both above seam overlays and level numeral

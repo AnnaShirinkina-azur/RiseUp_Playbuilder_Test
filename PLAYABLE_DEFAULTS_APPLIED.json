@@ -446,5 +446,17 @@
     "style": "large semi-transparent white numeral",
     "durationMs": 1100,
     "trigger": "when each mini-level begins entering the viewport after tutorial"
+  },
+  "levelNumberInterludes": {
+    "enabled": true,
+    "heightRatio": 0.5,
+    "beforeLevels": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "beforeFinish": false,
+    "behavior": "physical empty stage band; numeral remains screen-space while band crosses label line"
   }
 }
