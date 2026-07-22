@@ -959,26 +959,68 @@ bindHexColorInputs(document);
       return {x:minX,y:minY,w:(maxX-minX)||1,h:(maxY-minY)||1};
     }
     const items=[];
-    function elColor(el){
-      const val=(el.getAttribute('fill')||el.style&&el.style.fill||'').trim();
-      if(/^#[0-9a-f]{3,8}$/i.test(val))return val;
-      const st=(el.getAttribute('style')||'').match(/(?:^|;)\s*fill\s*:\s*(#[0-9a-f]{3,8})/i);
-      return st?st[1]:null;
+    const RECT_POINTS=[{x:-.5,y:-.5},{x:.5,y:-.5},{x:.5,y:.5},{x:-.5,y:.5}];
+    // Resolve a fill="url(#id)" reference to an embedded raster (Figma exports
+    // image tiles as <pattern> → <use> → <image>). Returns a data URL or null.
+    function resolvePatternImage(id){
+      if(!id)return null;
+      let node=doc.getElementById(id);
+      const seen=new Set();
+      while(node&&!seen.has(node)){
+        seen.add(node);
+        if(node.tagName&&node.tagName.toLowerCase()==='image'){
+          return node.getAttribute('href')||node.getAttributeNS('http://www.w3.org/1999/xlink','href')||node.getAttribute('xlink:href')||null;
+        }
+        // pattern/use: follow the reference or descend into an inner <image>
+        const img=node.querySelector&&node.querySelector('image');
+        if(img)return img.getAttribute('href')||img.getAttributeNS('http://www.w3.org/1999/xlink','href')||img.getAttribute('xlink:href')||null;
+        const use=node.querySelector&&node.querySelector('use');
+        const href=use&&(use.getAttribute('href')||use.getAttributeNS('http://www.w3.org/1999/xlink','href')||use.getAttribute('xlink:href'));
+        if(href&&href.charAt(0)==='#'){node=doc.getElementById(href.slice(1));continue;}
+        break;
+      }
+      return null;
     }
-    function addItem(shape,x,y,w,h,points,color){
+    // Effective fill of an element, honoring inherited fill from ancestors up to
+    // the <svg> root (Figma sets fill="none" on the root, so stroke-only frame
+    // rects must inherit that and be skipped rather than drawn as solid blocks).
+    function elFill(el){
+      let n=el;
+      while(n&&n.nodeType===1){
+        let val=(n.getAttribute&&n.getAttribute('fill')||'').trim();
+        if(!val){const st=(n.getAttribute&&n.getAttribute('style')||'').match(/(?:^|;)\s*fill\s*:\s*([^;]+)/i);if(st)val=st[1].trim();}
+        if(val){
+          if(/^none$/i.test(val))return {type:'none'};
+          const um=val.match(/^url\(["']?#([^"')]+)["']?\)$/i);
+          if(um){const src=resolvePatternImage(um[1]);return src?{type:'image',imageSrc:src}:{type:'none'};}
+          if(/^#[0-9a-f]{3,8}$/i.test(val))return {type:'color',color:val};
+          return {type:'color',color:val};
+        }
+        n=n.parentNode;
+      }
+      // No fill anywhere in the chain → SVG default is black.
+      return {type:'color',color:'#000000'};
+    }
+    function addItem(shape,x,y,w,h,points,fill){
       if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0)return;
-      items.push({shape:shape||'rect',dx:((x+w/2)-(rootX+rootW/2))/rootW,dy:((y+h/2)-(rootY+rootH/2))/rootH,wRel:w/rootW,hRel:h/rootH,points:points||null,color:color||null});
+      if(!fill||fill.type==='none')return; // skip stroke-only / unfilled elements
+      let color=fill.color||null,imageSrc=fill.imageSrc||null;
+      // Image-filled elements are emitted as custom shapes so both the editor and
+      // the playable render the texture (a plain 'rect' item ignores imageSrc in
+      // the editor). White tint keeps the original pixels intact.
+      if(imageSrc){if(shape==='rect'){shape='custom';points=RECT_POINTS.map(p=>({x:p.x,y:p.y}));}color='#ffffff';}
+      items.push({shape:shape||'rect',dx:((x+w/2)-(rootX+rootW/2))/rootW,dy:((y+h/2)-(rootY+rootH/2))/rootH,wRel:w/rootW,hRel:h/rootH,points:points||null,color:color||null,imageSrc:imageSrc||null});
     }
     doc.querySelectorAll('rect').forEach(r=>{
       const x=parseFloat(r.getAttribute('x')||0),y=parseFloat(r.getAttribute('y')||0),w=parseFloat(r.getAttribute('width')||1),h=parseFloat(r.getAttribute('height')||1);
       const m=matrixFor(r),bb=bbox([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].map(p=>applyM(m,p)));
       // Keep SVG rects as rect obstacles. Prefab mode preserves each element's own shape and its position inside the SVG viewBox.
-      addItem('rect',bb.x,bb.y,bb.w,bb.h,null,elColor(r));
+      addItem('rect',bb.x,bb.y,bb.w,bb.h,null,elFill(r));
     });
     doc.querySelectorAll('circle,ellipse').forEach(c=>{
       const cx=parseFloat(c.getAttribute('cx')||0),cy=parseFloat(c.getAttribute('cy')||0),rx=parseFloat(c.getAttribute('r')||c.getAttribute('rx')||1),ry=parseFloat(c.getAttribute('r')||c.getAttribute('ry')||rx);
       const m=matrixFor(c),pts=[];for(let i=0;i<24;i++){const a=Math.PI*2*i/24;pts.push(applyM(m,{x:cx+Math.cos(a)*rx,y:cy+Math.sin(a)*ry}));}
-      const bb=bbox(pts);addItem('circle',bb.x,bb.y,bb.w,bb.h,null,elColor(c));
+      const bb=bbox(pts);addItem('circle',bb.x,bb.y,bb.w,bb.h,null,elFill(c));
     });
     doc.querySelectorAll('polygon,polyline,path[d]').forEach(el=>{
       let raw=[];
@@ -987,9 +1029,9 @@ bindHexColorInputs(document);
       if(raw.length<3)return;
       const m=matrixFor(el);raw=raw.map(p=>applyM(m,p));
       const bb=bbox(raw),points=raw.map(p=>({x:(p.x-bb.x)/bb.w-.5,y:(p.y-bb.y)/bb.h-.5}));
-      addItem('custom',bb.x,bb.y,bb.w,bb.h,points,elColor(el));
+      addItem('custom',bb.x,bb.y,bb.w,bb.h,points,elFill(el));
     });
-    if(items.length<1)throw new Error('Prefab SVG does not contain supported separate elements.');
+    if(items.length<1)throw new Error('В SVG нет залитых фигур для импорта (только контуры/обводки без заливки). Экспортируйте фигуры с заливкой или картинкой.');
     return items;
   }
   function applyCustomSvgText(svgText,name){
