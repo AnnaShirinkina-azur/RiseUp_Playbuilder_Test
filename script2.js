@@ -696,7 +696,7 @@ const DEFS={
   'cfg-lives':3,'cfg-playerSize':2,'cfg-balloonCount':1,'cfg-deathPause':1.5,'cfg-balloonSpacing':30,'cfg-playerDeathAnimSpeed':1,'cfg-shieldSize':1,
   'cfg-gameSpeed':3.2,'cfg-acceleration':0.4,'cfg-pushForce':7,'cfg-gravityModifier':1,
   'cfg-scatterBounciness':0.1,'cfg-seamScale':0.5,'cfg-seamMulti':true,'cfg-seamOverlayMode':'perStage','cfg-seamTint':'#ffffff',
-  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialEnabled':true,'cfg-endCardFont':'Baloo2','cfg-tutorialFont':'Baloo2','cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
+  'cfg-hpBarShowTime':2,'cfg-tutorialTime':3.5,'cfg-tutorialEnabled':true,'cfg-tutorialText':'protect your balloon!','cfg-endCardFont':'Baloo2','cfg-tutorialFont':'Baloo2','cfg-tutorialObstacleShape':'square','cfg-endCardEnabled':true,'cfg-tryAgainEnabled':true,'cfg-tryAgainDelay':1.2,'cfg-tryAgainDuration':0,
   'cfg-playerSpriteColor':'#ffffff','cfg-playerRopeColor':'#ffffff',
   'cfg-shieldSpriteColor':'#ffffff',
   'cfg-bgSpriteColor':'#ffffff',
@@ -1181,7 +1181,7 @@ bindHexColorInputs(document);
   }));
   // Tutorial: единый настраиваемый шаблон (пирамида + рука + надпись), один на игру.
   const TUT_UNITS=[[-0.674,4.651],[0,4.651],[0.649,4.651],[-0.338,5.28],[0.338,5.28],[0,5.882]];
-  const TUT_TEXT_DEFAULT='Move the circle\nto break the block';
+  const TUT_TEXT_DEFAULT='protect your balloon!';
   function tutorialUnitPx(o){return Math.min(GW,GH)*0.14*(parseFloat(o&&o.scale)||1);}
   function tutorialLocal(o){return progressLocal(o);}
   function setTutorialLocalFromOffset(o){if(!o||o.kind!=='tutorial')return;const l=tutorialLocal(o);o.x=Math.round(l.x);o.y=Math.round(l.y);}
@@ -1823,7 +1823,9 @@ bindHexColorInputs(document);
     // текст
     const fs=Math.max(6,(parseFloat(o.textSize)||18)*(parseFloat(o.scale)||1)*zoom);
     ctx.fillStyle=o.textColor||'#ffffff';ctx.font='bold '+fs+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    const lines=String(o.text==null?TUT_TEXT_DEFAULT:o.text).split('\n');
+    const _cfgCap=(function(){const e=$('cfg-tutorialText');return (e&&e.value!=null&&String(e.value).trim()!=='')?e.value:null;})();
+    const _cap=_cfgCap!=null?_cfgCap:(o.text==null?TUT_TEXT_DEFAULT:o.text);
+    const lines=String(_cap).split('\n');
     let ty=U(0,2.9).y;
     lines.forEach(ln=>{ctx.fillText(ln,c.x,ty);ty+=fs*1.25;});
     ctx.restore();
@@ -1983,7 +1985,7 @@ bindHexColorInputs(document);
     $('ctabar').style.display=isCta?'':'none';
     if($('tutbar'))$('tutbar').style.display=isTut?'':'none';
     if(isTut){
-      $('tut-text').value=(o.text==null?TUT_TEXT_DEFAULT:o.text);
+      if($('tut-text'))$('tut-text').value=(o.text==null?TUT_TEXT_DEFAULT:o.text);
       $('tut-tsize').value=o.textSize||18;
       setHexValue('tut-tcolor',o.textColor,'#ffffff');
       $('tut-shape').value=o.blockShape||'square';
@@ -2089,6 +2091,8 @@ bindHexColorInputs(document);
   // Tutorial bar bindings
   function bindTut(id,field,parse){const e=$(id);if(!e)return;e.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='tutorial')return;o[field]=parse?parse(e.value):e.value;draw();});}
   bindTut('tut-text','text');
+  // Надпись туториала теперь глобальная настройка (панель Tutorial) — обновляем превью редактора при её изменении
+  if($('cfg-tutorialText'))$('cfg-tutorialText').addEventListener('input',()=>{draw();});
   bindTut('tut-tsize','textSize',v=>Math.max(8,Math.min(72,parseFloat(v)||18)));
   bindTut('tut-tcolor','textColor');
   bindTut('tut-shape','blockShape');
