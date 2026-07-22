@@ -16,6 +16,48 @@ function readValue(id,fallback){
 // Backward-compatible helper: some cached/intermediate builder versions called val(...).
 // Keeping it defined prevents the preview from crashing with "ReferenceError: val is not defined".
 if(!W.val)W.val=readValue;
+
+// ── Level intro stubs — «Уровень N» screen inserted before every mini-level ──
+// Splits a text template like "УРОВЕНЬ {n}" into colored segments: the literal
+// text keeps `color`, the substituted number keeps `accentColor` (or falls
+// back to `color` when no accent was given).
+function stubSegments(tpl,n,color,accentColor){
+  tpl=String(tpl==null?'LEVEL {n}':tpl);
+  const idx=tpl.indexOf('{n}');
+  const c=color||'#ffffff';
+  if(idx<0)return [{t:tpl,color:c}];
+  const before=tpl.slice(0,idx),after=tpl.slice(idx+3),segs=[];
+  if(before)segs.push({t:before,color:c});
+  segs.push({t:String(n),color:accentColor||c});
+  if(after)segs.push({t:after,color:c});
+  return segs;
+}
+// Builds one stage's worth of level-data: a single centered text object and
+// nothing else, so the ball flies through it unobstructed (a blank "stub").
+function makeLevelStubStage(n,opts){
+  const size=Math.max(1,parseFloat(opts&&opts.size)||92);
+  return [{
+    kind:'text',coordMode:'center',x:0,y:0,anchor:'cc',anchorOffsetX:0,anchorOffsetY:0,
+    segments:stubSegments(opts&&opts.text,n,opts&&opts.color,opts&&opts.accentColor),
+    font:(opts&&opts.font)||'Baloo2',size,baseSize:size,
+    stroke:'#000000',strokeW:0,baseStrokeW:0,
+    shadow:true,letterSpacing:0,baseLetterSpacing:0,
+  }];
+}
+// Takes the editor's level-data array — [Start, mini-level 1..N, Finish] —
+// and returns [Start, Stub(1), mini-level 1, Stub(2), mini-level 2, ..., Finish].
+// Start (index 0) and Finish (last index) are left untouched; only the real
+// mini-levels in between get a numbered stub inserted right before them.
+function insertLevelStubs(ld,opts){
+  if(!opts||!opts.enabled)return ld;
+  if(!Array.isArray(ld)||ld.length<2)return ld;
+  const start=ld[0],finish=ld[ld.length-1],minis=ld.slice(1,ld.length-1);
+  if(!minis.length)return ld;
+  const out=[start];
+  minis.forEach((lvl,i)=>{out.push(makeLevelStubStage(i+1,opts));out.push(lvl);});
+  out.push(finish);
+  return out;
+}
 function readConfig(){
   const g=readField;
   const val=readValue;
@@ -27,11 +69,20 @@ function readConfig(){
     if(ld)levelData=ld;
     if(W.RiseLevelEditor.getPlayerStart)playerStart=W.RiseLevelEditor.getPlayerStart();
   }
+  const levelStub={
+    enabled:(function(){var e=document.getElementById('cfg-levelStubEnabled');return e?e.checked:true;})(),
+    text:(function(){var e=document.getElementById('cfg-levelStubText');return (e&&e.value!=null&&e.value!=='')?e.value:'LEVEL {n}';})(),
+    size:(function(){var v=g('cfg-levelStubSize');return isNaN(v)?92:v;})(),
+    font:(function(){var e=document.getElementById('cfg-levelStubFont');return (e&&e.value)||'Baloo2';})(),
+    color:(function(){var e=document.getElementById('cfg-levelStubColor');return (e&&e.value)||'#ffffff';})(),
+    accentColor:(function(){var e=document.getElementById('cfg-levelStubAccent');return (e&&e.value)||'#52e08a';})(),
+  };
+  if(levelData)levelData=insertLevelStubs(levelData,levelStub);
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
     deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
-    chainReaction:false,
+    chainReaction:true,
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialText:(function(){var e=document.getElementById('cfg-tutorialText');return (e&&e.value!=null)?e.value:'protect your balloon!';})(),
@@ -69,6 +120,7 @@ function readConfig(){
       shield:(g('cfg-vol-shield')!=null?g('cfg-vol-shield'):0.9),
     },
     levelData,
+    levelStub,
     endCard:{
       enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
       tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),

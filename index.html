@@ -224,6 +224,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 <div class="acc-body on" id="acc-gameplay">
 <button class="tab on" data-panel="player">Player</button>
 <button class="tab" data-panel="speed">Speed</button>
+<button class="tab" data-panel="level-intro">Level intro</button>
 <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
 <button class="tab" data-panel="timing">Tutorial</button>
 <button class="tab" data-panel="endcard-gameplay">End Card</button>
@@ -256,6 +257,16 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
 <div class="rr"><input id="cfg-acceleration" max="3" min="0" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))" step="0.05" type="range" value="0.4"/><span id="cfg-acc-v">0.40</span></div></div>
 <div class="row"><label>Death pause (s)<small>Пауза после смерти до рестарта (анимация разбивания)</small></label><input id="cfg-deathPause" max="6" min="0" step="0.1" type="number" value="1.5"/></div>
+</div>
+<div class="pnl" data-title="Level intro" id="panel-level-intro">
+<div class="sec">Level intro screen</div>
+<div class="row"><label>Enable<small>Промежуточный экран с номером уровня перед каждым мини-уровнем: Старт → «Уровень 1» → Уровень 1 → «Уровень 2» → Уровень 2 → … → Финиш</small></label><input checked id="cfg-levelStubEnabled" type="checkbox"/></div>
+<div class="row wide"><label>Text template<small>{n} — номер уровня, подставляется автоматически</small></label><input id="cfg-levelStubText" style="width:180px" type="text" value="УРОВЕНЬ {n}"/></div>
+<div class="row wide"><label>Size<small>Размер текста, px (канвас 390×844)</small></label>
+<div class="rr"><input id="cfg-levelStubSize" max="160" min="20" oninput="sv('cfg-levelStubSize-v',this.value+' px')" step="1" type="range" value="92"/><span id="cfg-levelStubSize-v">92 px</span></div></div>
+<div class="row"><label>Font<small>Шрифт надписи</small></label><select class="font-select cfg-select" id="cfg-levelStubFont" value="Baloo2"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+<div class="row"><label>Text color<small>Цвет слова «УРОВЕНЬ»</small></label><input class="hex-color" id="cfg-levelStubColor" inputmode="text" spellcheck="false" type="color" value="#ffffff"/></div>
+<div class="row"><label>Number color<small>Цвет самого номера</small></label><input class="hex-color" id="cfg-levelStubAccent" inputmode="text" spellcheck="false" type="color" value="#52e08a"/></div>
 </div>
 <div class="pnl" data-title="Obstacles / Physics" id="panel-obstacles-physics">
 <div class="sec">Obstacles / Physics</div>
