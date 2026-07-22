@@ -218,8 +218,8 @@ var cfg=${JSON.stringify(cfg)};
     var go=function(){
       onOrient();
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
-        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
+        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
+        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
         onLose:function(){},onStageChange:function(){}
       });
       window.RiseGame=game;

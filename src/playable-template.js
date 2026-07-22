@@ -912,6 +912,12 @@ class Game{
     this.ball.deathSpr=this._spr('player_death')||makeImg(this.cfg.defaultPlayerDeathSrc);
     this._resetFallingStages();
     this.completedStages=0;
+    // Large Rise Up-style level numerals. Each mini-level shows its number
+    // once, as soon as the stage begins entering the viewport after tutorial.
+    this._shownLevelNumbers=new Set();
+    this._levelNumberIndex=0;
+    this._levelNumberT=0;
+    this._levelNumberDuration=1100;
     // Level 4 is the final interaction beat: either the first fresh tap after
     // the level becomes current or the protector's first contact with its
     // first interactable obstacle opens the store. Keep it one-shot across
@@ -1026,6 +1032,47 @@ class Game{
   getState(){return this.state;}
 
   _sst(i){return this.stages[i].worldY;}
+
+  _updateLevelNumber(dt){
+    if(this.state!=='playing'||!this.tutDone)return;
+    if(this._levelNumberT>0){
+      this._levelNumberT=Math.max(0,this._levelNumberT-dt);
+      return;
+    }
+    const lastMini=Math.min(this.stages.length-2,Math.max(1,parseInt(this.cfg.stageCount,10)||1));
+    for(let i=1;i<=lastMini;i++){
+      const stage=this.stages[i];
+      if(!stage||stage.done||this._shownLevelNumbers.has(i))continue;
+      // A stage falls into view from above. Its bottom crossing y=0 is the
+      // first frame of the new level and occurs before its main obstacle pack
+      // reaches the balloon. This also stays correct in both orientations.
+      if(stage.worldY+stage.H>=0){
+        this._shownLevelNumbers.add(i);
+        this._levelNumberIndex=i;
+        this._levelNumberT=this._levelNumberDuration;
+        break;
+      }
+    }
+  }
+
+  _drawLevelNumber(ctx){
+    if(this.state!=='playing'||!this._levelNumberIndex||this._levelNumberT<=0)return;
+    const duration=this._levelNumberDuration||1100;
+    const elapsed=duration-this._levelNumberT;
+    const fadeIn=180,fadeOut=360;
+    const a=Math.min(1,elapsed/fadeIn,this._levelNumberT/fadeOut)*.62;
+    if(a<=0)return;
+    const size=Math.round(Math.min(CW,CH)*.18);
+    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, sans-serif';
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.fillStyle='#ffffff';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='700 '+size+'px '+family;
+    ctx.shadowColor='rgba(0,0,0,.08)';ctx.shadowBlur=Math.max(2,size*.035);ctx.shadowOffsetY=Math.max(1,size*.015);
+    ctx.fillText(String(this._levelNumberIndex),CW/2,CH*.34);
+    ctx.restore();
+  }
 
   _level4Index(){return 4;}
   _level4FirstObstacle(){
@@ -1163,6 +1210,7 @@ class Game{
         if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
       }
     }
+    this._updateLevelNumber(dt);
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
@@ -1307,9 +1355,10 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=(this.cfg.deathPause!=null?this.cfg.deathPause:1500);}
+  _die(){if(this.state!=='playing')return;this._levelNumberT=0;this._levelNumberIndex=0;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=(this.cfg.deathPause!=null?this.cfg.deathPause:1500);}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
+    this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
     this._resetFallingStages();
     this.shield.respawn();this.ball.respawn();
     this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
@@ -1518,9 +1567,11 @@ class Game{
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
-    // Transition clouds stay above stage content; the two balls are drawn last.
+    // Transition clouds stay above stage content. The large level numeral is
+    // a screen-space overlay like the original Rise Up presentation.
     this._drawSeamOverlays(ctx,'clouds');
-    // ball below shield, both above seam overlays
+    this._drawLevelNumber(ctx);
+    // ball below shield, both above seam overlays and level numeral
     this.ball.draw(ctx);
     this.shield.draw(ctx);
     // Level progress dots removed: progress indicators should be placed manually in the editor.

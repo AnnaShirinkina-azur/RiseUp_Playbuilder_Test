@@ -427,5 +427,24 @@
     "level1": "rigid side-group squeeze, activation on reaching player line",
     "level3": "U-basket collection and throw physics",
     "level4": "one-shot store trigger on first tap or protector collision"
+  },
+  "storeUrl": "https://play.google.com/store/apps/details?id=com.riseup.game&hl=en",
+  "storeRedirectSources": [
+    "end-card CTA",
+    "Level 4 first tap",
+    "Level 4 first shield collision",
+    "win callback"
+  ],
+  "levelNumberOverlay": {
+    "enabled": true,
+    "levels": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "style": "large semi-transparent white numeral",
+    "durationMs": 1100,
+    "trigger": "when each mini-level begins entering the viewport after tutorial"
   }
 }
