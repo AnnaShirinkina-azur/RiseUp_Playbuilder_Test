@@ -389,7 +389,8 @@
     "endcard_lose_button",
     "background",
     "player",
-    "shield"
+    "shield",
+    "player_death"
   ],
   "sprite_sizes": {
     "bg_seam_stage0": 39394,
@@ -420,8 +421,9 @@
     "endcard_lose_logo": 19550,
     "endcard_lose_button": 2818,
     "background": 3483326,
-    "player": 31150,
-    "shield": 23122
+    "player": 7842,
+    "shield": 12262,
+    "player_death": 10098
   },
   "preserved_patches": {
     "level1": "rigid side-group squeeze, activation on reaching player line",
@@ -461,9 +463,42 @@
   },
   "deathAnimation": {
     "sprite": "player_death",
-    "source": "uploaded 512x128 PNG",
+    "source": "Poof.png (white 512x128 PNG)",
     "frames": 4,
     "frameSize": "128x128",
     "tintSource": "playerSpriteColor"
+  },
+  "whiteSpriteDefaults": {
+    "player": "balloon.png",
+    "shield": "Controller.png",
+    "player_death": "Poof.png",
+    "tintBehavior": {
+      "player": "playerSpriteColor",
+      "shield": "shieldSpriteColor",
+      "player_death": "playerSpriteColor"
+    },
+    "files": {
+      "player": {
+        "source": "balloon.png",
+        "asset": "Assets/textures/balloon.png",
+        "bytes": 5864,
+        "dataUrlChars": 7842,
+        "sha256": "3540c685a743901a796b501c489bfc6832f75495d05fab364dc4c3f52d3846f8"
+      },
+      "shield": {
+        "source": "Controller.png",
+        "asset": "Assets/textures/controller.png",
+        "bytes": 9179,
+        "dataUrlChars": 12262,
+        "sha256": "38e74657333589ee326a38ec52045178625e9afab95046cec60556cff6dc40d5"
+      },
+      "player_death": {
+        "source": "Poof.png",
+        "asset": "Assets/textures/balloon_death.png",
+        "bytes": 7557,
+        "dataUrlChars": 10098,
+        "sha256": "9b990f64baa4698bb71b995d52890ca68288397cb776d1922d89017548f3128e"
+      }
+    }
   }
 }
