@@ -954,6 +954,21 @@ bindHexColorInputs(document);
       while(n&&n.nodeType===1&&n!==svg){chain.unshift(n);n=n.parentNode;}
       return chain.reduce((m,node)=>mul(m,parseTransform(node.getAttribute('transform'))),[1,0,0,1,0,0]);
     }
+    // Split a regular SVG affine transform into the values supported by the
+    // builder objects. Previously the transformed element was reduced to an
+    // axis-aligned bounding box, which discarded its authored rotation.
+    function matrixParts(m){
+      const scaleX=Math.hypot(m[0],m[1])||1;
+      const signedScaleY=(m[0]*m[3]-m[1]*m[2])/scaleX;
+      let rotation=Math.atan2(m[1],m[0])*180/Math.PI;
+      if(Math.abs(rotation)<1e-7)rotation=0;
+      else rotation=Math.round(rotation*1000000)/1000000;
+      return {scaleX,scaleY:Math.abs(signedScaleY)||1,flipY:signedScaleY<0,rotation};
+    }
+    function transformedFrame(m,x,y,w,h){
+      const part=matrixParts(m),c=applyM(m,{x:x+w/2,y:y+h/2});
+      return {x:c.x-w*part.scaleX/2,y:c.y-h*part.scaleY/2,w:w*part.scaleX,h:h*part.scaleY,rotation:part.rotation,flipY:part.flipY};
+    }
     function bbox(points){
       let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
       points.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);});
@@ -1002,7 +1017,7 @@ bindHexColorInputs(document);
       // No fill anywhere in the chain → SVG default is black.
       return {type:'color',color:'#000000'};
     }
-    function addItem(shape,x,y,w,h,points,fill){
+    function addItem(shape,x,y,w,h,points,fill,rotation){
       if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0)return;
       if(!fill||fill.type==='none')return; // skip stroke-only / unfilled elements
       let color=fill.color||null,imageSrc=fill.imageSrc||null;
@@ -1010,7 +1025,9 @@ bindHexColorInputs(document);
       // the playable render the texture (a plain 'rect' item ignores imageSrc in
       // the editor). White tint keeps the original pixels intact.
       if(imageSrc){if(shape==='rect'){shape='custom';points=RECT_POINTS.map(p=>({x:p.x,y:p.y}));}color='#ffffff';}
-      items.push({shape:shape||'rect',dx:((x+w/2)-(rootX+rootW/2))/rootW,dy:((y+h/2)-(rootY+rootH/2))/rootH,wRel:w/rootW,hRel:h/rootH,points:points||null,color:color||null,imageSrc:imageSrc||null});
+      const item={shape:shape||'rect',dx:((x+w/2)-(rootX+rootW/2))/rootW,dy:((y+h/2)-(rootY+rootH/2))/rootH,wRel:w/rootW,hRel:h/rootH,points:points||null,color:color||null,imageSrc:imageSrc||null};
+      const rot=parseFloat(rotation)||0;if(rot)item.rotation=rot;
+      items.push(item);
     }
     const strokeFrames=new Set();
     function strokeInfo(el){
@@ -1024,40 +1041,39 @@ bindHexColorInputs(document);
     }
     doc.querySelectorAll('rect').forEach(r=>{
       const x=parseFloat(r.getAttribute('x')||0),y=parseFloat(r.getAttribute('y')||0),w=parseFloat(r.getAttribute('width')||1),h=parseFloat(r.getAttribute('height')||1);
-      const m=matrixFor(r),bb=bbox([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}].map(p=>applyM(m,p)));
+      const m=matrixFor(r),fr=transformedFrame(m,x,y,w,h);
       const fill=elFill(r);
       if(fill.type==='none'){
         // Hollow stroked rectangle (e.g. a Figma frame border) → import as 4 thin
-        // wall bars, so it becomes a real bounding frame ("створки") instead of a
-        // solid block. Duplicate frames at the same spot (border + glow) collapse.
+        // wall bars. Each bar keeps the frame's own transform and rotation.
         const s=strokeInfo(r);
         if(s.color&&s.width>0){
-          const key=Math.round(bb.x)+'_'+Math.round(bb.y)+'_'+Math.round(bb.w)+'_'+Math.round(bb.h);
+          const key=Math.round(fr.x)+'_'+Math.round(fr.y)+'_'+Math.round(fr.w)+'_'+Math.round(fr.h)+'_'+fr.rotation;
           if(strokeFrames.has(key))return;strokeFrames.add(key);
-          const sc=(Math.hypot(m[0],m[1])+Math.hypot(m[2],m[3]))/2||1,t=Math.max(1,s.width*sc),wf={type:'color',color:s.color};
-          addItem('rect',bb.x,bb.y,bb.w,t,null,wf);         // top
-          addItem('rect',bb.x,bb.y+bb.h-t,bb.w,t,null,wf);  // bottom
-          addItem('rect',bb.x,bb.y,t,bb.h,null,wf);         // left
-          addItem('rect',bb.x+bb.w-t,bb.y,t,bb.h,null,wf);  // right
+          const t=Math.max(.01,s.width),wf={type:'color',color:s.color};
+          [[x,y,w,t],[x,y+h-t,w,t],[x,y,t,h],[x+w-t,y,t,h]].forEach(a=>{
+            const bar=transformedFrame(m,a[0],a[1],a[2],a[3]);
+            addItem('rect',bar.x,bar.y,bar.w,bar.h,null,wf,bar.rotation);
+          });
         }
         return;
       }
-      // Keep SVG rects as rect obstacles. Prefab mode preserves each element's own shape and its position inside the SVG viewBox.
-      addItem('rect',bb.x,bb.y,bb.w,bb.h,null,fill);
+      // Keep SVG rects as rect obstacles, including each element's own rotation.
+      addItem('rect',fr.x,fr.y,fr.w,fr.h,null,fill,fr.rotation);
     });
     doc.querySelectorAll('circle,ellipse').forEach(c=>{
       const cx=parseFloat(c.getAttribute('cx')||0),cy=parseFloat(c.getAttribute('cy')||0),rx=parseFloat(c.getAttribute('r')||c.getAttribute('rx')||1),ry=parseFloat(c.getAttribute('r')||c.getAttribute('ry')||rx);
-      const m=matrixFor(c),pts=[];for(let i=0;i<24;i++){const a=Math.PI*2*i/24;pts.push(applyM(m,{x:cx+Math.cos(a)*rx,y:cy+Math.sin(a)*ry}));}
-      const bb=bbox(pts);addItem('circle',bb.x,bb.y,bb.w,bb.h,null,elFill(c));
+      const m=matrixFor(c),fr=transformedFrame(m,cx-rx,cy-ry,rx*2,ry*2);
+      addItem('circle',fr.x,fr.y,fr.w,fr.h,null,elFill(c),fr.rotation);
     });
     doc.querySelectorAll('polygon,polyline,path[d]').forEach(el=>{
       let raw=[];
       if(el.matches('polygon,polyline')){const a=parseNumList(el.getAttribute('points')||'');for(let i=0;i+1<a.length;i+=2)raw.push({x:a[i],y:a[i+1]});}
       else raw=parsePathPoints(el.getAttribute('d')||'');
       if(raw.length<3)return;
-      const m=matrixFor(el);raw=raw.map(p=>applyM(m,p));
-      const bb=bbox(raw),points=raw.map(p=>({x:(p.x-bb.x)/bb.w-.5,y:(p.y-bb.y)/bb.h-.5}));
-      addItem('custom',bb.x,bb.y,bb.w,bb.h,points,elFill(el));
+      const local=bbox(raw),m=matrixFor(el),part=matrixParts(m),fr=transformedFrame(m,local.x,local.y,local.w,local.h);
+      const points=raw.map(p=>({x:(p.x-local.x)/local.w-.5,y:((p.y-local.y)/local.h-.5)*(part.flipY?-1:1)}));
+      addItem('custom',fr.x,fr.y,fr.w,fr.h,points,elFill(el),fr.rotation);
     });
     if(items.length<1)throw new Error('В SVG нет залитых фигур для импорта (только контуры/обводки без заливки). Экспортируйте фигуры с заливкой или картинкой.');
     items.aspect=(rootW&&rootH)?rootW/rootH:1;
@@ -1204,7 +1220,7 @@ bindHexColorInputs(document);
   renderTemplateList();
   function addPrefabObstacles(stageIndex,cx,cy,prefab){
     const sv=scaleUiValues(),baseW=prefab.baseW||180,baseH=prefab.baseH||170,groupW=Math.round(baseW*sv.scale*sv.scaleX),groupH=Math.round(baseH*sv.scale*sv.scaleY),color=$('oc').value,moveX=parseInt($('om').value)||0;
-    const wrapper={kind:'svgTemplate',x:cx,y:cy,coordMode:'center',w:Math.max(6,groupW),h:Math.max(6,groupH),baseW:baseW,baseH:baseH,scale:sv.scale,scaleX:sv.scaleX,scaleY:sv.scaleY,color,moveX,moveSpeed:1800,templateName:prefab.name||'svg_template',imageSrc:prefab.imageSrc,items:(prefab.items||[]).map(it=>({shape:it.shape||'rect',dx:it.dx||0,dy:it.dy||0,wRel:it.wRel||.1,hRel:it.hRel||.1,points:it.points?it.points.map(p=>({x:p.x,y:p.y})):null,color:it.color||null,imageSrc:it.imageSrc||null}))};
+    const wrapper={kind:'svgTemplate',x:cx,y:cy,coordMode:'center',w:Math.max(6,groupW),h:Math.max(6,groupH),baseW:baseW,baseH:baseH,scale:sv.scale,scaleX:sv.scaleX,scaleY:sv.scaleY,color,moveX,moveSpeed:1800,rotation:0,templateName:prefab.name||'svg_template',imageSrc:prefab.imageSrc,items:(prefab.items||[]).map(it=>({shape:it.shape||'rect',dx:it.dx||0,dy:it.dy||0,wRel:it.wRel||.1,hRel:it.hRel||.1,rotation:parseFloat(it.rotation)||0,points:it.points?it.points.map(p=>({x:p.x,y:p.y})):null,color:it.color||null,imageSrc:it.imageSrc||null}))};
     // Templates are inserted unlocked: in the editor they are immediately separate obstacles,
     // but they are selected together so the user can still move/scale the just-placed template as a group.
     if(!wrapper.templateGroupId)wrapper.templateGroupId='tpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
@@ -1218,8 +1234,10 @@ bindHexColorInputs(document);
     ensureObstacleScale(o);
     const out=[];
     const gid=o.templateGroupId||('tpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));
+    const wrapperRot=parseFloat(o.rotation)||0,wr=wrapperRot*Math.PI/180,co=Math.cos(wr),si=Math.sin(wr);
     (o.items||[]).forEach((it,idx)=>{
-      const child={x:Math.round((o.x||0)+(it.dx||0)*(o.w||180)),y:Math.round((o.y||0)+(it.dy||0)*(o.h||170)),coordMode:'center',baseW:Math.max(6,(it.wRel||.1)*(o.w||180)),baseH:Math.max(6,(it.hRel||.1)*(o.h||170)),scale:1,scaleX:1,scaleY:1,shape:it.shape||'rect',color:it.color||o.color||'#ffffff',moveX:o.moveX||0,moveSpeed:o.moveSpeed||1800,prefabName:o.templateName||'svg_template',prefabIndex:idx,templateGroupId:gid,templateUnlocked:false,templateMode:'whole',anchor:'cc'};
+      const ox=(it.dx||0)*(o.w||180),oy=(it.dy||0)*(o.h||170);
+      const child={x:Math.round((o.x||0)+ox*co-oy*si),y:Math.round((o.y||0)+ox*si+oy*co),coordMode:'center',baseW:Math.max(6,(it.wRel||.1)*(o.w||180)),baseH:Math.max(6,(it.hRel||.1)*(o.h||170)),scale:1,scaleX:1,scaleY:1,rotation:wrapperRot+(parseFloat(it.rotation)||0),shape:it.shape||'rect',color:it.color||o.color||'#ffffff',moveX:o.moveX||0,moveSpeed:o.moveSpeed||1800,prefabName:o.templateName||'svg_template',prefabIndex:idx,templateGroupId:gid,templateUnlocked:false,templateMode:'whole',anchor:'cc'};
       child.w=child.baseW;child.h=child.baseH;writeObstacleAnchorOffsetFromPoint(child,child.x,child.y);
       if(it.imageSrc)child.imageSrc=it.imageSrc;
       if(child.shape==='custom'&&it.points)child.points=it.points.map(p=>({x:p.x,y:p.y}));
