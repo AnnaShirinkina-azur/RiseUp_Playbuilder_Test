@@ -347,7 +347,9 @@
         }
       }
     },
-    "level1CenterSpeed": 80
+    "level1CenterSpeed": 80,
+    "level3BasketPower": 1.35,
+    "level3BallGravity": 0.34
   },
   "level_counts": [
     0,
@@ -425,5 +427,17 @@
     "spacing": "authored gaps between side rectangles and triangles remain unchanged during the squeeze",
     "setting": "cfg-level1CenterSpeed",
     "default_px_per_second": 80
+  },
+  "physics_patch_level3": {
+    "level": "Level 3 (runtime stage index 3)",
+    "basket": "authored U-shaped Frame 20 uses three physical walls and stays open at the top",
+    "balls": "eight circles are the only physical ball bodies; duplicated inner polygons are visual followers",
+    "control": "protector can push, catch and redirect the basket continuously",
+    "throw": "balls inherit basket translation and angular surface velocity; sharp reversal throws them out",
+    "damage": "basket is safe; unthrown balls still damage the main balloon",
+    "settings": {
+      "level3BasketPower": 1.35,
+      "level3BallGravity": 0.34
+    }
   }
 }

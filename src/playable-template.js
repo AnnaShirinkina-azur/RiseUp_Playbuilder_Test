@@ -263,12 +263,18 @@ class Obs{
     this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
     this.interactable=o.interactable!==false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
+    // Runtime-only role used by the Level 3 basket simulation.
+    this.level3Role=null;this.level3Follow=null;this.level3Safe=false;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt,gravityModifier=1){
+    // Level 3 basket/balls are integrated together by Stage so the U-shaped
+    // basket can contain, scoop and throw the balls. Decorative inner ball
+    // pieces follow their physical circle body there as well.
+    if(this.level3Role)return;
     if(this.kin&&this.live&&this.moveX>0){
       this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;
     }
@@ -290,6 +296,12 @@ class Obs{
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
     if(!this.live||!this.interactable)return false;
+    // The Level 3 basket is a tool, not a damaging full-box obstacle. Its
+    // actual U-shaped walls are handled by the dedicated basket simulation.
+    if(this.level3Role==='basket'||this.level3Role==='ballVisual')return false;
+    // Level 3 balls damage the balloon, but are intentionally not launched by
+    // direct shield contact: the player has to use the basket.
+    if(this.level3Role==='ball'&&!includeDynamic)return false;
     if(!includeDynamic&&!this.kin)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
     const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
@@ -305,7 +317,7 @@ class Obs{
     const dx=this.x,dy=this.y+sy;
     ctx.save();
     ctx.translate(dx,dy);
-    const ang=this.baseRot+(this.kin?0:this.rot);
+    const ang=this.baseRot+((this.level3Role==='basket'||this.level3Role==='ball'||this.level3Role==='ballVisual'||!this.kin)?this.rot:0);
     if(ang)ctx.rotate(ang);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
     if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
@@ -332,6 +344,9 @@ class Stage{
     this.level1SideProgress={left:0,right:0};
     this.level1Groups=null;
     this.level1ActivationBottom=0;
+    this.cfg=(obs&&obs.length&&obs[0].cfg)||{};
+    this.level3=null;
+    if(this.idx===3)this._buildLevel3Physics();
   }
   reset(){
     this.done=false;this.obs.forEach(o=>o.reset());
@@ -339,6 +354,7 @@ class Stage{
     this.level1SideProgress={left:0,right:0};
     this.level1Groups=null;
     this.level1ActivationBottom=0;
+    if(this.idx===3)this._buildLevel3Physics();
   }
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
@@ -390,6 +406,179 @@ class Stage{
       for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
     }
   }
+  _buildLevel3Physics(){
+    if(this.idx!==3)return;
+    // The authored Level 3 prefab contains one wide U-shaped basket, eight
+    // circle bodies and eight smaller decorative inner polygons placed on top
+    // of those circles. Only the circles must participate in physics.
+    const candidates=this.obs.filter(o=>o.interactable!==false&&o.w>150&&o.h>80);
+    const basket=candidates.sort((a,b)=>b.w*b.h-a.w*a.h)[0]||null;
+    const balls=this.obs.filter(o=>o.interactable!==false&&o.shape==='circle');
+    const visuals=[];
+    if(basket){
+      basket.level3Role='basket';basket.level3Safe=true;basket.kin=false;
+      basket.vx=0;basket.vy=0;basket.av=0;basket.rot=0;
+    }
+    for(const ball of balls){
+      ball.level3Role='ball';ball.kin=true;ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
+      // Match the inner prefab polygon by authored centre. It remains visible
+      // but no longer creates a second collider at the same location.
+      let best=null,bd=1e9;
+      for(const o of this.obs){
+        if(o===basket||o===ball||o.shape!=='custom'||o.w>=80)continue;
+        const d=(o.ix-ball.ix)**2+(o.iy-ball.iy)**2;
+        if(d<bd){bd=d;best=o;}
+      }
+      if(best&&bd<16){
+        best.level3Role='ballVisual';best.level3Follow=ball;best.interactable=false;best.kin=true;
+        visuals.push(best);
+      }
+    }
+    const activeBottom=Math.max(...([basket].filter(Boolean).concat(balls)).map(o=>o.iy+o.h/2),CH/2);
+    this.level3={basket,balls,visuals,active:false,touched:false,activeBottom,contactCooldown:0};
+    this._syncLevel3Visuals();
+  }
+  _syncLevel3Visuals(){
+    const l=this.level3;if(!l)return;
+    for(const v of l.visuals){
+      const b=v.level3Follow;if(!b)continue;
+      v.x=b.x;v.y=b.y;v.rot=b.rot;v.live=b.live;
+    }
+  }
+  _level3Walls(){
+    const l=this.level3,b=l&&l.basket;if(!b)return [];
+    // Ratios come from the opaque geometry of the authored Frame 20 PNG:
+    // two tall side posts and one thick bottom bar, open at the top.
+    const side=Math.max(18,b.w*.215),bottom=Math.max(22,b.h*.36);
+    return [
+      {x:-b.w/2+side/2,y:0,w:side,h:b.h},
+      {x: b.w/2-side/2,y:0,w:side,h:b.h},
+      {x:0,y:b.h/2-bottom/2,w:b.w,h:bottom}
+    ];
+  }
+  _level3CircleRect(body,r,rect,basket,worldTop,dt,driveBody){
+    const ang=basket.baseRot+basket.rot,co=Math.cos(ang),si=Math.sin(ang);
+    const bx=basket.x,by=basket.y+worldTop;
+    const wx=body.x,wy=body.y+worldTop;
+    const dx=wx-bx,dy=wy-by;
+    const lx=dx*co+dy*si,ly=-dx*si+dy*co;
+    const qx=clamp(lx,rect.x-rect.w/2,rect.x+rect.w/2);
+    const qy=clamp(ly,rect.y-rect.h/2,rect.y+rect.h/2);
+    let nx=lx-qx,ny=ly-qy,dist=Math.hypot(nx,ny),insideDepth=0;
+    if(dist>=r)return false;
+    if(dist<1e-5){
+      // Circle centre is inside a solid wall. Pick the cheapest exit axis and
+      // include the distance to that edge in the separation depth; using only
+      // the radius here would let a fast ball tunnel through the bottom bar.
+      const dl=Math.abs(lx-(rect.x-rect.w/2)),dr=Math.abs(rect.x+rect.w/2-lx);
+      const dtp=Math.abs(ly-(rect.y-rect.h/2)),db=Math.abs(rect.y+rect.h/2-ly);
+      const m=Math.min(dl,dr,dtp,db);insideDepth=m;
+      if(m===dl){nx=-1;ny=0;}else if(m===dr){nx=1;ny=0;}else if(m===dtp){nx=0;ny=-1;}else{nx=0;ny=1;}
+      dist=0;
+    }else{nx/=dist;ny/=dist;}
+    const pen=insideDepth>0?r+insideDepth:r-dist;
+    const nwx=nx*co-ny*si,nwy=nx*si+ny*co;
+    if(driveBody){
+      // Ball leaves the wall along its normal. It inherits the translating and
+      // rotating basket velocity, which is what makes a quick reversal toss it.
+      body.x+=nwx*pen;body.y+=nwy*pen;
+      const crx=qx*co-qy*si,cry=qx*si+qy*co;
+      const svx=basket.vx-basket.av*cry,svy=basket.vy+basket.av*crx;
+      const rvx=body.vx-svx,rvy=body.vy-svy;
+      const vn=rvx*nwx+rvy*nwy;
+      if(vn<0){
+        const bounce=.38,imp=-(1+bounce)*vn;
+        body.vx+=nwx*imp;body.vy+=nwy*imp;
+      }
+      const tx=-nwy,ty=nwx;
+      const vt=(body.vx-svx)*tx+(body.vy-svy)*ty;
+      body.vx-=tx*vt*.08;body.vy-=ty*vt*.08;
+      // Strong but bounded carry from the basket surface.
+      body.vx+=svx*.055;body.vy+=svy*.055;
+    }
+    return {nwx,nwy,pen,qx,qy};
+  }
+  _updateLevel3(dt,gravityModifier=1){
+    const l=this.level3;if(!l||!l.basket||!l.balls.length)return;
+    if(!l.active&&this.worldY+l.activeBottom>=-24){
+      l.active=true;
+      for(const b of l.balls){b.kin=false;b.vx=0;b.vy=0;}
+    }
+    if(l.contactCooldown>0)l.contactCooldown-=dt;
+    if(!l.active){this._syncLevel3Visuals();return;}
+    const f=dt/16.6667,b=l.basket;
+    // Until the protector reaches the level the basket stays locked to its
+    // authored position and travels only with the stage. The balls may settle
+    // inside it, but the tool itself must not drift away before the player can
+    // use it. After first contact it becomes a heavy dynamic body.
+    if(!l.touched){
+      b.x=b.ix;b.y=b.iy;b.vx=0;b.vy=0;b.av=0;b.rot=0;
+    }else{
+      b.vy+=.018*gravityModifier*f;
+      b.x+=b.vx*f;b.y+=b.vy*f;b.rot+=b.av*f;
+      b.vx*=Math.pow(.965,f);b.vy*=Math.pow(.975,f);b.av*=Math.pow(.955,f);
+      b.av=clamp(b.av,-.085,.085);
+    }
+    const ballGravity=Math.max(0,parseFloat(this.cfg.level3BallGravity)||.34);
+    for(const o of l.balls){
+      if(!o.live)continue;
+      o.vy+=ballGravity*gravityModifier*f;
+      o.x+=o.vx*f;o.y+=o.vy*f;o.rot+=o.av*f;
+      o.vx*=Math.pow(.997,f);o.vy*=Math.pow(.998,f);o.av*=Math.pow(.98,f);
+      if(o.y>CH+700||o.y<-900||o.x<-900||o.x>CW+900)o.live=false;
+    }
+    const walls=this._level3Walls();
+    // A few inexpensive solver iterations keep the small balls inside the U
+    // even when the player flicks the basket quickly.
+    for(let it=0;it<3;it++){
+      for(const o of l.balls){
+        if(!o.live)continue;
+        const r=Math.max(5,Math.min(o.w,o.h)*.5);
+        for(const w of walls)this._level3CircleRect(o,r,w,b,this.worldY,dt,true);
+      }
+      for(let i=0;i<l.balls.length;i++){
+        const A=l.balls[i];if(!A.live)continue;
+        const ar=Math.max(5,Math.min(A.w,A.h)*.5);
+        for(let j=i+1;j<l.balls.length;j++){
+          const B=l.balls[j];if(!B.live)continue;
+          const br=Math.max(5,Math.min(B.w,B.h)*.5),dx=B.x-A.x,dy=B.y-A.y,rr=ar+br;
+          const d2=dx*dx+dy*dy;if(d2>=rr*rr)continue;
+          const d=Math.sqrt(d2)||1,nx=dx/d,ny=dy/d,ov=(rr-d)*.5;
+          A.x-=nx*ov;A.y-=ny*ov;B.x+=nx*ov;B.y+=ny*ov;
+          const rel=(B.vx-A.vx)*nx+(B.vy-A.vy)*ny;
+          if(rel<0){const imp=-rel*.68;A.vx-=nx*imp;A.vy-=ny*imp;B.vx+=nx*imp;B.vy+=ny*imp;}
+        }
+      }
+    }
+    this._syncLevel3Visuals();
+  }
+  level3ShieldContact(shield,worldTop){
+    const l=this.level3;if(!l||!l.active||!l.basket||!l.basket.live)return false;
+    const b=l.basket,walls=this._level3Walls();let touched=false;
+    // Use a temporary circle body in stage-local coordinates so the same
+    // oriented wall test can resolve the protector against each U wall.
+    const p={x:shield.x,y:shield.y-worldTop};
+    for(const w of walls){
+      const hit=this._level3CircleRect(p,shield.r,w,b,worldTop,16.6667,false);
+      if(!hit)continue;touched=true;l.touched=true;
+      // Move the basket away from the protector rather than teleporting the
+      // protector. This makes the U feel like a physical tool being pushed.
+      b.x-=hit.nwx*hit.pen*.88;b.y-=hit.nwy*hit.pen*.88;
+      const power=Math.max(.2,parseFloat(this.cfg.level3BasketPower)||1.35);
+      const relx=(shield.vx||0)-b.vx,rely=(shield.vy||0)-b.vy;
+      const toward=Math.max(0,-(relx*hit.nwx+rely*hit.nwy));
+      // Follow the protector's swipe velocity instead of adding it every frame;
+      // this keeps continuous contact controllable and prevents runaway speed.
+      const targetVx=(shield.vx||0)*power,targetVy=(shield.vy||0)*power;
+      b.vx=lerp(b.vx,targetVx,.34)-hit.nwx*Math.min(5.5,.8+toward*.18)*power;
+      b.vy=lerp(b.vy,targetVy,.34)-hit.nwy*Math.min(5.5,.8+toward*.18)*power;
+      const ang=b.baseRot+b.rot,co=Math.cos(ang),si=Math.sin(ang);
+      const rx=hit.qx*co-hit.qy*si,ry=hit.qx*si+hit.qy*co;
+      const fx=-hit.nwx*(toward*.4+1),fy=-hit.nwy*(toward*.4+1);
+      b.av=clamp(b.av+(rx*fy-ry*fx)/Math.max(9000,b.w*b.w+b.h*b.h)*power,-.085,.085);
+    }
+    return touched;
+  }
   update(dt,fallSpeed=0,gravityModifier=1,level1CenterSpeed=0,level1ActivationY=CH){
     if(this.done)return;
     // Stages are falling waves: obstacle local layouts stay intact while the
@@ -397,6 +586,7 @@ class Stage{
     this.worldY+=fallSpeed*dt;
     this.obs.forEach(o=>o.update(dt,gravityModifier));
     this._updateLevel1Squeeze(dt,level1CenterSpeed,level1ActivationY);
+    this._updateLevel3(dt,gravityModifier);
   }
   draw(ctx,top){
     if(this.done)return;
@@ -947,6 +1137,16 @@ class Game{
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
+      // Level 3 uses continuous shield-vs-U-wall contact. Unlike a normal
+      // obstacle hit, the basket can be pushed repeatedly, caught again and
+      // sharply reversed to throw the balls out.
+      for(let i=0;i<this.stages.length;i++){
+        const stage=this.stages[i],top=this._sst(i);
+        if(stage.level3ShieldContact&&stage.level3ShieldContact(this.shield,top)){
+          this.shield.flash=180;
+          if(stage.level3&&stage.level3.contactCooldown<=0){this.snd.play('shield');stage.level3.contactCooldown=120;}
+        }
+      }
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
         const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
@@ -1034,7 +1234,7 @@ class Game{
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
-      for(const o of st.obs){if(o.live&&o.interactable)list.push({o,top});}
+      for(const o of st.obs){if(o.live&&o.interactable&&!o.level3Role)list.push({o,top});}
     }
     const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
@@ -1664,7 +1864,8 @@ class Game{
       st.worldY*=ky;
       st.bgs.forEach(b=>b.relayout());
       for(const o of st.obs){
-        if(o.kin&&o.live){
+        const level3Locked=o.level3Role==='basket'&&st.level3&&!st.level3.touched;
+        if((o.kin||level3Locked)&&o.live){
           o.ix=obstacleLayoutX({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
           o.iy=obstacleLayoutY({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
           o.x=o.ix;o.y=o.iy;
@@ -1677,7 +1878,7 @@ class Game{
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:80,
+  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:80,level3BasketPower:1.35,level3BallGravity:.34,
   chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
