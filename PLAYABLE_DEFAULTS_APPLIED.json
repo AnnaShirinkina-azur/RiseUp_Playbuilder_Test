@@ -458,5 +458,12 @@
     ],
     "beforeFinish": false,
     "behavior": "physical empty stage band; numeral remains screen-space while band crosses label line"
+  },
+  "deathAnimation": {
+    "sprite": "player_death",
+    "source": "uploaded 512x128 PNG",
+    "frames": 4,
+    "frameSize": "128x128",
+    "tintSource": "playerSpriteColor"
   }
 }

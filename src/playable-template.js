@@ -769,7 +769,12 @@ class Ball{
     ctx.beginPath();
     ctx.ellipse(0,-r*.05,r*.92,r*1.18,0,0,Math.PI*2);
     ctx.clip();
-    ctx.drawImage(sheet,fi*frameW,0,frameW,frameH,-w/2,-h*.58,w,h);
+    // Death frames use the same player tint as the living balloon. Tint the
+    // complete sprite sheet once through the shared cache, then crop the
+    // active frame from the tinted sheet so animation timing stays unchanged.
+    const deathSheet=(!this.cfg.playerSpriteColor||String(this.cfg.playerSpriteColor).toLowerCase()==='#ffffff')
+      ?sheet:tintedSprite(sheet,this.cfg.playerSpriteColor);
+    ctx.drawImage(deathSheet,fi*frameW,0,frameW,frameH,-w/2,-h*.58,w,h);
     ctx.restore();
     if(this.deathT<fadeStart){
       ctx.globalAlpha=alpha*.85;
@@ -2004,7 +2009,7 @@ const DEF={
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
+  playerDeathFrames:4,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
   backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,seamTint:'#ffffff',stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
