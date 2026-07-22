@@ -1309,7 +1309,9 @@ class Game{
     if(this.cfg.tutorialAnimEnabled!==false)this._drawTutAnim(ctx);
     else{
       ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
-      ctx.fillText('Hold & drag to move',CW/2,this.shield.y-this.shield.r-24);
+      const _tCap=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:'protect your balloon!';
+      let _ty=this.shield.y-this.shield.r-24;
+      String(_tCap).split('\n').forEach(function(ln){ctx.fillText(ln,CW/2,_ty);_ty+=15*1.25;});
       const ay=this.shield.y-this.shield.r-8+Math.sin(Date.now()/500)*4;
       ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2-7,ay+11);ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2+7,ay+11);ctx.stroke();
@@ -1433,7 +1435,9 @@ class Game{
     ctx.fillStyle=(T&&T.textColor)||'rgba(255,255,255,.92)';
     var _tf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[this.cfg.tutorialFont])?RiseFontCSS[this.cfg.tutorialFont]:(this.cfg.tutorialFont||'sans-serif');
     ctx.font='bold '+fs+'px '+_tf;ctx.textAlign='center';
-    const lines=String((T&&T.text!=null)?T.text:'Move the circle\nto break the block').split('\n');
+    const _cfgTut=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:null;
+    const _tutCaption=(_cfgTut!=null)?_cfgTut:((T&&T.text!=null)?T.text:'protect your balloon!');
+    const lines=String(_tutCaption).split('\n');
     let ty=this._tutU(0,2.9).y;
     const tx=this._tutAnchor.ax;
     for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=fs*1.25;}
@@ -1598,7 +1602,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
   chainReaction:false,scatterBounciness:0.08,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
