@@ -268,19 +268,8 @@ class Obs{
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
-  update(dt,gravityModifier=1,centerSpeed=0){
-    if(this.kin&&this.live&&centerSpeed>0){
-      // Level 1: remove 90% of the authored center offset. Obstacles move
-      // radially at a constant px/s speed and stop with 10% of their original
-      // offset remaining, so they approach the 0,0 layout position without
-      // ever collapsing into the exact center.
-      const tx=CW/2+(this.ix-CW/2)*.1;
-      const ty=CH/2+(this.iy-CH/2)*.1;
-      const dx=tx-this.x,dy=ty-this.y,dist=Math.hypot(dx,dy);
-      const step=Math.max(0,centerSpeed)*dt/1000;
-      if(dist<=step||dist<.001){this.x=tx;this.y=ty;}
-      else{this.x+=dx/dist*step;this.y+=dy/dist*step;}
-    }else if(this.kin&&this.live&&this.moveX>0){
+  update(dt,gravityModifier=1){
+    if(this.kin&&this.live&&this.moveX>0){
       this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;
     }
     if(!this.kin){
@@ -333,20 +322,81 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels,bgs){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
-  reset(){this.done=false;this.obs.forEach(o=>o.reset());}
+  constructor(idx,obs,color,labels,bgs){
+    this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];
+    this.H=CH+6;this.worldY=idx*this.H;this.done=false;
+    // Level 1 is a pair of horizontal side assemblies. Every item on one side
+    // receives exactly the same X translation, so the large rectangle keeps
+    // its authored gap to the triangles instead of overtaking them.
+    this.level1SqueezeActive=false;
+    this.level1SideProgress={left:0,right:0};
+    this.level1Groups=null;
+    this.level1ActivationBottom=0;
+  }
+  reset(){
+    this.done=false;this.obs.forEach(o=>o.reset());
+    this.level1SqueezeActive=false;
+    this.level1SideProgress={left:0,right:0};
+    this.level1Groups=null;
+    this.level1ActivationBottom=0;
+  }
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
-  update(dt,fallSpeed=0,gravityModifier=1,level1CenterSpeed=0){
+  _buildLevel1Groups(){
+    if(this.idx!==1)return;
+    const cx=CW/2;
+    const groups={left:{items:[],dir:1,target:0},right:{items:[],dir:-1,target:0}};
+    for(const o of this.obs){
+      const side=o.ix<cx-1?'left':(o.ix>cx+1?'right':null);
+      if(side)groups[side].items.push(o);
+    }
+    let activationBottom=-Infinity;
+    for(const side of ['left','right']){
+      const g=groups[side];
+      if(!g.items.length)continue;
+      // The nearest-to-centre obstacle defines the stop point. It retains 10%
+      // of its authored horizontal offset; every other item on that side uses
+      // the same translation and therefore preserves the complete formation.
+      const nearest=Math.min(...g.items.map(o=>Math.abs(o.ix-cx)));
+      g.target=g.dir*nearest*.9;
+      const p=clamp(this.level1SideProgress[side]||0,0,1);
+      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
+      const triggerItems=g.items.filter(o=>o.interactable!==false);
+      const source=triggerItems.length?triggerItems:g.items;
+      for(const o of source)activationBottom=Math.max(activationBottom,o.iy+o.h/2);
+    }
+    this.level1Groups=groups;
+    this.level1ActivationBottom=isFinite(activationBottom)?activationBottom:CH/2;
+  }
+  refreshLevel1Groups(){
+    if(this.idx!==1)return;
+    this.level1Groups=null;
+    this._buildLevel1Groups();
+  }
+  _updateLevel1Squeeze(dt,speed,activationY){
+    if(this.idx!==1)return;
+    if(!this.level1Groups)this._buildLevel1Groups();
+    if(!this.level1SqueezeActive&&this.worldY+this.level1ActivationBottom>=activationY){
+      this.level1SqueezeActive=true;
+    }
+    if(!this.level1SqueezeActive||speed<=0)return;
+    const step=Math.max(0,speed)*dt/1000;
+    for(const side of ['left','right']){
+      const g=this.level1Groups&&this.level1Groups[side];
+      if(!g||!g.items.length||Math.abs(g.target)<.001)continue;
+      let p=clamp(this.level1SideProgress[side]||0,0,1);
+      p=Math.min(1,p+step/Math.abs(g.target));
+      this.level1SideProgress[side]=p;
+      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
+    }
+  }
+  update(dt,fallSpeed=0,gravityModifier=1,level1CenterSpeed=0,level1ActivationY=CH){
     if(this.done)return;
-    // Stages are now falling waves: obstacles keep their local layout,
-    // while the whole wave moves from the top of the screen downward.
+    // Stages are falling waves: obstacle local layouts stay intact while the
+    // whole level band moves downward relative to the player.
     this.worldY+=fallSpeed*dt;
-    // Stage 0 is the START/tutorial zone. The first playable level is stage 1.
-    // Start convergence only once its band enters the viewport, otherwise the
-    // movement would finish off-screen during the intro.
-    const centerSpeed=(this.idx===1&&this.worldY>-this.H)?level1CenterSpeed:0;
-    this.obs.forEach(o=>o.update(dt,gravityModifier,centerSpeed));
+    this.obs.forEach(o=>o.update(dt,gravityModifier));
+    this._updateLevel1Squeeze(dt,level1CenterSpeed,level1ActivationY);
   }
   draw(ctx,top){
     if(this.done)return;
@@ -840,7 +890,7 @@ class Game{
           fall*=lerp(0.82,0.03,ease);
         }
       }
-      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier,this.cfg.level1CenterSpeed));
+      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier,this.cfg.level1CenterSpeed,this.ball.y-this.ball.r));
       // Keep the whole tutorial inside the fixed START zone. While the intro
       // is active, the first playable level must not enter the viewport.
       // All stage bands move together, so clamp their shared travel exactly
@@ -1620,6 +1670,7 @@ class Game{
           o.x=o.ix;o.y=o.iy;
         }else{o.x*=kx;o.y*=ky;}
       }
+      if(st.refreshLevel1Groups)st.refreshLevel1Groups();
     }
     if(this.spawnTop!=null)this.spawnTop*=ky;
   }

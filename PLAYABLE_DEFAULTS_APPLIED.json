@@ -419,7 +419,10 @@
   },
   "physics_patch": {
     "level": "Level 1 (runtime stage index 1; stage index 0 is START)",
-    "behavior": "kinematic obstacles move radially toward local 0,0 and stop at 10% of original offset",
+    "trigger": "starts only when the first interactive obstacle row reaches the player line",
+    "behavior": "left and right obstacle formations translate horizontally as rigid groups; every object on one side receives the same offset",
+    "stop": "nearest obstacle on each side keeps 10% of its original horizontal center offset",
+    "spacing": "authored gaps between side rectangles and triangles remain unchanged during the squeeze",
     "setting": "cfg-level1CenterSpeed",
     "default_px_per_second": 80
   }

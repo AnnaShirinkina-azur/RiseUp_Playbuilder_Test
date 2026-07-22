@@ -31,6 +31,7 @@ function readConfig(){
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
     deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
+    // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
     level1CenterSpeed:(function(){var v=g('cfg-level1CenterSpeed');return isNaN(v)?80:Math.max(0,v);})(),
     hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     chainReaction:false,
