@@ -268,6 +268,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
         <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
+      <div class="row wide"><label>Level 1 center speed<small>Скорость схождения obstacles к центру, px/s; 0 = выключено</small></label>
+        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="80" min="0" max="300" step="5" oninput="sv('cfg-level1-center-speed-v',this.value+' px/s')"><span id="cfg-level1-center-speed-v">80 px/s</span></div></div>
     </div>
 
     <div class="pnl" id="panel-timing" data-title="Tutorial">
@@ -845,9 +847,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=64-endcard-object-controls"></script>
-<script src="src/builder.js?v=43-endcard-object-controls"></script>
-<script src="script2.js?v=png-import-fix-2"></script>
+<script src="src/playable-template.js?v=65-level1-center-motion"></script>
+<script src="src/builder.js?v=44-level1-center-motion"></script>
+<script src="script2.js?v=level1-center-motion"></script>
 
 </body>
 </html>

@@ -346,7 +346,8 @@
           }
         }
       }
-    }
+    },
+    "level1CenterSpeed": 80
   },
   "level_counts": [
     0,
@@ -415,5 +416,11 @@
     "endcard_lose_logo": 19550,
     "endcard_lose_button": 2818,
     "background": 3483326
+  },
+  "physics_patch": {
+    "level": "Level 1 (runtime stage index 1; stage index 0 is START)",
+    "behavior": "kinematic obstacles move radially toward local 0,0 and stop at 10% of original offset",
+    "setting": "cfg-level1CenterSpeed",
+    "default_px_per_second": 80
   }
 }

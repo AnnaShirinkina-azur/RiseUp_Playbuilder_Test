@@ -268,8 +268,21 @@ class Obs{
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
-  update(dt,gravityModifier=1){
-    if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
+  update(dt,gravityModifier=1,centerSpeed=0){
+    if(this.kin&&this.live&&centerSpeed>0){
+      // Level 1: remove 90% of the authored center offset. Obstacles move
+      // radially at a constant px/s speed and stop with 10% of their original
+      // offset remaining, so they approach the 0,0 layout position without
+      // ever collapsing into the exact center.
+      const tx=CW/2+(this.ix-CW/2)*.1;
+      const ty=CH/2+(this.iy-CH/2)*.1;
+      const dx=tx-this.x,dy=ty-this.y,dist=Math.hypot(dx,dy);
+      const step=Math.max(0,centerSpeed)*dt/1000;
+      if(dist<=step||dist<.001){this.x=tx;this.y=ty;}
+      else{this.x+=dx/dist*step;this.y+=dy/dist*step;}
+    }else if(this.kin&&this.live&&this.moveX>0){
+      this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;
+    }
     if(!this.kin){
       // Free-body motion after the protector hits the obstacle
       // (Unity Rigidbody2D-style: gravity + small linear/angular drag,
@@ -324,12 +337,16 @@ class Stage{
   reset(){this.done=false;this.obs.forEach(o=>o.reset());}
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
-  update(dt,fallSpeed=0,gravityModifier=1){
+  update(dt,fallSpeed=0,gravityModifier=1,level1CenterSpeed=0){
     if(this.done)return;
     // Stages are now falling waves: obstacles keep their local layout,
     // while the whole wave moves from the top of the screen downward.
     this.worldY+=fallSpeed*dt;
-    this.obs.forEach(o=>o.update(dt,gravityModifier));
+    // Stage 0 is the START/tutorial zone. The first playable level is stage 1.
+    // Start convergence only once its band enters the viewport, otherwise the
+    // movement would finish off-screen during the intro.
+    const centerSpeed=(this.idx===1&&this.worldY>-this.H)?level1CenterSpeed:0;
+    this.obs.forEach(o=>o.update(dt,gravityModifier,centerSpeed));
   }
   draw(ctx,top){
     if(this.done)return;
@@ -823,7 +840,7 @@ class Game{
           fall*=lerp(0.82,0.03,ease);
         }
       }
-      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
+      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier,this.cfg.level1CenterSpeed));
       // Keep the whole tutorial inside the fixed START zone. While the intro
       // is active, the first playable level must not enter the viewport.
       // All stage bands move together, so clamp their shared travel exactly
@@ -1609,7 +1626,7 @@ class Game{
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
+  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:80,
   chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
