@@ -1787,20 +1787,27 @@ class Game{
         this._tutHand=makeImg('data:image/svg+xml,'+encodeURIComponent(svg));
       }
     }
+    if(!this._tutTriangle)this._tutTriangle=this._spr('tutorial_triangle')||makeImg(this.cfg.defaultTutorialTriangleSrc);
     if(!this.tutBlocks)this._tutInit();
     const S=this._tutAnchor.S;
     const p=((this.tutT||0)/1000)%1;                     // 1s loop (WrapMode 2)
     const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
     // blocks (interactive)
     const T=this.tutorialObj;
-    const shape=(T&&T.blockShape)||this.cfg.tutorialObstacleShape||'square';
+    const shape=(T&&T.blockShape)||this.cfg.tutorialObstacleShape||'triangle';
     const blockColor=(T&&T.blockColor)||'#373843';
+    const triangleTint=this.cfg.tutorialObstacleTint||'#ffffff';
     for(const b of this.tutBlocks){
       if(b.a<=0)continue;
       ctx.save();ctx.globalAlpha*=b.a;
       ctx.translate(b.x,b.y);ctx.rotate(b.rot);
-      ctx.fillStyle=blockColor;
-      this._tutShape(ctx,0,0,b.s,shape);
+      if(shape==='triangle'&&imgOk(this._tutTriangle)){
+        const ds=b.s*1.16;
+        drawTintedImage(ctx,this._tutTriangle,-ds/2,-ds/2,ds,ds,triangleTint);
+      }else{
+        ctx.fillStyle=blockColor;
+        this._tutShape(ctx,0,0,b.s,shape);
+      }
       ctx.restore();
     }
     const smashed=this._tutSmashed;
@@ -2005,7 +2012,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:33,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.08,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'triangle',tutorialObstacleTint:'#ffffff',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',

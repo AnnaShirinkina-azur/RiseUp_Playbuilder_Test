@@ -45,6 +45,7 @@ function readConfig(){
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
     tutorialFailEnabled:(function(){var e=document.getElementById('cfg-tutorialFailEnabled');return e?e.checked:true;})(),
     tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
+    tutorialObstacleTint:(function(){var e=document.getElementById('cfg-tutorialObstacleTint');return (e&&e.value)||'#ffffff';})(),
     playerSize:g('cfg-playerSize'),balloonCount:(function(){var v=g('cfg-balloonCount');return isNaN(v)?1:Math.max(1,Math.round(v));})(),balloonSpacing:(function(){var v=g('cfg-balloonSpacing');return isNaN(v)?30:Math.max(0,v);})(),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerDeathFrames:4,playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     backgroundSpriteColor:g('cfg-bgSpriteColor'),
@@ -104,7 +105,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/tutorial_hand.svg','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
+  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
   'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
@@ -130,6 +131,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   if(assetMap['textures/balloon_death.png'])cfg.defaultPlayerDeathSrc=assetMap['textures/balloon_death.png'];
   if(assetMap['textures/controller.png'])cfg.defaultShieldSrc=assetMap['textures/controller.png'];
   if(assetMap['textures/tutorial_hand.svg'])cfg.defaultTutorialHandSrc=assetMap['textures/tutorial_hand.svg'];
+  if(assetMap['textures/tutorial_triangle.png'])cfg.defaultTutorialTriangleSrc=assetMap['textures/tutorial_triangle.png'];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);

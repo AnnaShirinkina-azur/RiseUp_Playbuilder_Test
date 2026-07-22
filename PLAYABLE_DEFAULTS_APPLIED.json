@@ -500,5 +500,15 @@
         "sha256": "9b990f64baa4698bb71b995d52890ca68288397cb776d1922d89017548f3128e"
       }
     }
+  },
+  "tutorialTriangle": {
+    "spriteKey": "tutorial_triangle",
+    "asset": "Assets/textures/tutorial_triangle.png",
+    "size": [
+      128,
+      128
+    ],
+    "defaultTint": "#ffffff",
+    "configField": "cfg-tutorialObstacleTint"
   }
 }
