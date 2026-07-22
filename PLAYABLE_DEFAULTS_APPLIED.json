@@ -1,68 +1,80 @@
 {
-  "sourcePlayable": "rise_playable_1784713049812.html",
-  "orientation": "landscape",
-  "backgroundMode": "common",
-  "stageCount": 4,
-  "levelArrayCount": 6,
-  "levelObjectCounts": [
+  "cfg": {
+    "lives": 3,
+    "gameSpeed": 3.2,
+    "acceleration": 0.4,
+    "stageCount": 1,
+    "obstaclePushForce": 7,
+    "gravityModifier": 1,
+    "hpBarShowTime": 2000,
+    "chainReaction": false,
+    "scatterBounciness": 0.1,
+    "tutorialDisplayTime": 3500,
+    "playerSize": 2,
+    "playerDeathAnimSpeed": 1,
+    "playerStart": {
+      "coordMode": "center",
+      "x": 0,
+      "y": 169
+    },
+    "shieldSize": 1,
+    "stageBgGradients": [
+      [
+        "#5BC0DE",
+        "#69C5EC"
+      ],
+      [
+        "#EF5350",
+        "#F97F6F"
+      ],
+      [
+        "#B03C02",
+        "#CC4A05"
+      ]
+    ],
+    "seamScale": 0.5,
+    "soundVolume": 0.8,
+    "soundVolumes": {
+      "bgm": 0.7,
+      "win": 1,
+      "lose": 1,
+      "hit": 1,
+      "shield": 0.9
+    },
+    "endCard": {
+      "enabled": true,
+      "scale": 1,
+      "x": 0,
+      "y": 0,
+      "overlay": 0.55,
+      "showCta": true,
+      "ctaText": "PLAY NOW",
+      "ctaY": 74
+    }
+  },
+  "level_counts": [
     0,
-    26,
-    98,
-    19,
-    3,
-    2
+    20,
+    0
   ],
-  "playerStart": {
-    "coordMode": "center",
-    "x": 0,
-    "y": 169
-  },
-  "tutorial": {
-    "enabled": true,
-    "text": "Protect your Balloon!",
-    "failEnabled": false,
-    "obstacleShape": "triangle"
-  },
-  "endCard": {
-    "enabled": true,
-    "tryAgainEnabled": true,
-    "y": -5,
-    "ctaText": "PLAY NOW"
-  },
-  "embeddedDefaultSprites": [
-    "background",
+  "sprite_keys": [
     "bg_seam_stage0",
     "bg_seam_stage1",
-    "endcard_win",
-    "endcard_win_frame",
+    "bg_seam_stage2",
     "endcard_lose_bg",
+    "endcard_lose_button",
     "endcard_lose_logo",
-    "endcard_lose_button"
+    "endcard_win",
+    "endcard_win_frame"
   ],
-  "stageBgGradients": [
-    [
-      "#5bc0de",
-      "#69c5ec"
-    ],
-    [
-      "#ef5350",
-      "#f97f6f"
-    ],
-    [
-      "#b03c02",
-      "#cc4a05"
-    ],
-    [
-      "#f0a44c",
-      "#f9c178"
-    ],
-    [
-      "#ee4630",
-      "#fa6a4b"
-    ],
-    [
-      "#5bc0de",
-      "#69c5ec"
-    ]
+  "patched_sprite_keys": [
+    "bg_seam_stage0",
+    "bg_seam_stage1",
+    "bg_seam_stage2",
+    "endcard_lose_bg",
+    "endcard_lose_button",
+    "endcard_lose_logo",
+    "endcard_win",
+    "endcard_win_frame"
   ]
 }
