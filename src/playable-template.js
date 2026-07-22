@@ -912,6 +912,11 @@ class Game{
     this.ball.deathSpr=this._spr('player_death')||makeImg(this.cfg.defaultPlayerDeathSrc);
     this._resetFallingStages();
     this.completedStages=0;
+    // Level 4 is the final interaction beat: either the first fresh tap after
+    // the level becomes current or the protector's first contact with its
+    // first interactable obstacle opens the store. Keep it one-shot across
+    // pointer/touch/mouse fallback events and collision frames.
+    this._level4StoreTriggered=false;
     this.paused=false;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
@@ -928,6 +933,10 @@ class Game{
     const down=(x,y)=>{
       if(this.state==='start'){this._start();return;}
       if(this.state==='playing'){
+        // Once Level 4 is current, its first new tap is the conversion action.
+        // This check precedes shield dragging so the same gesture cannot also
+        // move the protector or create a second interaction.
+        if(this._isLevel4TapActive()){this._triggerLevel4Store('tap');return;}
         if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
         if(this.tutDone||this.tutPhase==='learn')this.shield.down(x,y);
       }
@@ -1017,6 +1026,29 @@ class Game{
   getState(){return this.state;}
 
   _sst(i){return this.stages[i].worldY;}
+
+  _level4Index(){return 4;}
+  _level4FirstObstacle(){
+    const s=this.stages[this._level4Index()];
+    return s&&s.obs?s.obs.find(o=>o&&o.interactable!==false&&o.live)||null:null;
+  }
+  _isLevel4TapActive(){
+    const i=this._level4Index(),s=this.stages[i];
+    if(this._level4StoreTriggered||this.state!=='playing'||!this.tutDone||!s||s.done)return false;
+    // The level becomes tappable when its stage band reaches the player's
+    // gameplay line. Using geometry instead of `si` is important because the
+    // stage counter advances only after the previous band has fully left the
+    // screen, which would be too late for this large first obstacle.
+    const playerY=this.ball?this.ball.y:CH*.8;
+    return s.worldY+s.H>=playerY;
+  }
+  _triggerLevel4Store(reason){
+    if(this._level4StoreTriggered)return false;
+    this._level4StoreTriggered=true;
+    this.shield.up();
+    try{if(this.cb.onCTA)this.cb.onCTA({source:'level4_'+reason});}catch(e){}
+    return true;
+  }
 
   _updateCamera(){
     // Obstacles move toward the player, so the camera no longer lifts the ball
@@ -1150,7 +1182,7 @@ class Game{
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
         const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
-        for(const sh of hits)this._hit(sh,top,'shield');
+        for(const sh of hits)this._hit(sh,top,'shield',i);
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
@@ -1159,7 +1191,7 @@ class Game{
         const bpts=this.ball.points();
         for(let bi=0;bi<bpts.length;bi++){
           const bh=this.stages[i].hit(bpts[bi].x,bpts[bi].y,this.ball.r,top,true);
-          if(bh){this._hit(bh,top,'ball');break outer;}
+          if(bh){this._hit(bh,top,'ball',i);break outer;}
         }
       }
     }
@@ -1181,7 +1213,14 @@ class Game{
     if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
   }
 
-  _hit(obs,top,who){
+  _hit(obs,top,who,stageIndex){
+    // Collision is the fallback Level 4 conversion trigger. It does not wait
+    // for the stage counter: touching the authored first obstacle is itself
+    // proof that the player has reached the final level.
+    if(who==='shield'&&stageIndex===this._level4Index()&&obs===this._level4FirstObstacle()){
+      this._triggerLevel4Store('collision');
+      return;
+    }
     const hx=who==='shield'?this.shield.x:this.ball.x;
     const hy=who==='shield'?this.shield.y:this.ball.y;
     const dx=obs.x-hx,dy=(obs.y+top)-hy;

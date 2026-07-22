@@ -439,5 +439,12 @@
       "level3BasketPower": 1.35,
       "level3BallGravity": 0.34
     }
+  },
+  "physics_patch_level4": {
+    "stage_index": 4,
+    "tap_trigger": "first pointer/touch/mouse down after the Level 4 stage band reaches the player line",
+    "collision_trigger": "first protector contact with Level 4 first interactable obstacle",
+    "action": "existing onCTA store callback",
+    "one_shot": true
   }
 }
