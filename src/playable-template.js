@@ -262,20 +262,34 @@ class Obs{
     // `rot`, which is the physics spin accumulated after the protector push.
     this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
     this.interactable=o.interactable!==false;
+    // Runtime physics metadata. Imported templates may contain several visual
+    // layers at the same position (for example a glowing ball plus its core).
+    // Those layers are linked below by Stage so they move as one rigid body.
+    this.prefabName=o.prefabName||o.customName||'';
+    this.prefabIndex=o.prefabIndex;
+    this.templateGroupId=o.templateGroupId||'';
+    this.physicsFollowerOf=null;this.followers=[];this.followDx=0;this.followDy=0;
+    this.isCollectible=false;this.isBasket=false;this.autoDynamic=false;
+    this.gravityScale=1;this.collectT=0;this.collected=false;this._cr=0;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
   }
-  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
+  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.collectT=0;this.collected=false;}
+  syncFollower(){
+    const r=this.physicsFollowerOf;if(!r)return;
+    this.x=r.x+this.followDx;this.y=r.y+this.followDy;this.rot=r.rot;this.live=r.live;this.kin=r.kin;
+  }
   // Approximate collision radius for obstacle-vs-obstacle contacts.
-  get cr(){return (this.w+this.h)*.27;}
+  get cr(){return this._cr||((this.w+this.h)*.27);}
   push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt,gravityModifier=1){
+    if(this.physicsFollowerOf){this.syncFollower();return;}
     if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
     if(!this.kin){
       // Free-body motion after the protector hits the obstacle
       // (Unity Rigidbody2D-style: gravity + small linear/angular drag,
       // integrated per dt so the arc looks the same at any framerate).
       const f=dt/16.6667;
-      this.vy+=.42*gravityModifier*f;
+      this.vy+=.42*gravityModifier*(this.gravityScale||1)*f;
       this.x+=this.vx*f;this.y+=this.vy*f;
       const ld=Math.pow(.992,f);
       this.vx*=ld;this.vy*=Math.pow(.998,f);
@@ -287,7 +301,7 @@ class Obs{
     // Protector contact turns a kinematic obstacle into a flying body.
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
-    if(!this.live||!this.interactable)return false;
+    if(!this.live||!this.interactable||this.physicsFollowerOf||this.isBasket)return false;
     if(!includeDynamic&&!this.kin)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
     const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
@@ -320,8 +334,46 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels,bgs){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
-  reset(){this.done=false;this.obs.forEach(o=>o.reset());}
+  constructor(idx,obs,color,labels,bgs){
+    this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;
+    this.basket=null;this.collectibles=[];this.basketMode=false;this.basketActive=false;this.basketComplete=false;this.basketCompleteT=0;this.collectedCount=0;
+    this._setupObjectPhysics();
+  }
+  _setupObjectPhysics(){
+    // Bind coincident layers from one imported template into a single body.
+    // This keeps a ball's glow/core together while still allowing every ball
+    // in the template to have independent physics.
+    for(const o of this.obs){o.physicsFollowerOf=null;o.followers=[];o.followDx=0;o.followDy=0;o.isCollectible=false;o.isBasket=false;o._cr=0;}
+    const buckets=new Map();
+    for(const o of this.obs){
+      if(!o.templateGroupId)continue;
+      const k=o.templateGroupId+'|'+Math.round(o.x*2)/2+'|'+Math.round(o.y*2)/2;
+      if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(o);
+    }
+    for(const g of buckets.values()){
+      if(g.length<2)continue;
+      const root=g.find(o=>o.shape==='circle')||g.slice().sort((a,b)=>b.w*b.h-a.w*a.h)[0];
+      for(const o of g){if(o===root)continue;o.physicsFollowerOf=root;o.followDx=o.x-root.x;o.followDy=o.y-root.y;root.followers.push(o);o.interactable=false;}
+    }
+    const roots=this.obs.filter(o=>!o.physicsFollowerOf);
+    const circles=roots.filter(o=>o.interactable&&o.shape==='circle');
+    let basket=roots.find(o=>o.interactable&&/frame\s*20|basket|корз/i.test(String(o.prefabName||''))&&o.w>100&&o.h>60);
+    if(!basket&&circles.length>=3){
+      basket=roots.filter(o=>o.interactable&&o.shape==='custom'&&o.w>140&&o.h>70).sort((a,b)=>a.w*b.h-b.w*a.h)[0]||null;
+    }
+    if(!basket)return;
+    const balls=circles.filter(o=>Math.abs(o.x-basket.x)<basket.w*.65&&o.y<basket.y+basket.h*.15);
+    if(balls.length<3)return;
+    this.basket=basket;this.collectibles=balls;this.basketMode=true;
+    basket.isBasket=true;basket.kin=true;basket.vx=0;basket.vy=0;
+    for(const o of balls){o.isCollectible=true;o.gravityScale=.9;o._cr=Math.min(o.w,o.h)*.48;o.kin=true;o.vx=0;o.vy=0;o.collectT=0;o.collected=false;}
+  }
+  activateBasket(){
+    if(!this.basketMode||this.basketActive)return;
+    this.basketActive=true;this.basketComplete=false;this.basketCompleteT=0;this.collectedCount=0;
+    this.collectibles.forEach((o,i)=>{o.kin=false;o.vx=((i%3)-1)*.08;o.vy=0;o.collectT=0;o.collected=false;});
+  }
+  reset(){this.done=false;this.obs.forEach(o=>o.reset());this.basketActive=false;this.basketComplete=false;this.basketCompleteT=0;this.collectedCount=0;this._setupObjectPhysics();}
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
   update(dt,fallSpeed=0,gravityModifier=1){
@@ -330,6 +382,7 @@ class Stage{
     // while the whole wave moves from the top of the screen downward.
     this.worldY+=fallSpeed*dt;
     this.obs.forEach(o=>o.update(dt,gravityModifier));
+    this.obs.forEach(o=>{if(o.physicsFollowerOf)o.syncFollower();});
   }
   draw(ctx,top){
     if(this.done)return;
@@ -646,7 +699,7 @@ class Game{
     this.tutA=0;this.tutT=0;this.tutDone=false;
     this.tutPhase='wait';this.tutPhaseT=0;this._tutCruiseSpeed=0;
     this.tutBlocks=null;this._tutAnchor=null;this._tutSmashed=false;this._tutorialFailed=false;
-    this.hpA=0;this.hpT=0;
+    this.hpA=0;this.hpT=0;this._basketStageActive=null;
     this.fx=new FX();
     this.shield=new Shield(this.cfg);
     this.ball=new Ball(this.cfg);
@@ -795,6 +848,7 @@ class Game{
         // Do not recycle completed mini-levels: playable flow is
         // START stage -> exactly stageCount mini-levels -> FINISH stage.
         st.complete();
+        if(this._basketStageActive===st)this._basketStageActive=null;
         this.si=this.completedStages;
         this.cb.onStageChange&&this.cb.onStageChange(this.si);
       }
@@ -823,6 +877,7 @@ class Game{
           fall*=lerp(0.82,0.03,ease);
         }
       }
+      if(this._basketStageActive&&!this._basketStageActive.basketComplete)fall=0;
       this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
       // Keep the whole tutorial inside the fixed START zone. While the intro
       // is active, the first playable level must not enter the viewport.
@@ -836,6 +891,7 @@ class Game{
           this.stages.forEach(s=>{if(!s.done)s.worldY-=overshoot;});
         }
       }
+      this._updateBasketPhysics(dt);
       this._scatterPhysics();
     }
     this.fx.update();
@@ -881,11 +937,13 @@ class Game{
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
       for(let i=0;i<this.stages.length;i++){
+        if(this._basketStageActive===this.stages[i])continue;
         const top=this._sst(i);
         const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
         for(const sh of hits)this._hit(sh,top,'shield');
       }
       outer:for(let i=0;i<this.stages.length;i++){
+        if(this._basketStageActive===this.stages[i])continue;
         const top=this._sst(i);
         // Ball checks include already-pushed / dynamic obstacles too.
         // Every balloon in the pyramid can be popped by an unblocked obstacle.
@@ -912,6 +970,84 @@ class Game{
       if(this.fadeA<=0&&this.fadeDir<0)this.fadeDir=0;
     }
     if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
+  }
+
+  _updateBasketPhysics(dt){
+    let st=this._basketStageActive;
+    if(st&&st.done){this._basketStageActive=null;st=null;}
+    if(!st){
+      st=this.stages.find(s=>{
+        if(!s.basketMode||s.done)return false;
+        const sy=s.basket.y+s.worldY;
+        return sy>CH*.18&&sy<CH*.82;
+      })||null;
+      if(!st)return;
+      st.activateBasket();this._basketStageActive=st;
+      const bx=clamp(st.basket.x,this.shield.r,CW-this.shield.r);
+      const by=clamp(st.basket.y+st.worldY,this.shield.r,CH*.8);
+      this.shield.x=this.shield.tx=bx;this.shield.y=this.shield.ty=by;this.shield.vx=0;this.shield.vy=0;
+    }
+    if(!st.basketActive||!st.basket)return;
+    const top=st.worldY,b=st.basket;
+    // The imported basket becomes the player's protector on this mini-level.
+    // Its visual stays inside the stage, but its screen position follows the
+    // same drag target as the regular shield.
+    b.x=this.shield.x;b.y=this.shield.y-top;b.vx=this.shield.vx||0;b.vy=this.shield.vy||0;
+    const bx=b.x,by=b.y+top;
+    const outerHalf=b.w*.46,innerHalf=b.w*.31;
+    const rimY=by-b.h*.39,floorY=by+b.h*.27,wallH=(floorY-rimY)+b.h*.12;
+    const rest=.16;
+    const resolveRect=(o,cx,cy,hw,hh)=>{
+      const ox=o.x,oy=o.y+top,r=o.cr;
+      const qx=clamp(ox,cx-hw,cx+hw),qy=clamp(oy,cy-hh,cy+hh);
+      let dx=ox-qx,dy=oy-qy,d2=dx*dx+dy*dy;
+      if(d2>=r*r)return false;
+      let d=Math.sqrt(d2),nx=0,ny=-1;
+      if(d>1e-5){nx=dx/d;ny=dy/d;}else{
+        const dl=Math.abs(ox-(cx-hw)),dr=Math.abs((cx+hw)-ox),dtp=Math.abs(oy-(cy-hh)),db=Math.abs((cy+hh)-oy);
+        const m=Math.min(dl,dr,dtp,db);if(m===dl)nx=-1;else if(m===dr)nx=1;else if(m===dtp)ny=-1;else ny=1;d=0;
+      }
+      const pen=r-d;o.x+=nx*(pen+.15);o.y+=ny*(pen+.15);
+      let rvx=o.vx-b.vx,rvy=o.vy-b.vy,vn=rvx*nx+rvy*ny;
+      if(vn<0){rvx-=nx*vn*(1+rest);rvy-=ny*vn*(1+rest);const tangent=rvx*(-ny)+rvy*nx;rvx-=(-ny)*tangent*.035;rvy-=nx*tangent*.035;o.vx=rvx+b.vx;o.vy=rvy+b.vy;}
+      return true;
+    };
+    // Ball-to-ball contacts. Each imported glow/core pair is already linked,
+    // so this loop operates on eight actual balls rather than sixteen layers.
+    const balls=st.collectibles.filter(o=>o.live);
+    for(let i=0;i<balls.length;i++)for(let j=i+1;j<balls.length;j++){
+      const a=balls[i],c=balls[j],dx=c.x-a.x,dy=c.y-a.y,rr=a.cr+c.cr,d2=dx*dx+dy*dy;
+      if(d2>=rr*rr)continue;
+      const d=Math.sqrt(d2)||.001,nx=dx/d,ny=dy/d,ov=(rr-d)*.5;
+      a.x-=nx*ov;a.y-=ny*ov;c.x+=nx*ov;c.y+=ny*ov;
+      const rel=(c.vx-a.vx)*nx+(c.vy-a.vy)*ny;
+      if(rel<0){const imp=-rel*(1+rest)*.5;a.vx-=nx*imp;a.vy-=ny*imp;c.vx+=nx*imp;c.vy+=ny*imp;}
+    }
+    const wallW=Math.max(5,(outerHalf-innerHalf));
+    for(const o of balls){
+      // Concave U-shaped basket collider: two side bars and a bottom bar.
+      resolveRect(o,bx-outerHalf+wallW*.5,rimY+wallH*.5,wallW*.5,wallH*.5);
+      resolveRect(o,bx+outerHalf-wallW*.5,rimY+wallH*.5,wallW*.5,wallH*.5);
+      resolveRect(o,bx,floorY+b.h*.06,outerHalf,b.h*.09);
+      const sx=o.x,sy=o.y+top,r=o.cr;
+      const inside=sx>bx-innerHalf+r*.15&&sx<bx+innerHalf-r*.15&&sy>rimY+r*.05&&sy<floorY+r*.7;
+      const calm=Math.abs(o.vx-b.vx)<2.8&&Math.abs(o.vy-b.vy)<3.2;
+      if(inside&&calm)o.collectT+=dt;else o.collectT=Math.max(0,o.collectT-dt*.35);
+      if(o.collectT>180)o.collected=true;
+      if(o.collected&&inside){o.vx=lerp(o.vx,b.vx,.12);o.vy=lerp(o.vy,b.vy,.10);}
+      // A missed ball is returned above the basket so the collection task can
+      // always be completed instead of becoming unwinnable.
+      if(sy>CH+90||sx<-100||sx>CW+100){
+        const n=st.collectibles.indexOf(o),cols=4;
+        o.x=bx+(n%cols-(cols-1)/2)*Math.max(r*2.25,34);
+        o.y=(rimY-70-Math.floor(n/cols)*Math.max(r*2.1,32))-top;
+        o.vx=0;o.vy=0;o.collectT=0;o.collected=false;
+      }
+      for(const f of o.followers)f.syncFollower();
+    }
+    st.collectedCount=balls.filter(o=>o.collected).length;
+    if(st.collectedCount===balls.length&&balls.length){st.basketCompleteT+=dt;if(st.basketCompleteT>550)st.basketComplete=true;}
+    else st.basketCompleteT=0;
   }
 
   _hit(obs,top,who){
@@ -967,7 +1103,7 @@ class Game{
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
-      for(const o of st.obs){if(o.live&&o.interactable)list.push({o,top});}
+      for(const o of st.obs){if(o.live&&o.interactable&&!o.physicsFollowerOf&&!o.isCollectible&&!o.isBasket)list.push({o,top});}
     }
     const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
@@ -1216,7 +1352,7 @@ class Game{
     this._drawSeamOverlays(ctx,'clouds');
     // ball below shield, both above seam overlays
     this.ball.draw(ctx);
-    this.shield.draw(ctx);
+    if(!this._basketStageActive)this.shield.draw(ctx);
     // Level progress dots removed: progress indicators should be placed manually in the editor.
     this._drawProgressBars(ctx);
     this._drawHealthBars(ctx);
@@ -1610,7 +1746,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
-  chainReaction:false,scatterBounciness:0.08,
+  chainReaction:true,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
