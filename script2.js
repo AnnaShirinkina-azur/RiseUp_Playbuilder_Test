@@ -1130,7 +1130,7 @@ bindHexColorInputs(document);
     const sz=await imageSizeFromSrc(imageSrc),aspect=Math.max(.15,Math.min(6,sz.w/Math.max(1,sz.h)));
     const baseH=170,baseW=Math.round(baseH*aspect);
     const id='tpl_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
-    svgTemplates.push({id,name:(file.name||'png_template').replace(/\.png$/i,''),items:[{shape:'rect',dx:0,dy:0,wRel:1,hRel:1,imageSrc}],imageSrc,type:'png',baseW,baseH});
+    svgTemplates.push({id,name:(file.name||'png_template').replace(/\.png$/i,''),items:[{shape:'custom',dx:0,dy:0,wRel:1,hRel:1,points:RECT_POINTS.map(p=>({x:p.x,y:p.y})),color:'#ffffff',imageSrc}],imageSrc,type:'png',baseW,baseH});
     renderTemplateList();selectSvgTemplate(id);
   }
   function bytesToText(bytes){return new TextDecoder('utf-8').decode(bytes);}

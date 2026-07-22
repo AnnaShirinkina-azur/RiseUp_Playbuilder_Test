@@ -261,12 +261,13 @@ class Obs{
     // Authored rotation from the level editor (radians). Kept separate from
     // `rot`, which is the physics spin accumulated after the protector push.
     this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
+    this.interactable=o.interactable!==false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
-  push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
+  push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt,gravityModifier=1){
     if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
     if(!this.kin){
@@ -286,7 +287,7 @@ class Obs{
     // Protector contact turns a kinematic obstacle into a flying body.
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
-    if(!this.live)return false;
+    if(!this.live||!this.interactable)return false;
     if(!includeDynamic&&!this.kin)return false;
     if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
     const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
@@ -966,7 +967,7 @@ class Game{
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
-      for(const o of st.obs){if(o.live)list.push({o,top});}
+      for(const o of st.obs){if(o.live&&o.interactable)list.push({o,top});}
     }
     const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
