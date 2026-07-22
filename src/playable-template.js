@@ -1610,7 +1610,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
-  chainReaction:true,scatterBounciness:0.08,
+  chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
