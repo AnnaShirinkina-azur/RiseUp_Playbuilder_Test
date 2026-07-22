@@ -267,9 +267,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
       <div class="row wide"><label>Level 1 side squeeze speed<small>px/s; left and right formations move as rigid groups after reaching the player</small></label>
-        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="80" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">80</span></div></div>
+        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="33" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">33</span></div></div>
       <div class="row wide"><label>Level 3 basket power<small>How strongly the protector drives and flicks the basket</small></label>
-        <div class="rr"><input type="range" id="cfg-level3BasketPower" value="1.35" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">1.35</span></div></div>
+        <div class="rr"><input type="range" id="cfg-level3BasketPower" value="0.6" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">0.6</span></div></div>
       <div class="row wide"><label>Level 3 ball gravity<small>Gravity inside the basket; higher values make the balls settle faster</small></label>
         <div class="rr"><input type="range" id="cfg-level3BallGravity" value="0.34" min="0" max="1.2" step="0.02" oninput="sv('cfg-level3BallGravity-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BallGravity-v">0.34</span></div></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>

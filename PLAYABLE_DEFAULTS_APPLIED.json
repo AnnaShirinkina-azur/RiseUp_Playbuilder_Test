@@ -1,5 +1,5 @@
 {
-  "source_html": "rise_playable_1784713049812(1).html",
+  "source_html": "rise_playable_1784723809598.html",
   "cfg": {
     "lives": 3,
     "gameSpeed": 3.2,
@@ -8,6 +8,9 @@
     "deathPause": 1500,
     "obstaclePushForce": 7,
     "gravityModifier": 1,
+    "level1CenterSpeed": 33,
+    "level3BasketPower": 0.6,
+    "level3BallGravity": 0.34,
     "hpBarShowTime": 2000,
     "chainReaction": false,
     "scatterBounciness": 0.1,
@@ -346,10 +349,7 @@
           }
         }
       }
-    },
-    "level1CenterSpeed": 80,
-    "level3BasketPower": 1.35,
-    "level3BallGravity": 0.34
+    }
   },
   "level_counts": [
     0,
@@ -387,7 +387,9 @@
     "endcard_lose_bg",
     "endcard_lose_logo",
     "endcard_lose_button",
-    "background"
+    "background",
+    "player",
+    "shield"
   ],
   "sprite_sizes": {
     "bg_seam_stage0": 39394,
@@ -417,34 +419,13 @@
     "endcard_lose_bg": 43066,
     "endcard_lose_logo": 19550,
     "endcard_lose_button": 2818,
-    "background": 3483326
+    "background": 3483326,
+    "player": 31150,
+    "shield": 23122
   },
-  "physics_patch": {
-    "level": "Level 1 (runtime stage index 1; stage index 0 is START)",
-    "trigger": "starts only when the first interactive obstacle row reaches the player line",
-    "behavior": "left and right obstacle formations translate horizontally as rigid groups; every object on one side receives the same offset",
-    "stop": "nearest obstacle on each side keeps 10% of its original horizontal center offset",
-    "spacing": "authored gaps between side rectangles and triangles remain unchanged during the squeeze",
-    "setting": "cfg-level1CenterSpeed",
-    "default_px_per_second": 80
-  },
-  "physics_patch_level3": {
-    "level": "Level 3 (runtime stage index 3)",
-    "basket": "authored U-shaped Frame 20 uses three physical walls and stays open at the top",
-    "balls": "eight circles are the only physical ball bodies; duplicated inner polygons are visual followers",
-    "control": "protector can push, catch and redirect the basket continuously",
-    "throw": "balls inherit basket translation and angular surface velocity; sharp reversal throws them out",
-    "damage": "basket is safe; unthrown balls still damage the main balloon",
-    "settings": {
-      "level3BasketPower": 1.35,
-      "level3BallGravity": 0.34
-    }
-  },
-  "physics_patch_level4": {
-    "stage_index": 4,
-    "tap_trigger": "first pointer/touch/mouse down after the Level 4 stage band reaches the player line",
-    "collision_trigger": "first protector contact with Level 4 first interactable obstacle",
-    "action": "existing onCTA store callback",
-    "one_shot": true
+  "preserved_patches": {
+    "level1": "rigid side-group squeeze, activation on reaching player line",
+    "level3": "U-basket collection and throw physics",
+    "level4": "one-shot store trigger on first tap or protector collision"
   }
 }

@@ -1917,7 +1917,7 @@ class Game{
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:80,level3BasketPower:1.35,level3BallGravity:.34,
+  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:33,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',tutorialText:'protect your balloon!',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,

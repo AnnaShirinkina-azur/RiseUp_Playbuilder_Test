@@ -32,9 +32,9 @@ function readConfig(){
     deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
     // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
-    level1CenterSpeed:(function(){var v=g('cfg-level1CenterSpeed');return isNaN(v)?80:Math.max(0,v);})(),
-    level3BasketPower:(function(){var v=g('cfg-level3BasketPower');return isNaN(v)?1.35:Math.max(.2,v);})(),
-    level3BallGravity:(function(){var v=g('cfg-level3BallGravity');return isNaN(v)?.34:Math.max(0,v);})(),
+    level1CenterSpeed:(function(){var v=g('cfg-level1CenterSpeed');return isNaN(v)?33:Math.max(0,v);})(),
+    level3BasketPower:(function(){var v=g('cfg-level3BasketPower');return isNaN(v)?0.6:Math.max(.2,v);})(),
+    level3BallGravity:(function(){var v=g('cfg-level3BallGravity');return isNaN(v)?0.34:Math.max(0,v);})(),
     hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     chainReaction:false,
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
