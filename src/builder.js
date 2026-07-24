@@ -90,7 +90,7 @@ function readConfig(){
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
       overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
-      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'TRY AGAIN';})(),
+      ctaText:(function(){var layouts=(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null;var or=(g('cfg-orientation')==='portrait'?'portrait':'landscape');var group=layouts&&layouts.lose;var layout=group&&(group[or]||group.landscape||group.portrait);var value=layout&&layout.cta&&layout.cta.text;return (typeof value==='string'&&value.trim())?value:'TRY AGAIN';})(),
       fontFamily:(function(){var e=document.getElementById('cfg-endCardFont')||document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),
       ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})(),
       layouts:(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null

@@ -90,5 +90,10 @@
     "requiresBasketEngagedByShield": true,
     "requiresBasketWallMovingIntoBall": true,
     "gravityBeforeContact": false
+  },
+  "endCardTextSeparation": {
+    "selectedObjectInput": "cfg-endCardObjectText",
+    "centerTextAndCtaIndependent": true,
+    "runtimeCtaSource": "active layout CTA text"
   }
 }

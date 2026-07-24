@@ -2148,7 +2148,9 @@ class Game{
     ctx.beginPath();if(ctx.roundRect)ctx.roundRect(r.x,r.y,r.w,r.h,r.h*.34);else ctx.rect(r.x,r.y,r.w,r.h);ctx.stroke();
     ctx.fillStyle='#ffffff';ctx.font='800 '+Math.round(Math.max(18,22*scale))+'px '+family;
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText((ec.ctaText||'TRY AGAIN').toUpperCase(),r.x+r.w/2,r.y+r.h/2+1*scale);
+    const ctaLayout=endLayout&&endLayout.cta;
+    const ctaLabel=(ctaLayout&&typeof ctaLayout.text==='string'&&ctaLayout.text.trim())?ctaLayout.text:(ec.ctaText||'TRY AGAIN');
+    ctx.fillText(String(ctaLabel).toUpperCase(),r.x+r.w/2,r.y+r.h/2+1*scale);
     ctx.restore();
   }
 
