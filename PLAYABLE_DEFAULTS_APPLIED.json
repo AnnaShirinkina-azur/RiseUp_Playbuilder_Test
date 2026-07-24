@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1784892769967.html",
+  "source": "rise_playable_1784897553735.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -50,12 +50,17 @@
   "spriteCount": 36,
   "defaultsSummary": {
     "lives": 3,
-    "orientation": "landscape",
+    "orientation": "portrait",
     "deathPauseMs": 2500,
     "level1CenterSpeed": 18,
     "level3BasketPower": 0.6,
     "level3BallGravity": 0.34,
     "tutorialObstacleTint": "#c800ff",
+    "tutorialText": "PROTECT YOUR BALLOON!",
+    "tutorialTextSizePx": 30,
+    "tutorialXPercent": 50,
+    "tutorialYPercent": 35,
+    "tutorialCaptionGapTriangleHeights": 0,
     "playerSpriteColor": "#00eeff",
     "shieldSpriteColor": "#00eeff",
     "endCardCountdown": 10,
@@ -77,8 +82,8 @@
   },
   "tutorialControls": {
     "positionXPercent": 50,
-    "positionYPercent": 55,
-    "captionGapTriangleHeights": 0.5,
-    "textSizePx": 18
+    "positionYPercent": 35,
+    "captionGapTriangleHeights": 0,
+    "textSizePx": 30
   }
 }
