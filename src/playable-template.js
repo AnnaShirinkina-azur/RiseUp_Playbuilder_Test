@@ -938,6 +938,11 @@ class Game{
     // changes and responsive canvas resizing.
     this._heightTravelStages=0;
     this._heightArrow=null;
+    // Lose-only end card: a 10 -> 1 countdown on the supplied round badge.
+    // The win path never opens an end card.
+    this._loseCountdownStart=0;
+    this._loseCtaRect=null;
+    this._endCountdownBadge=null;
     this.paused=false;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
@@ -961,7 +966,9 @@ class Game{
         if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
         if(this.tutDone||this.tutPhase==='learn')this.shield.down(x,y);
       }
-      if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
+      if(this.state==='endcard'&&!this.isWin&&this._pointInLoseEndCta(x,y)){
+        this.cb.onCTA&&this.cb.onCTA({source:'lose_try_again'});
+      }
     };
     const move=(x,y)=>{
       if(this.state==='playing'&&(this.tutDone||this.tutPhase==='learn')){this.shield.move(x,y);}
@@ -1409,8 +1416,30 @@ class Game{
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
   _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
-  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{if(this._endCardsEnabled()){this.state='endcard';}else{this.state='finished';}this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');const ec=this.cfg.endCard||{};const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;this.state='lost';const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);setTimeout(()=>{if(this.state!=='lost')return;if(show){this.state='endcard';this.endA=0;if(duration>0)setTimeout(()=>{if(this.state==='endcard'&&!this.isWin)this.state='finished';},duration);}else{this.state='finished';}this.cb.onLose&&this.cb.onLose();},delay);}
+  _win(){
+    // This playable uses no win end card. Finish the run after the fly-away
+    // animation; Level 4 keeps its existing conversion trigger.
+    this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();
+    setTimeout(()=>{this.state='finished';this.cb.onWin&&this.cb.onWin();},1400);
+  }
+  _lose(){
+    this.isWin=false;this.snd.stopBgm();this.snd.play('lose');
+    const ec=this.cfg.endCard||{};
+    const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;
+    this.state='lost';
+    const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);
+    const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);
+    setTimeout(()=>{
+      if(this.state!=='lost')return;
+      if(show){
+        this.state='endcard';this.endA=0;
+        this._loseCountdownStart=Date.now();
+        this._loseCtaRect=null;
+        if(duration>0)setTimeout(()=>{if(this.state==='endcard'&&!this.isWin)this.state='finished';},duration);
+      }else this.state='finished';
+      this.cb.onLose&&this.cb.onLose();
+    },delay);
+  }
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;
@@ -1975,65 +2004,84 @@ class Game{
     for(let i=0;i<this.ctaButtons.length;i++)this._drawCustomCta(ctx,this.ctaButtons[i]);
   }
 
+  _loseCountdownValue(){
+    const ec=this.cfg.endCard||{};
+    const raw=parseFloat(ec.countdownFrom);
+    const from=clamp(Math.round(isFinite(raw)?raw:10),1,99);
+    const elapsed=this._loseCountdownStart?Math.max(0,Date.now()-this._loseCountdownStart):0;
+    return Math.max(1,from-Math.floor(elapsed/1000));
+  }
+
+  _loseEndCtaRect(){
+    const portrait=CW<=CH;
+    const scale=clamp(CH/844,.72,1.18);
+    const w=Math.min(CW*(portrait ? .72 : .42),300*scale);
+    const h=Math.max(52,60*scale);
+    const bottom=(portrait?48:24)*scale;
+    return{x:(CW-w)/2,y:CH-bottom-h,w,h};
+  }
+
+  _pointInLoseEndCta(x,y){
+    const r=this._loseEndCtaRect();
+    return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
+  }
+
   _drawEnd(ctx){
-    const ec=this.cfg.endCard||{}, W=CW, H=CH, orientation=W>H?'landscape':'portrait', state=this.isWin?'win':'lose';
-    const layout=ec.layouts&&ec.layouts[state]&&ec.layouts[state][orientation];
-    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?0:(a[1]==='r'?W:W/2),y:a[0]==='t'?0:(a[0]==='b'?H:H/2)};};
-    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*W/100,y:b.y+((o&&o.y)||0)*H/100};};
-    const contain=(im,cx,cy,bw,bh)=>{if(!imgOk(im))return;const sc=Math.min(bw/im.naturalWidth,bh/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;ctx.drawImage(im,cx-dw/2,cy-dh/2,dw,dh);};
-    const joined=(o)=>Array.isArray(o&&o.segments)?o.segments.map(s=>String(s&&s.t!=null?s.t:'')).join(''):'';
-    const richLines=(o,fallback)=>{
-      const text=typeof (o&&o.text)==='string'?o.text:fallback;
-      const base=(o&&o.baseColor)||(o&&o.color)||'#ffffff';
-      const segs=Array.isArray(o&&o.segments)&&joined(o)===text?o.segments:[{t:text,color:base}];
-      const lines=[[]];
-      segs.forEach(seg=>{const color=seg.color||base,parts=String(seg.t==null?'':seg.t).split('\n');parts.forEach((part,i)=>{if(i>0)lines.push([]);if(part!=='')lines[lines.length-1].push({t:part,color});});});
-      return lines;
-    };
-    const drawRich=(o,cx,cy,size,family,scale,fallback,boxW,boxH)=>{
-      const lines=richLines(o,fallback),lineH=size*1.16,totalH=Math.max(lineH,lines.length*lineH);
-      ctx.save();ctx.font='800 '+size+'px '+family;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineJoin='round';
-      let maxW=1;
-      const info=lines.map(runs=>{const lineText=runs.map(r=>r.t).join(''),m=ctx.measureText(lineText||' '),w=runs.reduce((sum,r)=>sum+ctx.measureText(r.t).width,0),asc=m.actualBoundingBoxAscent||size*.75,desc=m.actualBoundingBoxDescent||size*.2;maxW=Math.max(maxW,w);return{runs,w,asc,desc};});
-      const targetW=parseFloat(boxW)>0?parseFloat(boxW):maxW,targetH=parseFloat(boxH)>0?parseFloat(boxH):totalH,sx=targetW/maxW,sy=targetH/totalH;
-      ctx.translate(cx,cy);ctx.scale(sx,sy);
-      info.forEach((line,i)=>{const centerY=-totalH/2+lineH*(i+.5),baseline=centerY+(line.asc-line.desc)/2,start=-line.w/2;let x=start;
-        if(((o&&o.strokeW)||0)>0){ctx.lineWidth=((o&&o.strokeW)||0)*scale;ctx.strokeStyle=(o&&o.stroke)||'#000000';line.runs.forEach(r=>{ctx.strokeText(r.t,x,baseline);x+=ctx.measureText(r.t).width;});}
-        x=start;line.runs.forEach(r=>{ctx.fillStyle=r.color||((o&&o.baseColor)||(o&&o.color)||'#ffffff');ctx.fillText(r.t,x,baseline);x+=ctx.measureText(r.t).width;});
-      });
-      ctx.restore();
-    };
-    const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
-    const famOf=(o)=>{const fn=(o&&o.font)||ec.fontFamily;return (typeof RiseFontCSS!=='undefined'&&RiseFontCSS[fn])?RiseFontCSS[fn]:(fn||'sans-serif');};
-    ctx.save();ctx.globalAlpha=this.endA;
-    let bg=null,bgHidden=!!(layout&&layout.background&&layout.background.hidden);
-    const bgo=(layout&&layout.background)||{},bgFill=bgo.fillMode||'image';
-    if(!bgHidden&&(bgFill==='solid'||bgFill==='gradient')){
-      if(bgFill==='gradient'){const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bgo.colorA||'#69c5ec');gr.addColorStop(1,bgo.colorB||'#39a2d8');ctx.fillStyle=gr;}
-      else ctx.fillStyle=bgo.colorA||'#69c5ec';
-      ctx.fillRect(0,0,W,H);
+    // Win end card is intentionally disabled for this playable.
+    if(this.isWin)return;
+    const ec=this.cfg.endCard||{};
+    const a=this.endA;
+    const overlay=ec.overlay==null ? .68 : clamp(parseFloat(ec.overlay)||0,0,1);
+    const overlayColor=ec.overlayColor||'#000000';
+    const portrait=CW<=CH;
+    const scale=clamp(CH/844,.72,1.18);
+    const cx=CW/2;
+    const cy=portrait?CH*.39:CH*.43;
+    const badgeSize=Math.min(portrait?CW*.64:CW*.28,portrait?CH*.30:CH*.56,303*scale);
+    const purple=this.cfg.heightAccentColor||'#a552ff';
+    const outline=this.cfg.heightOutlineColor||'#7d33ce';
+    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, Arial, sans-serif';
+
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.fillStyle=rgba(overlayColor,overlay);
+    ctx.fillRect(0,0,CW,CH);
+
+    if(!this._endCountdownBadge)this._endCountdownBadge=this._spr('endcard_countdown_badge')||makeImg(this.cfg.defaultEndCardCountdownBadgeSrc);
+    const badge=this._endCountdownBadge;
+    if(imgOk(badge)){
+      ctx.drawImage(badge,cx-badgeSize/2,cy-badgeSize/2,badgeSize,badgeSize);
     }else{
-      if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
-      if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+      const g=ctx.createRadialGradient(cx,cy-badgeSize*.10,badgeSize*.06,cx,cy,badgeSize*.5);
+      g.addColorStop(0,'rgba(255,255,255,.96)');g.addColorStop(.72,'rgba(245,245,245,.95)');g.addColorStop(1,'rgba(255,255,255,.98)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,badgeSize*.5,0,Math.PI*2);ctx.fill();
     }
-    {const _oc=ec.overlayColor||'#000000';ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);}
-    if(layout){
-      const io=layout.image||{},ip=point(io),art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
-      const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);
-      if(!io.hidden)contain(art,ip.x,ip.y,iw,ih);
-      const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts,tw=parseFloat(to.width)>0?to.width*ts:null,th=parseFloat(to.height)>0?to.height*ts:null;
-      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,famOf(to),ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
-      if(ec.showCta!==false&&!(layout.cta&&layout.cta.hidden)){
-        const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs,bh=baseH*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
-        const tint=co.bgTint||'#ffffff';if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,tint);else{ctx.fillStyle=tint;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
-        const cfz=(co.fontSize==null?17:co.fontSize)*cs,ctaFallback=typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW';
-        drawRich(co,bx+bw/2,by+bh/2,cfz,famOf(co),cs,ctaFallback);
-      }
-    }else{
-      if(this.isWin){const card=this._spr('endcard_win');if(imgOk(card)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;contain(card,cx,cy,W*.88*sc,H*.38*sc);}else{ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU WIN!',W/2,H*.35);}}
-      else{const logo=this._spr('endcard_lose_logo');if(imgOk(logo)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.28+(ec.y||0)*H/100;contain(logo,cx,cy,W*.78*sc,H*.28*sc);}ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('TRY AGAIN',W/2+(ec.x||0)*W/100,H*.47+(ec.y||0)*H/100);}
-      if(ec.showCta!==false){const bw=220,bh=54,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100,btn=this._spr('endcard_lose_button');if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}const fallback={text:typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW',baseColor:'#ffffff',fontSize:17};drawRich(fallback,bx+bw/2,by+bh/2,17,fam,1,'PLAY NOW');}
-    }
+
+    const elapsed=this._loseCountdownStart?Math.max(0,Date.now()-this._loseCountdownStart):0;
+    const phase=(elapsed%1000)/1000;
+    const pulse=1+Math.sin(Math.PI*phase)*.025;
+    const numberSize=badgeSize*.38*pulse;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.font='900 '+Math.round(numberSize)+'px '+family;
+    ctx.lineWidth=Math.max(3,numberSize*.075);
+    ctx.strokeStyle=outline;ctx.fillStyle='#ffffff';
+    const value=String(this._loseCountdownValue());
+    ctx.strokeText(value,cx,cy+badgeSize*.015);ctx.fillText(value,cx,cy+badgeSize*.015);
+
+    const r=this._loseEndCtaRect();
+    this._loseCtaRect=r;
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=16*scale;ctx.shadowOffsetY=7*scale;
+    ctx.fillStyle=purple;
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(r.x,r.y,r.w,r.h,r.h*.34);else ctx.rect(r.x,r.y,r.w,r.h);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=Math.max(2,2.5*scale);
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(r.x,r.y,r.w,r.h,r.h*.34);else ctx.rect(r.x,r.y,r.w,r.h);ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font='800 '+Math.round(Math.max(18,22*scale))+'px '+family;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText((ec.ctaText||'TRY AGAIN').toUpperCase(),r.x+r.w/2,r.y+r.h/2+1*scale);
     ctx.restore();
   }
 
@@ -2094,7 +2142,7 @@ const DEF={
   stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{enabled:true,scale:1,x:0,y:0,overlay:.55,showCta:true,ctaText:'PLAY NOW',ctaY:74},
+  endCard:{enabled:true,tryAgainEnabled:true,tryAgainDelay:0,tryAgainDuration:0,countdownFrom:10,scale:1,x:0,y:0,overlay:.68,overlayColor:'#000000',showCta:true,ctaText:'TRY AGAIN',ctaY:74},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};

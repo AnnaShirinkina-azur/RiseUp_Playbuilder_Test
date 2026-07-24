@@ -81,7 +81,8 @@ function readConfig(){
     endCard:{
       enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
       tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),
-      tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?1200:v*1000;})(),
+      tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?0:v*1000;})(),
+      countdownFrom:(function(){var v=g('cfg-endCardCountdown');return isNaN(v)?10:Math.max(1,Math.round(v));})(),
       tryAgainDuration:(function(){var v=g('cfg-tryAgainDuration');return isNaN(v)?0:Math.max(0,v*1000);})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
@@ -89,7 +90,7 @@ function readConfig(){
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
       overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
-      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
+      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'TRY AGAIN';})(),
       fontFamily:(function(){var e=document.getElementById('cfg-endCardFont')||document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),
       ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})(),
       layouts:(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null
@@ -108,7 +109,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/height_arrow.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
+  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/height_arrow.png','textures/endcard_countdown_badge.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
   'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
@@ -136,6 +137,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   if(assetMap['textures/tutorial_hand.svg'])cfg.defaultTutorialHandSrc=assetMap['textures/tutorial_hand.svg'];
   if(assetMap['textures/tutorial_triangle.png'])cfg.defaultTutorialTriangleSrc=assetMap['textures/tutorial_triangle.png'];
   if(assetMap['textures/height_arrow.png'])cfg.defaultHeightArrowSrc=assetMap['textures/height_arrow.png'];
+  if(assetMap['textures/endcard_countdown_badge.png'])cfg.defaultEndCardCountdownBadgeSrc=assetMap['textures/endcard_countdown_badge.png'];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);

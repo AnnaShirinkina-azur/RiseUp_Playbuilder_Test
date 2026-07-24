@@ -527,5 +527,15 @@
     "spriteKey": "height_arrow",
     "asset": "Assets/textures/height_arrow.png",
     "source": "high.zip/Playable/Sprites/034_01/arrow.png"
+  },
+  "loseEndCard": {
+    "winEndCardEnabled": false,
+    "countdownFrom": 10,
+    "countdownTo": 1,
+    "badgeSpriteKey": "endcard_countdown_badge",
+    "asset": "Assets/textures/endcard_countdown_badge.png",
+    "ctaText": "TRY AGAIN",
+    "ctaAction": "store redirect",
+    "overlayOpacity": 0.68
   }
 }
