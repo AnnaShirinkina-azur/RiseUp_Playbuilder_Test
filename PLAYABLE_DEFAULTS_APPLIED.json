@@ -1,8 +1,6 @@
 {
-  "source": "rise_playable_1784890225732.html",
+  "source": "rise_playable_1784890833968.html",
   "applied": true,
-  "deathAnimationPauseMs": 2500,
-  "deathAnimationPauseLocation": "Gameplay > End Card",
   "levelCounts": [
     2,
     26,
@@ -49,13 +47,17 @@
     "shield",
     "tutorial_triangle"
   ],
+  "deathAnimationPauseMs": 2500,
   "defaultsSummary": {
-    "lives": 1,
+    "lives": 3,
+    "stageCount": 4,
     "level1CenterSpeed": 18,
+    "level3BasketPower": 0.6,
+    "level3BallGravity": 0.34,
+    "tutorialObstacleTint": "#c800ff",
     "playerSpriteColor": "#00eeff",
     "shieldSpriteColor": "#00eeff",
-    "tutorialObstacleTint": "#c800ff",
     "endCardCountdown": 10,
-    "endCardImageTint": "#9a5bf6"
+    "endCardCtaText": "TRY AGAIN"
   }
 }
