@@ -32,7 +32,7 @@ function readConfig(){
     heightIndicatorEnabled:(function(){var e=document.getElementById('cfg-heightIndicatorEnabled');return e?e.checked:true;})(),
     heightStart:(function(){var v=g('cfg-heightStart');return isNaN(v)?66:v;})(),
     heightFeetPerStage:(function(){var v=g('cfg-heightFeetPerStage');return isNaN(v)?100:Math.max(0,v);})(),
-    deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
+    deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?2500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
     // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
     level1CenterSpeed:(function(){var v=g('cfg-level1CenterSpeed');return isNaN(v)?33:Math.max(0,v);})(),

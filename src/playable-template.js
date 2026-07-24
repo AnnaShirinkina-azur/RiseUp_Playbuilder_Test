@@ -969,7 +969,7 @@ class Game{
   _reset(){
     this.camY=0;
     this.state='start';
-    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;this._breakPauseT=0;this._afterDeathDone=false;
+    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this._afterDeathDone=false;
     this.lives=this.cfg.lives;
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
@@ -1360,7 +1360,7 @@ class Game{
     // death sequence
     if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(!this._afterDeathDone&&this.dtimer>((this.cfg.playerDeathDuration||900)/ds)){this._afterDeathDone=true;this._afterDeath();}}
     // pause after death so the heart-break animation is fully visible before fading to respawn
-    if(this._breakPauseT>0){this._breakPauseT-=dt;if(this._breakPauseT<=0){this._breakPauseT=0;this.fadeDir=1;}}
+    if(this._breakPauseT>0){this._breakPauseT-=dt;if(this._breakPauseT<=0){this._breakPauseT=0;if(this._pendingLoseAfterBreak){this._pendingLoseAfterBreak=false;this._lose();}else this.fadeDir=1;}}
 
     // fade
     if(this.fadeDir!==0){
@@ -1465,7 +1465,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this._levelNumberT=0;this._levelNumberIndex=0;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=(this.cfg.deathPause!=null?this.cfg.deathPause:1500);}
+  _die(){if(this.state!=='playing')return;this._levelNumberT=0;this._levelNumberIndex=0;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
@@ -2198,20 +2198,20 @@ class Game{
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:33,level3BasketPower:0.6,level3BallGravity:0.34,
+  lives:1,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.08,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'triangle',tutorialObstacleTint:'#ffffff',tutorialText:'protect your balloon!',
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:'triangle',tutorialObstacleTint:'#c800ff',tutorialText:'PROTECT YOUR BALLOON!',
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
-  shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#00eeff',playerRopeColor:'#84ebfc',playerStart:null,
+  shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#00eeff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
   playerDeathFrames:4,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,seamTint:'#ffffff',stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
+  backgroundMode:'common',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,seamTint:'#ffffff',stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
+  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:false,showGrid:false,stageCount:4,orientation:'landscape',
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{enabled:true,tryAgainEnabled:true,tryAgainDelay:0,tryAgainDuration:0,countdownFrom:10,scale:1,x:0,y:0,overlay:.68,overlayColor:'#000000',showCta:true,ctaText:'TRY AGAIN',ctaY:74},
+  endCard:{enabled:true,tryAgainEnabled:true,tryAgainDelay:0,tryAgainDuration:0,countdownFrom:10,scale:1,x:0,y:-13,overlay:.68,overlayColor:'#000000',showCta:true,ctaText:'TRY AGAIN',ctaY:74},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};
