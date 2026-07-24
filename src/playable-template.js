@@ -141,10 +141,10 @@ function hudCounterScale(){
 function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||40)*k,strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k};}
 function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
 function healthDrawSize(L){var k=hudCounterScale();return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
-function ctaDrawSize(L){var k=hudCounterScale();return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
+function ctaDrawSize(L){var portrait=CW<CH,k=hudCounterScale()*(portrait?.8:1);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
 function progressBoxLocal(L){var a=progressLocal(L),d=progressDrawSize(L);return anchorBoxLocal(L.anchor||'cl',a.x,a.y,d.w,d.h);}
 function healthBoxLocal(L){var a=healthLocal(L),d=healthDrawSize(L),cnt=L.count||3,w=cnt*d.heartW+(cnt-1)*d.gap;return anchorBoxLocal(L.anchor||'tc',a.x,a.y,w,d.heartW);}
-function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L);return anchorBoxLocal(L.anchor||'bc',a.x,a.y,d.w,d.h);}
+function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L),anchor=L.anchor||'bc';if(CW<CH)anchor=anchor.charAt(0)+'c';return anchorBoxLocal(anchor,CW<CH?0:a.x,a.y,d.w,d.h);}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -2086,10 +2086,11 @@ class Game{
   }
 
   _loseEndCtaRect(){
-    const portrait=CW<=CH;
+    const portrait=CW<CH;
     const scale=hudCounterScale();
-    const w=Math.min(CW*(portrait ? .72 : .42),300*scale);
-    const h=Math.max(52,60*scale);
+    const portraitScale=portrait?.8:1;
+    const w=Math.min(CW*(portrait ? .72 : .42),300*scale)*portraitScale;
+    const h=Math.max(52,60*scale)*portraitScale;
     const bottom=(portrait?48:24)*scale;
     return{x:(CW-w)/2,y:CH-bottom-h,w,h};
   }
@@ -2106,7 +2107,7 @@ class Game{
     const a=this.endA;
     const overlay=ec.overlay==null ? .68 : clamp(parseFloat(ec.overlay)||0,0,1);
     const overlayColor=ec.overlayColor||'#000000';
-    const portrait=CW<=CH;
+    const portrait=CW<CH;
     const scale=hudCounterScale();
     const cx=CW/2;
     const cy=portrait?CH*.39:CH*.43;
