@@ -255,7 +255,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
-      <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
+      <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="1" min="1" max="9"></div>
       <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
@@ -271,7 +271,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
-      <div class="row"><label>Death pause (s)<small>Пауза после смерти до рестарта (анимация разбивания)</small></label><input type="number" id="cfg-deathPause" value="1.5" min="0" max="6" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
@@ -281,7 +280,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
       <div class="row wide"><label>Level 1 side squeeze speed<small>px/s; left and right formations move as rigid groups after reaching the player</small></label>
-        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="33" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">33</span></div></div>
+        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="18" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">33</span></div></div>
       <div class="row wide"><label>Level 3 basket power<small>How strongly the protector drives and flicks the basket</small></label>
         <div class="rr"><input type="range" id="cfg-level3BasketPower" value="0.6" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">0.6</span></div></div>
       <div class="row wide"><label>Level 3 ball gravity<small>Gravity inside the basket; higher values make the balls settle faster</small></label>
@@ -314,7 +313,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row"><label>Enable lose end card<small>Показывать только lose-эндкарту после последней смерти</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
       <div class="row"><label>Show countdown<small>Показывать обратный отсчёт и CTA после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
       <div class="row"><label>Countdown from<small>Начальное число обратного отсчёта</small></label><input type="number" id="cfg-endCardCountdown" value="10" min="1" max="99" step="1"></div>
-      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="0" min="0" max="30" step="0.1"></div>
+      <div class="row"><label>Death animation pause (s)<small>Пауза после смерти для анимации разбития сердца перед рестартом или lose-эндкартой</small></label><input type="number" id="cfg-deathPause" value="2.5" min="0" max="10" step="0.1"></div>
+      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="0.0" min="0" max="30" step="0.1"></div>
       <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0.0" min="0" max="60" step="0.1"></div>
     </div>
 
@@ -876,9 +876,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=77-separate-endcard-texts"></script>
-<script src="src/builder.js?v=51-separate-endcard-texts"></script>
-<script src="script2.js?v=separate-endcard-texts"></script>
+<script src="src/playable-template.js?v=78-death-pause"></script>
+<script src="src/builder.js?v=52-death-pause"></script>
+<script src="script2.js?v=death-pause-defaults"></script>
 
 </body>
 </html>

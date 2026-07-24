@@ -1,9 +1,10 @@
 {
-  "source": "rise_playable_1784887826408.html",
-  "appliedAt": "2026-07-24",
-  "stageCount": 4,
-  "levelObjectCounts": [
-    0,
+  "source": "rise_playable_1784890225732.html",
+  "applied": true,
+  "deathAnimationPauseMs": 2500,
+  "deathAnimationPauseLocation": "Gameplay > End Card",
+  "levelCounts": [
+    2,
     26,
     98,
     11,
@@ -48,52 +49,13 @@
     "shield",
     "tutorial_triangle"
   ],
-  "spriteCount": 36,
-  "importantDefaults": {
-    "tutorialObstacleTint": "#c800ff",
+  "defaultsSummary": {
+    "lives": 1,
+    "level1CenterSpeed": 18,
     "playerSpriteColor": "#00eeff",
-    "playerRopeColor": "#84ebfc",
     "shieldSpriteColor": "#00eeff",
-    "endCardImageTint": "#9a5bf6",
-    "endCardY": -13,
+    "tutorialObstacleTint": "#c800ff",
     "endCardCountdown": 10,
-    "endCardCtaText": "TRY AGAIN",
-    "heightStart": 66
-  },
-  "obstacleTintValues": [
-    "#00d5ff",
-    "#6fc6cd",
-    "#b044d1",
-    "#b847d9",
-    "#ba48da",
-    "#bd49df",
-    "#be49df",
-    "#c800ff",
-    "#c806fe",
-    "#c806ff",
-    "#c84deb",
-    "#e037b6",
-    "#e03af4",
-    "#ff00bb"
-  ],
-  "resetRestoresUploadedPlayable": true,
-  "level3ColliderFix": {
-    "basketPrefab": "Frame 24",
-    "ballPrefab": "Frame 23",
-    "ballCount": 8,
-    "collider": "open-top U: left wall, right wall, bottom",
-    "customBallObjectsUseCircularPhysics": true
-  },
-  "level3BallActivation": {
-    "mode": "per-ball basket contact",
-    "startsSuspended": true,
-    "requiresBasketEngagedByShield": true,
-    "requiresBasketWallMovingIntoBall": true,
-    "gravityBeforeContact": false
-  },
-  "endCardTextSeparation": {
-    "selectedObjectInput": "cfg-endCardObjectText",
-    "centerTextAndCtaIndependent": true,
-    "runtimeCtaSource": "active layout CTA text"
+    "endCardImageTint": "#9a5bf6"
   }
 }
