@@ -2059,7 +2059,7 @@ class Game{
     const tutorialTop=this._tutAnchor.ay-2.19*S;
     const tutorialBlockHeight=0.5224*S*(shape==='triangle'?1.16:1);
     const captionGapRaw=parseFloat(this.cfg.tutorialCaptionGap);
-    const captionGap=Number.isFinite(captionGapRaw)?clamp(captionGapRaw,-2,5):0;
+    const captionGap=Number.isFinite(captionGapRaw)?clamp(captionGapRaw,-2,5):-0.5;
     const lineH=fs*1.25;
     const textDescent=fs*.22;
     const lastBaseline=tutorialTop-tutorialBlockHeight*captionGap-textDescent;
@@ -2253,7 +2253,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.1,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:30,tutorialX:50,tutorialY:35,tutorialCaptionGap:0,
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:30,tutorialX:50,tutorialY:35,tutorialCaptionGap:-0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1,shieldSpriteColor:"#00eeff",
@@ -2261,7 +2261,7 @@ const DEF={
   playerDeathFrames:4,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
   bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:"#ffffff",
   backgroundMode:"common",stageBgGradients:null,seamScale:0.5,seamOverlayMode:"perStage",seamMulti:true,seamTint:"#ffffff",stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
-  stageColors:["#e05252", "#52a0e0", "#52e08a", "#e07d52", "#c052e0"],stageAccents:false,showGrid:false,stageCount:4,orientation:"portrait",
+  stageColors:["#e05252", "#52a0e0", "#52e08a", "#e07d52", "#c052e0"],stageAccents:false,showGrid:false,stageCount:4,orientation:"landscape",
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
   endCard:{"enabled": true, "tryAgainEnabled": true, "tryAgainDelay": 0, "countdownFrom": 10, "tryAgainDuration": 0, "scale": 1, "x": 0, "y": -13, "overlay": 0.68, "overlayColor": "#000000", "showCta": true, "ctaText": "TRY AGAIN", "fontFamily": "Baloo2", "ctaY": "74"},

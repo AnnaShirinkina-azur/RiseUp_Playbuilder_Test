@@ -46,7 +46,7 @@ function readConfig(){
     tutorialTextSize:(function(){var v=g('cfg-tutorialTextSize');return isNaN(v)?30:Math.max(8,Math.min(96,v));})(),
     tutorialX:(function(){var v=g('cfg-tutorialX');return isNaN(v)?50:Math.max(0,Math.min(100,v));})(),
     tutorialY:(function(){var v=g('cfg-tutorialY');return isNaN(v)?35:Math.max(0,Math.min(100,v));})(),
-    tutorialCaptionGap:(function(){var v=g('cfg-tutorialCaptionGap');return isNaN(v)?0:Math.max(-2,Math.min(5,v));})(),
+    tutorialCaptionGap:(function(){var v=g('cfg-tutorialCaptionGap');return isNaN(v)?-0.5:Math.max(-2,Math.min(5,v));})(),
     tutorialEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
     tutorialFont:(function(){var e=document.getElementById('cfg-tutorialFont');return (e&&e.value)||'Baloo2';})(),
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),

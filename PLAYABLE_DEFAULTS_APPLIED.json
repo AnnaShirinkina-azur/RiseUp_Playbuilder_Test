@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1784897553735.html",
+  "source": "rise_playable_1784898303564.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -50,7 +50,7 @@
   "spriteCount": 36,
   "defaultsSummary": {
     "lives": 3,
-    "orientation": "portrait",
+    "orientation": "landscape",
     "deathPauseMs": 2500,
     "level1CenterSpeed": 18,
     "level3BasketPower": 0.6,
@@ -60,7 +60,8 @@
     "tutorialTextSizePx": 30,
     "tutorialXPercent": 50,
     "tutorialYPercent": 35,
-    "tutorialCaptionGapTriangleHeights": 0,
+    "tutorialCaptionGapTriangleHeights": -0.5,
+    "tutorialFailEnabled": true,
     "playerSpriteColor": "#00eeff",
     "shieldSpriteColor": "#00eeff",
     "endCardCountdown": 10,
@@ -83,7 +84,7 @@
   "tutorialControls": {
     "positionXPercent": 50,
     "positionYPercent": 35,
-    "captionGapTriangleHeights": 0,
+    "captionGapTriangleHeights": -0.5,
     "textSizePx": 30
   }
 }
