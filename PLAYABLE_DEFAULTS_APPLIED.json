@@ -1,80 +1,84 @@
 {
-  "cfg": {
-    "lives": 3,
-    "gameSpeed": 3.2,
-    "acceleration": 0.4,
-    "stageCount": 1,
-    "obstaclePushForce": 7,
-    "gravityModifier": 1,
-    "hpBarShowTime": 2000,
-    "chainReaction": false,
-    "scatterBounciness": 0.1,
-    "tutorialDisplayTime": 3500,
-    "playerSize": 2,
-    "playerDeathAnimSpeed": 1,
-    "playerStart": {
-      "coordMode": "center",
-      "x": 0,
-      "y": 169
-    },
-    "shieldSize": 1,
-    "stageBgGradients": [
-      [
-        "#5BC0DE",
-        "#69C5EC"
-      ],
-      [
-        "#EF5350",
-        "#F97F6F"
-      ],
-      [
-        "#B03C02",
-        "#CC4A05"
-      ]
-    ],
-    "seamScale": 0.5,
-    "soundVolume": 0.8,
-    "soundVolumes": {
-      "bgm": 0.7,
-      "win": 1,
-      "lose": 1,
-      "hit": 1,
-      "shield": 0.9
-    },
-    "endCard": {
-      "enabled": true,
-      "scale": 1,
-      "x": 0,
-      "y": 0,
-      "overlay": 0.55,
-      "showCta": true,
-      "ctaText": "PLAY NOW",
-      "ctaY": 74
-    }
-  },
-  "level_counts": [
-    0,
-    20,
+  "source": "rise_playable_1784892769967.html",
+  "applied": true,
+  "levelCounts": [
+    2,
+    26,
+    98,
+    11,
+    3,
     0
   ],
-  "sprite_keys": [
+  "spriteKeys": [
+    "background",
     "bg_seam_stage0",
     "bg_seam_stage1",
+    "bg_seam_stage10",
+    "bg_seam_stage11",
+    "bg_seam_stage12",
+    "bg_seam_stage13",
+    "bg_seam_stage14",
+    "bg_seam_stage15",
+    "bg_seam_stage16",
+    "bg_seam_stage17",
+    "bg_seam_stage18",
+    "bg_seam_stage19",
     "bg_seam_stage2",
+    "bg_seam_stage20",
+    "bg_seam_stage21",
+    "bg_seam_stage3",
+    "bg_seam_stage4",
+    "bg_seam_stage5",
+    "bg_seam_stage6",
+    "bg_seam_stage7",
+    "bg_seam_stage8",
+    "bg_seam_stage9",
+    "endcard_countdown_badge",
     "endcard_lose_bg",
     "endcard_lose_button",
+    "endcard_lose_landscape_cta_bg",
     "endcard_lose_logo",
+    "endcard_lose_portrait_cta_bg",
     "endcard_win",
-    "endcard_win_frame"
+    "endcard_win_frame",
+    "height_arrow",
+    "player",
+    "player_death",
+    "shield",
+    "tutorial_triangle"
   ],
-  "patched_sprite_keys": [
-    "bg_seam_stage0",
-    "bg_seam_stage1",
-    "bg_seam_stage2",
-    "endcard_lose_bg",
-    "endcard_lose_button",
-    "endcard_lose_logo",
-    "endcard_win",
-    "endcard_win_frame"
-  ]
+  "spriteCount": 36,
+  "defaultsSummary": {
+    "lives": 3,
+    "orientation": "landscape",
+    "deathPauseMs": 2500,
+    "level1CenterSpeed": 18,
+    "level3BasketPower": 0.6,
+    "level3BallGravity": 0.34,
+    "tutorialObstacleTint": "#c800ff",
+    "playerSpriteColor": "#00eeff",
+    "shieldSpriteColor": "#00eeff",
+    "endCardCountdown": 10,
+    "endCardCtaText": "TRY AGAIN"
+  },
+  "hudScaleFix": {
+    "ctaAndHealthMatchHeightCounter": true,
+    "scaleFormula": "clamp(gameHeight / 844, 0.78, 1.18)",
+    "ignoresLandscapeDesignWidth": true,
+    "heightCounterResetsOnEveryDeath": false,
+    "heightCounterResetsOnLevelRestart": true
+  },
+  "gameplayFixes": {
+    "tutorialTextPosition": "configurable viewport X/Y",
+    "respawnCheckpoint": "corridor-before-failed-level",
+    "tutorialCaptionGap": "configurable in rendered triangle heights",
+    "completedLevelsRemainCompleted": true,
+    "failedLevelNumberShownAgain": true
+  },
+  "tutorialControls": {
+    "positionXPercent": 50,
+    "positionYPercent": 55,
+    "captionGapTriangleHeights": 0.5,
+    "textSizePx": 18
+  }
 }

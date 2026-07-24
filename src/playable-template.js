@@ -1,6 +1,10 @@
 (function(W){'use strict';
 let CW=390,CH=844;
 const START_STAGE_INITIAL_TOP=-160;
+// Empty transition band inserted before every numbered mini-level. At the
+// default speed, half a stage creates a clear beat for the large numeral
+// without freezing input, physics or animation.
+const LEVEL_INTERLUDE_RATIO=.5;
 function viewAspect(){
   try{
     const w=Math.max(1,window.innerWidth||0),h=Math.max(1,window.innerHeight||0);
@@ -126,13 +130,21 @@ function uiBaseScale(L){
   if(!isFinite(k)||k<=0)k=1;
   return Math.min(1,k);
 }
+function hudCounterScale(){
+  // CTA and health are HUD elements, just like the height counter. Their size
+  // follows the vertical game canvas and must not shrink when an item was
+  // authored on an extra-wide landscape editor canvas (large designW).
+  var k=CH/844;
+  if(!isFinite(k)||k<=0)k=1;
+  return clamp(k,.78,1.18);
+}
 function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||40)*k,strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k};}
 function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
-function healthDrawSize(L){var k=uiBaseScale(L);return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
-function ctaDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
+function healthDrawSize(L){var k=hudCounterScale();return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
+function ctaDrawSize(L){var portrait=CW<CH,k=hudCounterScale()*(portrait?.8:1);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
 function progressBoxLocal(L){var a=progressLocal(L),d=progressDrawSize(L);return anchorBoxLocal(L.anchor||'cl',a.x,a.y,d.w,d.h);}
 function healthBoxLocal(L){var a=healthLocal(L),d=healthDrawSize(L),cnt=L.count||3,w=cnt*d.heartW+(cnt-1)*d.gap;return anchorBoxLocal(L.anchor||'tc',a.x,a.y,w,d.heartW);}
-function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L);return anchorBoxLocal(L.anchor||'bc',a.x,a.y,d.w,d.h);}
+function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L),anchor=L.anchor||'bc';if(CW<CH)anchor=anchor.charAt(0)+'c';return anchorBoxLocal(anchor,CW<CH?0:a.x,a.y,d.w,d.h);}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -250,7 +262,7 @@ class Obs{
     this.x=obstacleLayoutX({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});this.y=obstacleLayoutY({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});
     this.shape=o.shape||'rect';
     this.points=(o.points||null);
-    this.color=o.color||'#e05252';
+    this.tint=o.tint||o.color||'#e05252';this.color=this.tint;
     this.spr=o.sprite||null;
     this.imageSrc=o.imageSrc||null;
     this.customImg=makeImg(this.imageSrc);
@@ -258,14 +270,26 @@ class Obs{
     this.moveSpeed=o.moveSpeed||1800;
     this.t=o.phaseOffset||0;
     this.ix=this.x;this.iy=this.y;
+    // Authored rotation from the level editor (radians). Kept separate from
+    // `rot`, which is the physics spin accumulated after the protector push.
+    this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
+    this.interactable=o.interactable!==false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
+    // Runtime-only role used by the Level 3 basket simulation.
+    this.level3Role=null;this.level3Follow=null;this.level3Safe=false;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
-  push(fx,fy,spin=0){if(!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
+  push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
   update(dt,gravityModifier=1){
-    if(this.kin&&this.live&&this.moveX>0){this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;}
+    // Level 3 basket/balls are integrated together by Stage so the U-shaped
+    // basket can contain, scoop and throw the balls. Decorative inner ball
+    // pieces follow their physical circle body there as well.
+    if(this.level3Role)return;
+    if(this.kin&&this.live&&this.moveX>0){
+      this.t+=dt;this.x=this.ix+Math.sin(this.t/this.moveSpeed*Math.PI*2)*this.moveX;
+    }
     if(!this.kin){
       // Free-body motion after the protector hits the obstacle
       // (Unity Rigidbody2D-style: gravity + small linear/angular drag,
@@ -283,23 +307,36 @@ class Obs{
     // Protector contact turns a kinematic obstacle into a flying body.
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
-    if(!this.live)return false;
+    if(!this.live||!this.interactable)return false;
+    // The Level 3 basket is a tool, not a damaging full-box obstacle. Its
+    // actual U-shaped walls are handled by the dedicated basket simulation.
+    if(this.level3Role==='basket'||this.level3Role==='ballVisual')return false;
+    // Level 3 balls damage the balloon, but are intentionally not launched by
+    // direct shield contact: the player has to use the basket.
+    if(this.level3Role==='ball'&&!includeDynamic)return false;
     if(!includeDynamic&&!this.kin)return false;
-    if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
-    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>({x:this.x+p.x*this.w,y:this.y+p.y*this.h}));return circlePolyHit(cx,cy,cr,pts);}
-    const nx=clamp(cx,this.x-this.w/2,this.x+this.w/2),ny=clamp(cy,this.y-this.h/2,this.y+this.h/2);
-    return(cx-nx)**2+(cy-ny)**2<cr*cr;
+    // Level 3 ball sprites may be authored as custom image objects. Their
+    // gameplay body is still circular, regardless of the editor shape type.
+    if(this.shape==='circle'||this.level3Role==='ball'){const dx=this.x-cx,dy=this.y-cy,r=Math.max(5,Math.min(this.w,this.h)*.5);return dx*dx+dy*dy<(r+cr)*(r+cr);}
+    const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
+    if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>{const lx=p.x*this.w,ly=p.y*this.h;return{x:this.x+lx*co-ly*si,y:this.y+lx*si+ly*co};});return circlePolyHit(cx,cy,cr,pts);}
+    // Rotate the test point into the box's local (unrotated) frame, then do the
+    // usual closest-point-on-AABB check. Circle radius is rotation-invariant.
+    const rx=cx-this.x,ry=cy-this.y,lx=rx*co+ry*si,ly=-rx*si+ry*co;
+    const nx=clamp(lx,-this.w/2,this.w/2),ny=clamp(ly,-this.h/2,this.h/2);
+    return(lx-nx)**2+(ly-ny)**2<cr*cr;
   }
   draw(ctx,sy){
     if(!this.live)return;
     const dx=this.x,dy=this.y+sy;
     ctx.save();
     ctx.translate(dx,dy);
-    if(!this.kin)ctx.rotate(this.rot);
+    const ang=this.baseRot+((this.level3Role==='basket'||this.level3Role==='ball'||this.level3Role==='ballVisual'||!this.kin)?this.rot:0);
+    if(ang)ctx.rotate(ang);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
-    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
+    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.tint||this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
     else{
-      ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
+      ctx.fillStyle=this.tint||this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
       else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(0,-hh);ctx.lineTo(hw,hh);ctx.lineTo(-hw,hh);ctx.closePath();ctx.fill();ctx.stroke();}
       else if(this.shape==='custom'&&this.points&&this.points.length>=3){ctx.beginPath();this.points.forEach((p,i)=>{const px=p.x*this.w,py=p.y*this.h;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.fill();ctx.stroke();}
@@ -311,16 +348,322 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels,bgs){this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.H=CH+6;this.worldY=idx*this.H;this.done=false;}
-  reset(){this.done=false;this.obs.forEach(o=>o.reset());}
+  constructor(idx,obs,color,labels,bgs){
+    this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];
+    this.H=CH+6;this.worldY=idx*this.H;this.done=false;
+    // Level 1 is a pair of horizontal side assemblies. Every item on one side
+    // receives exactly the same X translation, so the large rectangle keeps
+    // its authored gap to the triangles instead of overtaking them.
+    this.level1SqueezeActive=false;
+    this.level1SideProgress={left:0,right:0};
+    this.level1Groups=null;
+    this.level1ActivationBottom=0;
+    this.cfg=(obs&&obs.length&&obs[0].cfg)||{};
+    this.level3=null;
+    if(this.idx===3)this._buildLevel3Physics();
+  }
+  reset(){
+    this.done=false;this.obs.forEach(o=>o.reset());
+    this.level1SqueezeActive=false;
+    this.level1SideProgress={left:0,right:0};
+    this.level1Groups=null;
+    this.level1ActivationBottom=0;
+    if(this.idx===3)this._buildLevel3Physics();
+  }
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
-  update(dt,fallSpeed=0,gravityModifier=1){
+  _buildLevel1Groups(){
+    if(this.idx!==1)return;
+    const cx=CW/2;
+    const groups={left:{items:[],dir:1,target:0},right:{items:[],dir:-1,target:0}};
+    for(const o of this.obs){
+      const side=o.ix<cx-1?'left':(o.ix>cx+1?'right':null);
+      if(side)groups[side].items.push(o);
+    }
+    let activationBottom=-Infinity;
+    for(const side of ['left','right']){
+      const g=groups[side];
+      if(!g.items.length)continue;
+      // The nearest-to-centre obstacle defines the stop point. It retains 10%
+      // of its authored horizontal offset; every other item on that side uses
+      // the same translation and therefore preserves the complete formation.
+      const nearest=Math.min(...g.items.map(o=>Math.abs(o.ix-cx)));
+      g.target=g.dir*nearest*.9;
+      const p=clamp(this.level1SideProgress[side]||0,0,1);
+      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
+      const triggerItems=g.items.filter(o=>o.interactable!==false);
+      const source=triggerItems.length?triggerItems:g.items;
+      for(const o of source)activationBottom=Math.max(activationBottom,o.iy+o.h/2);
+    }
+    this.level1Groups=groups;
+    this.level1ActivationBottom=isFinite(activationBottom)?activationBottom:CH/2;
+  }
+  refreshLevel1Groups(){
+    if(this.idx!==1)return;
+    this.level1Groups=null;
+    this._buildLevel1Groups();
+  }
+  _updateLevel1Squeeze(dt,speed,activationY){
+    if(this.idx!==1)return;
+    if(!this.level1Groups)this._buildLevel1Groups();
+    if(!this.level1SqueezeActive&&this.worldY+this.level1ActivationBottom>=activationY){
+      this.level1SqueezeActive=true;
+    }
+    if(!this.level1SqueezeActive||speed<=0)return;
+    const step=Math.max(0,speed)*dt/1000;
+    for(const side of ['left','right']){
+      const g=this.level1Groups&&this.level1Groups[side];
+      if(!g||!g.items.length||Math.abs(g.target)<.001)continue;
+      let p=clamp(this.level1SideProgress[side]||0,0,1);
+      p=Math.min(1,p+step/Math.abs(g.target));
+      this.level1SideProgress[side]=p;
+      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
+    }
+  }
+  _buildLevel3Physics(){
+    if(this.idx!==3)return;
+    // The authored Level 3 prefab contains one wide U-shaped basket, eight
+    // circle bodies and eight smaller decorative inner polygons placed on top
+    // of those circles. Only the circles must participate in physics.
+    const candidates=this.obs.filter(o=>o.interactable!==false&&o.w>150&&o.h>80);
+    const basket=candidates.sort((a,b)=>b.w*b.h-a.w*a.h)[0]||null;
+    // Older level data used primitive circles plus a decorative custom layer.
+    // The current prefab stores each visible ball as one custom image object.
+    // Prefer authored circles when they exist; otherwise promote compact,
+    // near-square custom objects above the basket to circular physics bodies.
+    const circleBalls=this.obs.filter(o=>o.interactable!==false&&o!==basket&&o.shape==='circle');
+    const customBalls=this.obs.filter(o=>{
+      if(o.interactable===false||o===basket||o.shape!=='custom')return false;
+      const min=Math.min(o.w,o.h),max=Math.max(o.w,o.h),aspect=max/Math.max(1,min);
+      const smallEnough=basket?max<=Math.max(84,basket.w*.36):max<=84;
+      const aboveBasket=!basket||o.iy<=basket.iy+basket.h*.12;
+      return min>=10&&smallEnough&&aspect<=1.35&&aboveBasket;
+    });
+    const balls=circleBalls.length?circleBalls:customBalls;
+    const visuals=[];
+    if(basket){
+      basket.level3Role='basket';basket.level3Safe=true;basket.kin=false;
+      basket.vx=0;basket.vy=0;basket.av=0;basket.rot=0;
+    }
+    for(const ball of balls){
+      // Balls are suspended at their authored positions until the moving
+      // U-basket physically touches them. Activation is tracked per ball so
+      // one contact does not release the whole cluster at once.
+      ball.level3Role='ball';ball.level3Activated=false;ball.kin=true;
+      ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
+      // Match the inner prefab polygon by authored centre. It remains visible
+      // but no longer creates a second collider at the same location.
+      let best=null,bd=1e9;
+      for(const o of this.obs){
+        if(o===basket||o===ball||o.shape!=='custom'||o.w>=80)continue;
+        const d=(o.ix-ball.ix)**2+(o.iy-ball.iy)**2;
+        if(d<bd){bd=d;best=o;}
+      }
+      if(best&&bd<16){
+        best.level3Role='ballVisual';best.level3Follow=ball;best.interactable=false;best.kin=true;
+        visuals.push(best);
+      }
+    }
+    const activeBottom=Math.max(...([basket].filter(Boolean).concat(balls)).map(o=>o.iy+o.h/2),CH/2);
+    this.level3={basket,balls,visuals,active:false,touched:false,activeBottom,contactCooldown:0};
+    this._syncLevel3Visuals();
+  }
+  _syncLevel3Visuals(){
+    const l=this.level3;if(!l)return;
+    for(const v of l.visuals){
+      const b=v.level3Follow;if(!b)continue;
+      v.x=b.x;v.y=b.y;v.rot=b.rot;v.live=b.live;
+    }
+  }
+  _level3Walls(){
+    const l=this.level3,b=l&&l.basket;if(!b)return [];
+    // Ratios come from the opaque geometry of the authored Frame 20 PNG:
+    // two tall side posts and one thick bottom bar, open at the top.
+    const side=Math.max(18,b.w*.215),bottom=Math.max(22,b.h*.36);
+    return [
+      {x:-b.w/2+side/2,y:0,w:side,h:b.h},
+      {x: b.w/2-side/2,y:0,w:side,h:b.h},
+      {x:0,y:b.h/2-bottom/2,w:b.w,h:bottom}
+    ];
+  }
+  _level3CircleRect(body,r,rect,basket,worldTop,dt,driveBody){
+    const ang=basket.baseRot+basket.rot,co=Math.cos(ang),si=Math.sin(ang);
+    const bx=basket.x,by=basket.y+worldTop;
+    const wx=body.x,wy=body.y+worldTop;
+    const dx=wx-bx,dy=wy-by;
+    const lx=dx*co+dy*si,ly=-dx*si+dy*co;
+    const qx=clamp(lx,rect.x-rect.w/2,rect.x+rect.w/2);
+    const qy=clamp(ly,rect.y-rect.h/2,rect.y+rect.h/2);
+    let nx=lx-qx,ny=ly-qy,dist=Math.hypot(nx,ny),insideDepth=0;
+    if(dist>=r)return false;
+    if(dist<1e-5){
+      // Circle centre is inside a solid wall. Pick the cheapest exit axis and
+      // include the distance to that edge in the separation depth; using only
+      // the radius here would let a fast ball tunnel through the bottom bar.
+      const dl=Math.abs(lx-(rect.x-rect.w/2)),dr=Math.abs(rect.x+rect.w/2-lx);
+      const dtp=Math.abs(ly-(rect.y-rect.h/2)),db=Math.abs(rect.y+rect.h/2-ly);
+      const m=Math.min(dl,dr,dtp,db);insideDepth=m;
+      if(m===dl){nx=-1;ny=0;}else if(m===dr){nx=1;ny=0;}else if(m===dtp){nx=0;ny=-1;}else{nx=0;ny=1;}
+      dist=0;
+    }else{nx/=dist;ny/=dist;}
+    const pen=insideDepth>0?r+insideDepth:r-dist;
+    const nwx=nx*co-ny*si,nwy=nx*si+ny*co;
+    if(driveBody){
+      // Ball leaves the wall along its normal. It inherits the translating and
+      // rotating basket velocity, which is what makes a quick reversal toss it.
+      body.x+=nwx*pen;body.y+=nwy*pen;
+      const crx=qx*co-qy*si,cry=qx*si+qy*co;
+      const svx=basket.vx-basket.av*cry,svy=basket.vy+basket.av*crx;
+      const rvx=body.vx-svx,rvy=body.vy-svy;
+      const vn=rvx*nwx+rvy*nwy;
+      if(vn<0){
+        const bounce=.38,imp=-(1+bounce)*vn;
+        body.vx+=nwx*imp;body.vy+=nwy*imp;
+      }
+      const tx=-nwy,ty=nwx;
+      const vt=(body.vx-svx)*tx+(body.vy-svy)*ty;
+      body.vx-=tx*vt*.08;body.vy-=ty*vt*.08;
+      // Strong but bounded carry from the basket surface.
+      body.vx+=svx*.055;body.vy+=svy*.055;
+    }
+    return {nwx,nwy,pen,qx,qy};
+  }
+  _updateLevel3(dt,gravityModifier=1){
+    const l=this.level3;if(!l||!l.basket||!l.balls.length)return;
+    if(!l.active&&this.worldY+l.activeBottom>=-24){
+      l.active=true;
+      for(const ball of l.balls){
+        ball.level3Activated=false;ball.kin=true;
+        ball.x=ball.ix;ball.y=ball.iy;ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
+      }
+    }
+    if(l.contactCooldown>0)l.contactCooldown-=dt;
+    if(!l.active){this._syncLevel3Visuals();return;}
+    const f=dt/16.6667,b=l.basket;
+    // Until the protector reaches the level the basket stays locked to its
+    // authored position and travels only with the stage. The balls remain
+    // suspended at their authored positions until the basket touches each one.
+    // After first protector contact the basket becomes a heavy dynamic body.
+    if(!l.touched){
+      b.x=b.ix;b.y=b.iy;b.vx=0;b.vy=0;b.av=0;b.rot=0;
+    }else{
+      b.vy+=.018*gravityModifier*f;
+      b.x+=b.vx*f;b.y+=b.vy*f;b.rot+=b.av*f;
+      b.vx*=Math.pow(.965,f);b.vy*=Math.pow(.975,f);b.av*=Math.pow(.955,f);
+      b.av=clamp(b.av,-.085,.085);
+    }
+    const walls=this._level3Walls();
+    const ballGravity=Math.max(0,parseFloat(this.cfg.level3BallGravity)||.34);
+    for(const o of l.balls){
+      if(!o.live)continue;
+      const r=Math.max(5,Math.min(o.w,o.h)*.5);
+      if(!o.level3Activated){
+        // A locked ball is a visual/static target: no gravity, no drift and no
+        // rotation. Only a real overlap with a basket wall releases it.
+        o.kin=true;o.x=o.ix;o.y=o.iy;o.vx=0;o.vy=0;o.av=0;o.rot=0;
+        // Before the protector has engaged the basket, authored near-tangent
+        // placement must not count as gameplay contact.
+        if(!l.touched)continue;
+        let contactWall=null;
+        for(const wall of walls){
+          const hit=this._level3CircleRect(o,r,wall,b,this.worldY,dt,false);
+          if(!hit)continue;
+          // Existing near-tangent authoring is not enough: the wall must be
+          // moving into the ball. This prevents a mere shield tap on the
+          // basket from releasing balls that the basket has not scooped yet.
+          const ang=b.baseRot+b.rot,co=Math.cos(ang),si=Math.sin(ang);
+          const crx=hit.qx*co-hit.qy*si,cry=hit.qx*si+hit.qy*co;
+          const svx=b.vx-b.av*cry,svy=b.vy+b.av*crx;
+          const approach=svx*hit.nwx+svy*hit.nwy;
+          if(approach>.005){contactWall=wall;break;}
+        }
+        if(!contactWall)continue;
+        o.level3Activated=true;o.kin=false;
+        // Resolve the first contact immediately and inherit the basket surface
+        // velocity, so the release feels like a physical scoop rather than a
+        // delayed gravity switch.
+        this._level3CircleRect(o,r,contactWall,b,this.worldY,dt,true);
+      }
+      o.vy+=ballGravity*gravityModifier*f;
+      o.x+=o.vx*f;o.y+=o.vy*f;o.rot+=o.av*f;
+      o.vx*=Math.pow(.997,f);o.vy*=Math.pow(.998,f);o.av*=Math.pow(.98,f);
+      if(o.y>CH+700||o.y<-900||o.x<-900||o.x>CW+900)o.live=false;
+    }
+    // A few inexpensive solver iterations keep the small balls inside the U
+    // even when the player flicks the basket quickly.
+    for(let it=0;it<3;it++){
+      for(const o of l.balls){
+        if(!o.live||!o.level3Activated)continue;
+        const r=Math.max(5,Math.min(o.w,o.h)*.5);
+        for(const w of walls)this._level3CircleRect(o,r,w,b,this.worldY,dt,true);
+      }
+      for(let i=0;i<l.balls.length;i++){
+        const A=l.balls[i];if(!A.live)continue;
+        const ar=Math.max(5,Math.min(A.w,A.h)*.5);
+        for(let j=i+1;j<l.balls.length;j++){
+          const B=l.balls[j];if(!B.live)continue;
+          const aFree=!!A.level3Activated,bFree=!!B.level3Activated;
+          // Two suspended balls stay exactly at their authored positions.
+          if(!aFree&&!bFree)continue;
+          const br=Math.max(5,Math.min(B.w,B.h)*.5),dx=B.x-A.x,dy=B.y-A.y,rr=ar+br;
+          const d2=dx*dx+dy*dy;if(d2>=rr*rr)continue;
+          const d=Math.sqrt(d2)||1,nx=dx/d,ny=dy/d,overlap=rr-d;
+          if(aFree&&bFree){
+            const ov=overlap*.5;
+            A.x-=nx*ov;A.y-=ny*ov;B.x+=nx*ov;B.y+=ny*ov;
+            const rel=(B.vx-A.vx)*nx+(B.vy-A.vy)*ny;
+            if(rel<0){const imp=-rel*.68;A.vx-=nx*imp;A.vy-=ny*imp;B.vx+=nx*imp;B.vy+=ny*imp;}
+          }else if(aFree){
+            // B is still suspended, so resolve only the released body A.
+            A.x-=nx*overlap;A.y-=ny*overlap;
+            const vn=A.vx*nx+A.vy*ny;
+            if(vn>0){A.vx-=nx*vn*1.45;A.vy-=ny*vn*1.45;}
+          }else{
+            // A is still suspended, so resolve only the released body B.
+            B.x+=nx*overlap;B.y+=ny*overlap;
+            const vn=B.vx*nx+B.vy*ny;
+            if(vn<0){B.vx-=nx*vn*1.45;B.vy-=ny*vn*1.45;}
+          }
+        }
+      }
+    }
+    this._syncLevel3Visuals();
+  }
+  level3ShieldContact(shield,worldTop){
+    const l=this.level3;if(!l||!l.active||!l.basket||!l.basket.live)return false;
+    const b=l.basket,walls=this._level3Walls();let touched=false;
+    // Use a temporary circle body in stage-local coordinates so the same
+    // oriented wall test can resolve the protector against each U wall.
+    const p={x:shield.x,y:shield.y-worldTop};
+    for(const w of walls){
+      const hit=this._level3CircleRect(p,shield.r,w,b,worldTop,16.6667,false);
+      if(!hit)continue;touched=true;l.touched=true;
+      // Move the basket away from the protector rather than teleporting the
+      // protector. This makes the U feel like a physical tool being pushed.
+      b.x-=hit.nwx*hit.pen*.88;b.y-=hit.nwy*hit.pen*.88;
+      const power=Math.max(.2,parseFloat(this.cfg.level3BasketPower)||1.35);
+      const relx=(shield.vx||0)-b.vx,rely=(shield.vy||0)-b.vy;
+      const toward=Math.max(0,-(relx*hit.nwx+rely*hit.nwy));
+      // Follow the protector's swipe velocity instead of adding it every frame;
+      // this keeps continuous contact controllable and prevents runaway speed.
+      const targetVx=(shield.vx||0)*power,targetVy=(shield.vy||0)*power;
+      b.vx=lerp(b.vx,targetVx,.34)-hit.nwx*Math.min(5.5,.8+toward*.18)*power;
+      b.vy=lerp(b.vy,targetVy,.34)-hit.nwy*Math.min(5.5,.8+toward*.18)*power;
+      const ang=b.baseRot+b.rot,co=Math.cos(ang),si=Math.sin(ang);
+      const rx=hit.qx*co-hit.qy*si,ry=hit.qx*si+hit.qy*co;
+      const fx=-hit.nwx*(toward*.4+1),fy=-hit.nwy*(toward*.4+1);
+      b.av=clamp(b.av+(rx*fy-ry*fx)/Math.max(9000,b.w*b.w+b.h*b.h)*power,-.085,.085);
+    }
+    return touched;
+  }
+  update(dt,fallSpeed=0,gravityModifier=1,level1CenterSpeed=0,level1ActivationY=CH){
     if(this.done)return;
-    // Stages are now falling waves: obstacles keep their local layout,
-    // while the whole wave moves from the top of the screen downward.
+    // Stages are falling waves: obstacle local layouts stay intact while the
+    // whole level band moves downward relative to the player.
     this.worldY+=fallSpeed*dt;
     this.obs.forEach(o=>o.update(dt,gravityModifier));
+    this._updateLevel1Squeeze(dt,level1CenterSpeed,level1ActivationY);
+    this._updateLevel3(dt,gravityModifier);
   }
   draw(ctx,top){
     if(this.done)return;
@@ -499,7 +842,12 @@ class Ball{
     ctx.beginPath();
     ctx.ellipse(0,-r*.05,r*.92,r*1.18,0,0,Math.PI*2);
     ctx.clip();
-    ctx.drawImage(sheet,fi*frameW,0,frameW,frameH,-w/2,-h*.58,w,h);
+    // Death frames use the same player tint as the living balloon. Tint the
+    // complete sprite sheet once through the shared cache, then crop the
+    // active frame from the tinted sheet so animation timing stays unchanged.
+    const deathSheet=(!this.cfg.playerSpriteColor||String(this.cfg.playerSpriteColor).toLowerCase()==='#ffffff')
+      ?sheet:tintedSprite(sheet,this.cfg.playerSpriteColor);
+    ctx.drawImage(deathSheet,fi*frameW,0,frameW,frameH,-w/2,-h*.58,w,h);
     ctx.restore();
     if(this.deathT<fadeStart){
       ctx.globalAlpha=alpha*.85;
@@ -604,7 +952,7 @@ class Game{
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
-          const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
+          const ob=new Obs({...o,cfg:c,tint:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt),color:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
           obs.push(ob);
         });
@@ -629,7 +977,7 @@ class Game{
   _reset(){
     this.camY=0;
     this.state='start';
-    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;this._breakPauseT=0;this._afterDeathDone=false;
+    this._startedAt=0;this._firstDeathAt=0;this._heartBreakAt=0;this._heartBreakIdx=-1;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this._afterDeathDone=false;
     this.lives=this.cfg.lives;
     this.si=0;
     this.dtimer=0;this.fadeA=0;this.fadeDir=0;
@@ -646,6 +994,29 @@ class Game{
     this.ball.deathSpr=this._spr('player_death')||makeImg(this.cfg.defaultPlayerDeathSrc);
     this._resetFallingStages();
     this.completedStages=0;
+    // Large Rise Up-style level numerals. Each mini-level shows its number
+    // once, as soon as the stage begins entering the viewport after tutorial.
+    this._shownLevelNumbers=new Set();
+    this._levelNumberIndex=0;
+    this._levelNumberT=0;
+    this._levelNumberDuration=1100;
+    // Level 4 is the final interaction beat: either the first fresh tap after
+    // the level becomes current or the protector's first contact with its
+    // first interactable obstacle opens the store. Keep it one-shot across
+    // pointer/touch/mouse fallback events and collision frames.
+    this._level4StoreTriggered=false;
+    this._respawnStageIndex=1;
+    // Height HUD starts at the configured real-world value and advances by
+    // actual world travel measured in normal-stage heights. Keeping the
+    // accumulator in stage units makes the number stable across orientation
+    // changes and responsive canvas resizing.
+    this._heightTravelStages=0;
+    this._heightArrow=null;
+    // Lose-only end card: a 10 -> 1 countdown on the supplied round badge.
+    // The win path never opens an end card.
+    this._loseCountdownStart=0;
+    this._loseCtaRect=null;
+    this._endCountdownBadge=null;
     this.paused=false;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
@@ -662,10 +1033,16 @@ class Game{
     const down=(x,y)=>{
       if(this.state==='start'){this._start();return;}
       if(this.state==='playing'){
+        // Once Level 4 is current, its first new tap is the conversion action.
+        // This check precedes shield dragging so the same gesture cannot also
+        // move the protector or create a second interaction.
+        if(this._isLevel4TapActive()){this._triggerLevel4Store('tap');return;}
         if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
         if(this.tutDone||this.tutPhase==='learn')this.shield.down(x,y);
       }
-      if(this.state==='endcard'){this.cb.onCTA&&this.cb.onCTA();}
+      if(this.state==='endcard'&&!this.isWin&&this._pointInLoseEndCta(x,y)){
+        this.cb.onCTA&&this.cb.onCTA({source:'lose_try_again'});
+      }
     };
     const move=(x,y)=>{
       if(this.state==='playing'&&(this.tutDone||this.tutPhase==='learn')){this.shield.move(x,y);}
@@ -700,14 +1077,37 @@ class Game{
   _ballSpeed(){return this.cfg.gameSpeed/16.6667;}
   _obstacleFallSpeed(){return this.cfg.gameSpeed/16.6667;}
   _resetFallingStages(){
-    // First wave starts just above the visible area; each following wave is
-    // placed farther upward. They later fall down into the screen.
-    const H=this.stages[0].H;
+    // First wave starts just above the visible area. Numbered mini-levels are
+    // separated by a real empty band equal to half a normal stage. FINISH
+    // follows level 4 directly, so no unused blank screen is added at the end.
+    const H=this.stages[0].H, gap=this._levelInterludeHeight();
     const firstTop=START_STAGE_INITIAL_TOP;
-    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H));
-    this.spawnTop=firstTop-(this.stages.length-1)*H;
+    this.stages.forEach((s,i)=>s.resetAt(firstTop-i*H-this._levelGapCountBefore(i)*gap));
+    this.spawnTop=Math.min(...this.stages.map(s=>s.worldY));
     this.completedStages=0;
     this.si=0;
+  }
+  _resetFallingStagesFrom(levelIndex){
+    // Respawn at the checkpoint immediately before the failed numbered level.
+    // Completed stages stay parked below the screen; the failed level and all
+    // following stages are rebuilt in their authored order above a half-stage
+    // empty corridor that already surrounds the player on fade-in.
+    const last=this._lastMiniIndex();
+    const target=Math.max(1,Math.min(last,parseInt(levelIndex,10)||1));
+    const H=this.stages[0].H,gap=this._levelInterludeHeight();
+    const corridorTop=CH*.34;
+    const targetTop=corridorTop-H;
+    const targetGapCount=this._levelGapCountBefore(target);
+    this.stages.forEach((stage,i)=>{
+      if(i<target){stage.complete();return;}
+      const rel=i-target;
+      const extraGaps=this._levelGapCountBefore(i)-targetGapCount;
+      stage.resetAt(targetTop-rel*H-extraGaps*gap);
+    });
+    this.spawnTop=Math.min(...this.stages.filter(s=>!s.done).map(s=>s.worldY));
+    this.completedStages=target;
+    this.si=target;
+    this.cb.onStageChange&&this.cb.onStageChange(target);
   }
   _start(){
     this.state='playing';
@@ -751,6 +1151,82 @@ class Game{
   getState(){return this.state;}
 
   _sst(i){return this.stages[i].worldY;}
+  _lastMiniIndex(){return Math.min(this.stages.length-2,Math.max(1,parseInt(this.cfg.stageCount,10)||1));}
+  _levelInterludeHeight(){
+    const H=this.stages&&this.stages[0]?this.stages[0].H:CH;
+    return H*LEVEL_INTERLUDE_RATIO;
+  }
+  _levelGapCountBefore(stageIndex){
+    // Add a gap before levels 1..N, but not between the last numbered level
+    // and the FINISH scene. This yields exactly N numbered interludes.
+    return Math.max(0,Math.min(stageIndex,this._lastMiniIndex()));
+  }
+  _levelGapRect(levelIndex){
+    const stage=this.stages[levelIndex];
+    if(!stage||stage.done||levelIndex<1||levelIndex>this._lastMiniIndex())return null;
+    const h=this._levelInterludeHeight();
+    return {top:stage.worldY+stage.H,h,bottom:stage.worldY+stage.H+h};
+  }
+
+  _updateLevelNumber(dt){
+    if(this.state!=='playing'||!this.tutDone){this._levelNumberIndex=0;this._levelNumberT=0;return;}
+    // The numeral is screen-space, but its lifetime is controlled by the real
+    // half-stage empty band. It stays fixed while that band crosses the label
+    // line, so faster/slower gameplay naturally changes the transition time.
+    const labelY=CH*.34;
+    let active=0;
+    for(let i=1;i<=this._lastMiniIndex();i++){
+      const gap=this._levelGapRect(i);
+      if(gap&&gap.top<=labelY&&gap.bottom>=labelY){active=i;break;}
+    }
+    this._levelNumberIndex=active;
+    this._levelNumberT=active?1:0;
+    if(active)this._shownLevelNumbers.add(active);
+  }
+
+  _drawLevelNumber(ctx){
+    const i=this._levelNumberIndex;
+    if(this.state!=='playing'||!i||this._levelNumberT<=0)return;
+    const gap=this._levelGapRect(i);if(!gap)return;
+    const y=CH*.34,p=clamp((y-gap.top)/Math.max(1,gap.h),0,1);
+    // Fade only near the physical edges of the transition band. The middle
+    // remains fully readable for most of the half-screen pause.
+    const edge=.16,a=Math.min(1,p/edge,(1-p)/edge)*.62;
+    if(a<=0)return;
+    const size=Math.round(Math.min(CW,CH)*.18);
+    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, sans-serif';
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.fillStyle='#ffffff';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='700 '+size+'px '+family;
+    ctx.shadowColor='rgba(0,0,0,.08)';ctx.shadowBlur=Math.max(2,size*.035);ctx.shadowOffsetY=Math.max(1,size*.015);
+    ctx.fillText(String(i),CW/2,y);
+    ctx.restore();
+  }
+
+  _level4Index(){return 4;}
+  _level4FirstObstacle(){
+    const s=this.stages[this._level4Index()];
+    return s&&s.obs?s.obs.find(o=>o&&o.interactable!==false&&o.live)||null:null;
+  }
+  _isLevel4TapActive(){
+    const i=this._level4Index(),s=this.stages[i];
+    if(this._level4StoreTriggered||this.state!=='playing'||!this.tutDone||!s||s.done)return false;
+    // The level becomes tappable when its stage band reaches the player's
+    // gameplay line. Using geometry instead of `si` is important because the
+    // stage counter advances only after the previous band has fully left the
+    // screen, which would be too late for this large first obstacle.
+    const playerY=this.ball?this.ball.y:CH*.8;
+    return s.worldY+s.H>=playerY;
+  }
+  _triggerLevel4Store(reason){
+    if(this._level4StoreTriggered)return false;
+    this._level4StoreTriggered=true;
+    this.shield.up();
+    try{if(this.cb.onCTA)this.cb.onCTA({source:'level4_'+reason});}catch(e){}
+    return true;
+  }
 
   _updateCamera(){
     // Obstacles move toward the player, so the camera no longer lifts the ball
@@ -772,7 +1248,7 @@ class Game{
       // other wave. This creates new obstacles at the top instead of moving
       // old level chunks upward with the camera.
       if(st.worldY>CH+CH*.35){
-        highest-=H;
+        highest-=H+this._levelInterludeHeight();
         this.completedStages++;
         // Win as soon as the FINISH scene is the one on screen (i.e. start +
         // all mini-levels have passed), so the ball flies up through the
@@ -814,18 +1290,28 @@ class Game{
           fall*=lerp(0.82,0.03,ease);
         }
       }
-      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier));
+      this.stages.forEach(s=>s.update(dt,fall,this.cfg.gravityModifier,this.cfg.level1CenterSpeed,this.ball.y-this.ball.r));
       // Keep the whole tutorial inside the fixed START zone. While the intro
       // is active, the first playable level must not enter the viewport.
       // All stage bands move together, so clamp their shared travel exactly
-      // when stage 1 reaches the top edge (its bottom is at y=0).
+      // when the interlude before stage 1 reaches the top edge.
       if(st==='playing'&&!this.tutDone&&this.stages.length>1){
         const next=this.stages[1];
-        const limit=-next.H;
+        // Keep START aligned to the viewport during the tutorial. The new
+        // half-stage number band waits immediately above y=0 and only begins
+        // entering after the tutorial has completed.
+        const limit=-next.H-this._levelInterludeHeight();
         if(next.worldY>limit){
           const overshoot=next.worldY-limit;
           this.stages.forEach(s=>{if(!s.done)s.worldY-=overshoot;});
         }
+      }
+      // The height counter starts at 66 ft and follows actual world movement.
+      // Tutorial clamping is intentionally excluded, so the visible value does
+      // not rise before the player reaches real gameplay.
+      if(this.tutDone){
+        const stageH=this.stages&&this.stages[0]?this.stages[0].H:CH;
+        this._heightTravelStages+=Math.max(0,fall*dt/Math.max(1,stageH));
       }
       this._scatterPhysics();
     }
@@ -865,16 +1351,27 @@ class Game{
         if(this.tutT>fs)this.tutA=Math.max(0,1-(this.tutT-fs)/600);
       }
     }
+    this._updateLevelNumber(dt);
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
+      // Level 3 uses continuous shield-vs-U-wall contact. Unlike a normal
+      // obstacle hit, the basket can be pushed repeatedly, caught again and
+      // sharply reversed to throw the balls out.
+      for(let i=0;i<this.stages.length;i++){
+        const stage=this.stages[i],top=this._sst(i);
+        if(stage.level3ShieldContact&&stage.level3ShieldContact(this.shield,top)){
+          this.shield.flash=180;
+          if(stage.level3&&stage.level3.contactCooldown<=0){this.snd.play('shield');stage.level3.contactCooldown=120;}
+        }
+      }
       for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
         const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
-        for(const sh of hits)this._hit(sh,top,'shield');
+        for(const sh of hits)this._hit(sh,top,'shield',i);
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
@@ -883,7 +1380,7 @@ class Game{
         const bpts=this.ball.points();
         for(let bi=0;bi<bpts.length;bi++){
           const bh=this.stages[i].hit(bpts[bi].x,bpts[bi].y,this.ball.r,top,true);
-          if(bh){this._hit(bh,top,'ball');break outer;}
+          if(bh){this._hit(bh,top,'ball',i);break outer;}
         }
       }
     }
@@ -894,7 +1391,7 @@ class Game{
     // death sequence
     if(st==='dying'){this.dtimer+=dt;const ds=Math.max(.05,parseFloat(this.cfg.playerDeathAnimSpeed)||1);if(!this._afterDeathDone&&this.dtimer>((this.cfg.playerDeathDuration||900)/ds)){this._afterDeathDone=true;this._afterDeath();}}
     // pause after death so the heart-break animation is fully visible before fading to respawn
-    if(this._breakPauseT>0){this._breakPauseT-=dt;if(this._breakPauseT<=0){this._breakPauseT=0;this.fadeDir=1;}}
+    if(this._breakPauseT>0){this._breakPauseT-=dt;if(this._breakPauseT<=0){this._breakPauseT=0;if(this._pendingLoseAfterBreak){this._pendingLoseAfterBreak=false;this._lose();}else this.fadeDir=1;}}
 
     // fade
     if(this.fadeDir!==0){
@@ -905,7 +1402,14 @@ class Game{
     if(st==='endcard')this.endA=Math.min(1,this.endA+dt/500);
   }
 
-  _hit(obs,top,who){
+  _hit(obs,top,who,stageIndex){
+    // Collision is the fallback Level 4 conversion trigger. It does not wait
+    // for the stage counter: touching the authored first obstacle is itself
+    // proof that the player has reached the final level.
+    if(who==='shield'&&stageIndex===this._level4Index()&&obs===this._level4FirstObstacle()){
+      this._triggerLevel4Store('collision');
+      return;
+    }
     const hx=who==='shield'?this.shield.x:this.ball.x;
     const hy=who==='shield'?this.shield.y:this.ball.y;
     const dx=obs.x-hx,dy=(obs.y+top)-hy;
@@ -958,7 +1462,7 @@ class Game{
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
-      for(const o of st.obs){if(o.live)list.push({o,top});}
+      for(const o of st.obs){if(o.live&&o.interactable&&!o.level3Role)list.push({o,top});}
     }
     const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
@@ -992,10 +1496,14 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;if(this.lives<=0){this._lose();return;}this._breakPauseT=(this.cfg.deathPause!=null?this.cfg.deathPause:1500);}
+  _die(){if(this.state!=='playing')return;this._respawnStageIndex=Math.max(1,Math.min(this._lastMiniIndex(),parseInt(this.si,10)||1));this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
-    this._resetFallingStages();
+    // Keep the current height visible throughout the death animation and
+    // pause. Reset it only when the falling level is actually restarted.
+    this._heightTravelStages=0;
+    this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
+    this._resetFallingStagesFrom(this._respawnStageIndex);
     this.shield.respawn();this.ball.respawn();
     this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
     setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
@@ -1007,8 +1515,30 @@ class Game{
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
   _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
-  _win(){this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();setTimeout(()=>{if(this._endCardsEnabled()){this.state='endcard';}else{this.state='finished';}this.cb.onWin&&this.cb.onWin();},1400);}
-  _lose(){this.isWin=false;this.snd.stopBgm();this.snd.play('lose');const ec=this.cfg.endCard||{};const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;this.state='lost';const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);setTimeout(()=>{if(this.state!=='lost')return;if(show){this.state='endcard';this.endA=0;if(duration>0)setTimeout(()=>{if(this.state==='endcard'&&!this.isWin)this.state='finished';},duration);}else{this.state='finished';}this.cb.onLose&&this.cb.onLose();},delay);}
+  _win(){
+    // This playable uses no win end card. Finish the run after the fly-away
+    // animation; Level 4 keeps its existing conversion trigger.
+    this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();
+    setTimeout(()=>{this.state='finished';this.cb.onWin&&this.cb.onWin();},1400);
+  }
+  _lose(){
+    this.isWin=false;this.snd.stopBgm();this.snd.play('lose');
+    const ec=this.cfg.endCard||{};
+    const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;
+    this.state='lost';
+    const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);
+    const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);
+    setTimeout(()=>{
+      if(this.state!=='lost')return;
+      if(show){
+        this.state='endcard';this.endA=0;
+        this._loseCountdownStart=Date.now();
+        this._loseCtaRect=null;
+        if(duration>0)setTimeout(()=>{if(this.state==='endcard'&&!this.isWin)this.state='finished';},duration);
+      }else this.state='finished';
+      this.cb.onLose&&this.cb.onLose();
+    },delay);
+  }
 
   _drawCover(ctx,bg,x,y,w,h){
     if(!imgOk(bg))return false;
@@ -1076,6 +1606,16 @@ class Game{
       return;
     }
     const grads=(this.cfg.stageBgGradients&&this.cfg.stageBgGradients.length)?this.cfg.stageBgGradients:BG_GRADS;
+    // Draw the empty number interludes as proper background bands. Use the
+    // upcoming level's gradient so there is no dark/base-colour hole between
+    // two stage rectangles in per-stage background mode.
+    for(let i=1;i<=this._lastMiniIndex();i++){
+      const gap=this._levelGapRect(i);if(!gap||gap.bottom<0||gap.top>CH)continue;
+      const top=Math.max(0,gap.top),bot=Math.min(CH,gap.bottom),g=grads[i%grads.length]||grads[0];
+      const lg=ctx.createLinearGradient(0,gap.top,0,gap.bottom);
+      lg.addColorStop(0,g[1]);lg.addColorStop(1,g[0]);
+      ctx.fillStyle=lg;ctx.fillRect(0,top,CW,bot-top);
+    }
     const vis=[];
     for(let i=0;i<this.stages.length;i++){
       const s=this.stages[i];if(s.done)continue;
@@ -1203,20 +1743,80 @@ class Game{
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
-    // Transition clouds stay above stage content; the two balls are drawn last.
+    // Transition clouds stay above stage content. The large level numeral is
+    // held in screen-space while its physical half-stage interlude passes.
     this._drawSeamOverlays(ctx,'clouds');
-    // ball below shield, both above seam overlays
+    this._drawLevelNumber(ctx);
+    // ball below shield, both above seam overlays and level numeral
     this.ball.draw(ctx);
     this.shield.draw(ctx);
     // Level progress dots removed: progress indicators should be placed manually in the editor.
     this._drawProgressBars(ctx);
     this._drawHealthBars(ctx);
     this._drawCtas(ctx);
+    this._drawHeightIndicator(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
+  }
+
+  _heightValue(){
+    const start=parseFloat(this.cfg.heightStart);
+    const perStage=parseFloat(this.cfg.heightFeetPerStage);
+    const base=isFinite(start)?start:66;
+    const rate=isFinite(perStage)?Math.max(0,perStage):100;
+    return Math.max(0,Math.floor(base+(this._heightTravelStages||0)*rate));
+  }
+
+  _drawHeightIndicator(ctx){
+    if(this.cfg.heightIndicatorEnabled===false||!this._startedAt)return;
+    if(this.state==='endcard'||this.state==='finished'||this.state==='lost')return;
+    const elapsed=Date.now()-this._startedAt;
+    const raw=clamp(elapsed/720,0,1),show=raw*raw*(3-2*raw);
+    if(show<=0)return;
+
+    if(!this._heightArrow)this._heightArrow=this._spr('height_arrow')||makeImg(this.cfg.defaultHeightArrowSrc);
+    const portrait=CW<=CH;
+    const scale=hudCounterScale();
+    const right=(portrait?18:28)*scale;
+    const top=(portrait?30:24)*scale;
+    const numberSize=(portrait?54:50)*scale;
+    const ftSize=21*scale;
+    const arrowSize=64*scale;
+    const numberX=CW-right-48*scale-(1-show)*125*scale;
+    const numberY=top+numberSize*.53;
+    const arrowX=numberX-88*scale;
+    const arrowY=top+40*scale;
+    const purple=this.cfg.heightAccentColor||'#a552ff';
+    const outline=this.cfg.heightOutlineColor||'#7d33ce';
+
+    ctx.save();
+    ctx.globalAlpha=show;
+    if(imgOk(this._heightArrow)){
+      ctx.save();ctx.translate(arrowX,arrowY);ctx.rotate(-Math.PI/2);
+      drawTintedImage(ctx,this._heightArrow,-arrowSize/2+3*scale,-arrowSize/2+3*scale,arrowSize,arrowSize,purple);
+      drawTintedImage(ctx,this._heightArrow,-arrowSize/2,-arrowSize/2,arrowSize,arrowSize,'#ffffff');
+      ctx.restore();
+    }else{
+      // Fallback keeps the HUD usable if a custom export strips the source PNG.
+      const arrowPath=()=>{ctx.beginPath();ctx.moveTo(-10*scale,22*scale);ctx.lineTo(-10*scale,-5*scale);ctx.lineTo(-23*scale,-5*scale);ctx.lineTo(0,-29*scale);ctx.lineTo(23*scale,-5*scale);ctx.lineTo(10*scale,-5*scale);ctx.lineTo(10*scale,22*scale);ctx.closePath();};
+      ctx.save();ctx.translate(arrowX+3*scale,arrowY+3*scale);ctx.fillStyle=purple;arrowPath();ctx.fill();ctx.restore();
+      ctx.save();ctx.translate(arrowX,arrowY);ctx.fillStyle='#fff';arrowPath();ctx.fill();ctx.restore();
+    }
+
+    const family='Arial, Helvetica, sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.font='900 '+Math.round(numberSize)+'px '+family;
+    ctx.lineWidth=Math.max(3,5*scale);ctx.strokeStyle=outline;ctx.fillStyle='#ffffff';
+    const value=String(this._heightValue());
+    ctx.strokeText(value,numberX,numberY);ctx.fillText(value,numberX,numberY);
+    ctx.font='900 '+Math.round(ftSize)+'px '+family;
+    ctx.lineWidth=Math.max(2,3.5*scale);
+    const ftY=top+numberSize+20*scale;
+    ctx.strokeText('FT',numberX,ftY);ctx.fillText('FT',numberX,ftY);
+    ctx.restore();
   }
 
   _flaskPath(ctx,x,y,w,h){
@@ -1308,8 +1908,11 @@ class Game{
     ctx.save();ctx.globalAlpha=this.tutA;
     if(this.cfg.tutorialAnimEnabled!==false)this._drawTutAnim(ctx);
     else{
-      ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
-      ctx.fillText('Hold & drag to move',CW/2,this.shield.y-this.shield.r-24);
+      const _tfs=Math.max(8,Math.min(96,parseFloat(this.cfg.tutorialTextSize)||18));
+      ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold '+_tfs+'px sans-serif';ctx.textAlign='center';
+      const _tCap=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:'protect your balloon!';
+      let _ty=Math.max(_tfs*1.5,CH*.105);
+      String(_tCap).split('\n').forEach(function(ln){ctx.fillText(ln,CW/2,_ty);_ty+=_tfs*1.25;});
       const ay=this.shield.y-this.shield.r-8+Math.sin(Date.now()/500)*4;
       ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2-7,ay+11);ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2+7,ay+11);ctx.stroke();
@@ -1325,15 +1928,20 @@ class Game{
   _tutInit(){
     const T=this.tutorialObj;
     let S,ax,ay;
-    if(T){
-      // позиция/масштаб из объекта Level Editor (anchor + offset; центр композиции = uy 4.28)
-      S=Math.min(CW,CH)*0.14*(parseFloat(T.scale)||1);
+    S=Math.min(CW,CH)*0.14*(T?(parseFloat(T.scale)||1):1);
+    const cfgX=parseFloat(this.cfg.tutorialX),cfgY=parseFloat(this.cfg.tutorialY);
+    if(Number.isFinite(cfgX)&&Number.isFinite(cfgY)){
+      // Global Tutorial controls use viewport percentages and therefore stay
+      // predictable in both portrait and landscape exports.
+      ax=CW*clamp(cfgX,0,100)/100;
+      ay=CH*clamp(cfgY,0,100)/100;
+    }else if(T){
+      // Backward compatibility for projects exported before the global controls.
       const b=progressAnchorBaseLocal(T.anchor||'cc');
       const cx=CW/2+b.x+(parseFloat(T.anchorOffsetX)||0)*CW/100;
       const cy=CH/2+b.y+(parseFloat(T.anchorOffsetY)||0)*CH/100;
       ax=cx;ay=cy-(4.28-4.6)*S;
     }else{
-      S=Math.min(CW,CH)*0.14;
       ax=CW/2;ay=clamp(this.shield.y-this.shield.r-120,CH*0.16,CH*0.5);
     }
     this._tutAnchor={ax,ay,S};
@@ -1384,20 +1992,27 @@ class Game{
         this._tutHand=makeImg('data:image/svg+xml,'+encodeURIComponent(svg));
       }
     }
+    if(!this._tutTriangle)this._tutTriangle=this._spr('tutorial_triangle')||makeImg(this.cfg.defaultTutorialTriangleSrc);
     if(!this.tutBlocks)this._tutInit();
     const S=this._tutAnchor.S;
     const p=((this.tutT||0)/1000)%1;                     // 1s loop (WrapMode 2)
     const ss=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
     // blocks (interactive)
     const T=this.tutorialObj;
-    const shape=(T&&T.blockShape)||this.cfg.tutorialObstacleShape||'square';
+    const shape=(T&&T.blockShape)||this.cfg.tutorialObstacleShape||'triangle';
     const blockColor=(T&&T.blockColor)||'#373843';
+    const triangleTint=this.cfg.tutorialObstacleTint||'#ffffff';
     for(const b of this.tutBlocks){
       if(b.a<=0)continue;
       ctx.save();ctx.globalAlpha*=b.a;
       ctx.translate(b.x,b.y);ctx.rotate(b.rot);
-      ctx.fillStyle=blockColor;
-      this._tutShape(ctx,0,0,b.s,shape);
+      if(shape==='triangle'&&imgOk(this._tutTriangle)){
+        const ds=b.s*1.16;
+        drawTintedImage(ctx,this._tutTriangle,-ds/2,-ds/2,ds,ds,triangleTint);
+      }else{
+        ctx.fillStyle=blockColor;
+        this._tutShape(ctx,0,0,b.s,shape);
+      }
       ctx.restore();
     }
     const smashed=this._tutSmashed;
@@ -1429,14 +2044,28 @@ class Game{
       }
     }
     // text
-    const fs=Math.max(6,((T&&parseFloat(T.textSize))||18)*(S/(Math.min(CW,CH)*0.14)));
+    const cfgTextSize=parseFloat(this.cfg.tutorialTextSize);
+    const baseTextSize=Number.isFinite(cfgTextSize)?clamp(cfgTextSize,8,96):((T&&parseFloat(T.textSize))||18);
+    const fs=Math.max(6,baseTextSize*(S/(Math.min(CW,CH)*0.14)));
     ctx.fillStyle=(T&&T.textColor)||'rgba(255,255,255,.92)';
     var _tf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[this.cfg.tutorialFont])?RiseFontCSS[this.cfg.tutorialFont]:(this.cfg.tutorialFont||'sans-serif');
     ctx.font='bold '+fs+'px '+_tf;ctx.textAlign='center';
-    const lines=String((T&&T.text!=null)?T.text:'Move the circle\nto break the block').split('\n');
-    let ty=this._tutU(0,2.9).y;
+    const _cfgTut=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:null;
+    const _tutCaption=(_cfgTut!=null)?_cfgTut:((T&&T.text!=null)?T.text:'protect your balloon!');
+    const lines=String(_tutCaption).split('\n');
+    // Caption follows the tutorial centre. Its vertical gap is configurable in
+    // rendered triangle heights, which makes the same value usable in portrait
+    // and landscape without relying on viewport height.
+    const tutorialTop=this._tutAnchor.ay-2.19*S;
+    const tutorialBlockHeight=0.5224*S*(shape==='triangle'?1.16:1);
+    const captionGapRaw=parseFloat(this.cfg.tutorialCaptionGap);
+    const captionGap=Number.isFinite(captionGapRaw)?clamp(captionGapRaw,-2,5):.5;
+    const lineH=fs*1.25;
+    const textDescent=fs*.22;
+    const lastBaseline=tutorialTop-tutorialBlockHeight*captionGap-textDescent;
+    let ty=lastBaseline-(lines.length-1)*lineH;
     const tx=this._tutAnchor.ax;
-    for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=fs*1.25;}
+    for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=lineH;}
   }
 
   _tutShape(ctx,x,y,s,shape){
@@ -1492,65 +2121,89 @@ class Game{
     for(let i=0;i<this.ctaButtons.length;i++)this._drawCustomCta(ctx,this.ctaButtons[i]);
   }
 
+  _loseCountdownValue(){
+    const ec=this.cfg.endCard||{};
+    const raw=parseFloat(ec.countdownFrom);
+    const from=clamp(Math.round(isFinite(raw)?raw:10),1,99);
+    const elapsed=this._loseCountdownStart?Math.max(0,Date.now()-this._loseCountdownStart):0;
+    return Math.max(1,from-Math.floor(elapsed/1000));
+  }
+
+  _loseEndCtaRect(){
+    const portrait=CW<CH;
+    const scale=hudCounterScale();
+    const portraitScale=portrait?.8:1;
+    const w=Math.min(CW*(portrait ? .72 : .42),300*scale)*portraitScale;
+    const h=Math.max(52,60*scale)*portraitScale;
+    const bottom=(portrait?48:24)*scale;
+    return{x:(CW-w)/2,y:CH-bottom-h,w,h};
+  }
+
+  _pointInLoseEndCta(x,y){
+    const r=this._loseEndCtaRect();
+    return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
+  }
+
   _drawEnd(ctx){
-    const ec=this.cfg.endCard||{}, W=CW, H=CH, orientation=W>H?'landscape':'portrait', state=this.isWin?'win':'lose';
-    const layout=ec.layouts&&ec.layouts[state]&&ec.layouts[state][orientation];
-    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?0:(a[1]==='r'?W:W/2),y:a[0]==='t'?0:(a[0]==='b'?H:H/2)};};
-    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*W/100,y:b.y+((o&&o.y)||0)*H/100};};
-    const contain=(im,cx,cy,bw,bh)=>{if(!imgOk(im))return;const sc=Math.min(bw/im.naturalWidth,bh/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;ctx.drawImage(im,cx-dw/2,cy-dh/2,dw,dh);};
-    const joined=(o)=>Array.isArray(o&&o.segments)?o.segments.map(s=>String(s&&s.t!=null?s.t:'')).join(''):'';
-    const richLines=(o,fallback)=>{
-      const text=typeof (o&&o.text)==='string'?o.text:fallback;
-      const base=(o&&o.baseColor)||(o&&o.color)||'#ffffff';
-      const segs=Array.isArray(o&&o.segments)&&joined(o)===text?o.segments:[{t:text,color:base}];
-      const lines=[[]];
-      segs.forEach(seg=>{const color=seg.color||base,parts=String(seg.t==null?'':seg.t).split('\n');parts.forEach((part,i)=>{if(i>0)lines.push([]);if(part!=='')lines[lines.length-1].push({t:part,color});});});
-      return lines;
-    };
-    const drawRich=(o,cx,cy,size,family,scale,fallback,boxW,boxH)=>{
-      const lines=richLines(o,fallback),lineH=size*1.16,totalH=Math.max(lineH,lines.length*lineH);
-      ctx.save();ctx.font='800 '+size+'px '+family;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineJoin='round';
-      let maxW=1;
-      const info=lines.map(runs=>{const lineText=runs.map(r=>r.t).join(''),m=ctx.measureText(lineText||' '),w=runs.reduce((sum,r)=>sum+ctx.measureText(r.t).width,0),asc=m.actualBoundingBoxAscent||size*.75,desc=m.actualBoundingBoxDescent||size*.2;maxW=Math.max(maxW,w);return{runs,w,asc,desc};});
-      const targetW=parseFloat(boxW)>0?parseFloat(boxW):maxW,targetH=parseFloat(boxH)>0?parseFloat(boxH):totalH,sx=targetW/maxW,sy=targetH/totalH;
-      ctx.translate(cx,cy);ctx.scale(sx,sy);
-      info.forEach((line,i)=>{const centerY=-totalH/2+lineH*(i+.5),baseline=centerY+(line.asc-line.desc)/2,start=-line.w/2;let x=start;
-        if(((o&&o.strokeW)||0)>0){ctx.lineWidth=((o&&o.strokeW)||0)*scale;ctx.strokeStyle=(o&&o.stroke)||'#000000';line.runs.forEach(r=>{ctx.strokeText(r.t,x,baseline);x+=ctx.measureText(r.t).width;});}
-        x=start;line.runs.forEach(r=>{ctx.fillStyle=r.color||((o&&o.baseColor)||(o&&o.color)||'#ffffff');ctx.fillText(r.t,x,baseline);x+=ctx.measureText(r.t).width;});
-      });
-      ctx.restore();
-    };
-    const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
-    const famOf=(o)=>{const fn=(o&&o.font)||ec.fontFamily;return (typeof RiseFontCSS!=='undefined'&&RiseFontCSS[fn])?RiseFontCSS[fn]:(fn||'sans-serif');};
-    ctx.save();ctx.globalAlpha=this.endA;
-    let bg=null,bgHidden=!!(layout&&layout.background&&layout.background.hidden);
-    const bgo=(layout&&layout.background)||{},bgFill=bgo.fillMode||'image';
-    if(!bgHidden&&(bgFill==='solid'||bgFill==='gradient')){
-      if(bgFill==='gradient'){const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bgo.colorA||'#69c5ec');gr.addColorStop(1,bgo.colorB||'#39a2d8');ctx.fillStyle=gr;}
-      else ctx.fillStyle=bgo.colorA||'#69c5ec';
-      ctx.fillRect(0,0,W,H);
+    // Win end card is intentionally disabled for this playable.
+    if(this.isWin)return;
+    const ec=this.cfg.endCard||{};
+    const a=this.endA;
+    const overlay=ec.overlay==null ? .68 : clamp(parseFloat(ec.overlay)||0,0,1);
+    const overlayColor=ec.overlayColor||'#000000';
+    const portrait=CW<CH;
+    const scale=hudCounterScale();
+    const cx=CW/2;
+    const cy=portrait?CH*.39:CH*.43;
+    const badgeSize=Math.min(portrait?CW*.64:CW*.28,portrait?CH*.30:CH*.56,303*scale);
+    const purple=this.cfg.heightAccentColor||'#a552ff';
+    const outline=this.cfg.heightOutlineColor||'#7d33ce';
+    const endLayout=ec.layouts&&ec.layouts.lose&&ec.layouts.lose[portrait?'portrait':'landscape'];
+    const imageTint=(endLayout&&endLayout.image&&endLayout.image.tint)||ec.imageTint||'#ffffff';
+    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, Arial, sans-serif';
+
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.fillStyle=rgba(overlayColor,overlay);
+    ctx.fillRect(0,0,CW,CH);
+
+    if(!this._endCountdownBadge)this._endCountdownBadge=this._spr('endcard_countdown_badge')||makeImg(this.cfg.defaultEndCardCountdownBadgeSrc);
+    const badge=this._endCountdownBadge;
+    if(imgOk(badge)){
+      drawTintedImage(ctx,badge,cx-badgeSize/2,cy-badgeSize/2,badgeSize,badgeSize,imageTint);
     }else{
-      if(layout&&layout.background&&!bgHidden)bg=this._spr('endcard_'+state+'_'+orientation+'_background');
-      if(!bgHidden&&imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle=this.isWin?'#111827':'#10252e';ctx.fillRect(0,0,W,H);}
+      const g=ctx.createRadialGradient(cx,cy-badgeSize*.10,badgeSize*.06,cx,cy,badgeSize*.5);
+      g.addColorStop(0,'rgba(255,255,255,.96)');g.addColorStop(.72,'rgba(245,245,245,.95)');g.addColorStop(1,'rgba(255,255,255,.98)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,badgeSize*.5,0,Math.PI*2);ctx.fill();
     }
-    {const _oc=ec.overlayColor||'#000000';ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+(ec.overlay==null?.55:ec.overlay)+')';ctx.fillRect(0,0,W,H);}
-    if(layout){
-      const io=layout.image||{},ip=point(io),art=this.isWin?this._spr('endcard_win'):this._spr('endcard_lose_logo');
-      const iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale==null?1:io.scale),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale==null?1:io.scale);
-      if(!io.hidden)contain(art,ip.x,ip.y,iw,ih);
-      const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts,tw=parseFloat(to.width)>0?to.width*ts:null,th=parseFloat(to.height)>0?to.height*ts:null;
-      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,famOf(to),ts,this.isWin?'YOU WIN!':'TRY AGAIN',tw,th);
-      if(ec.showCta!==false&&!(layout.cta&&layout.cta.hidden)){
-        const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs,bh=baseH*cs,bx=cp.x-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_'+state+'_'+orientation+'_cta_bg')||this._spr('endcard_lose_button');
-        const tint=co.bgTint||'#ffffff';if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,tint);else{ctx.fillStyle=tint;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}
-        const cfz=(co.fontSize==null?17:co.fontSize)*cs,ctaFallback=typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW';
-        drawRich(co,bx+bw/2,by+bh/2,cfz,famOf(co),cs,ctaFallback);
-      }
-    }else{
-      if(this.isWin){const card=this._spr('endcard_win');if(imgOk(card)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;contain(card,cx,cy,W*.88*sc,H*.38*sc);}else{ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU WIN!',W/2,H*.35);}}
-      else{const logo=this._spr('endcard_lose_logo');if(imgOk(logo)){const sc=(ec.scale==null?1:ec.scale),cx=W/2+(ec.x||0)*W/100,cy=H*.28+(ec.y||0)*H/100;contain(logo,cx,cy,W*.78*sc,H*.28*sc);}ctx.fillStyle='#fff';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('TRY AGAIN',W/2+(ec.x||0)*W/100,H*.47+(ec.y||0)*H/100);}
-      if(ec.showCta!==false){const bw=220,bh=54,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100,btn=this._spr('endcard_lose_button');if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,this.isWin?'#52e08a':'#59cbe8');else{ctx.fillStyle=this.isWin?'#52e08a':'#59cbe8';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}const fallback={text:typeof ec.ctaText==='string'?ec.ctaText:'PLAY NOW',baseColor:'#ffffff',fontSize:17};drawRich(fallback,bx+bw/2,by+bh/2,17,fam,1,'PLAY NOW');}
-    }
+
+    const elapsed=this._loseCountdownStart?Math.max(0,Date.now()-this._loseCountdownStart):0;
+    const phase=(elapsed%1000)/1000;
+    const pulse=1+Math.sin(Math.PI*phase)*.025;
+    const numberSize=badgeSize*.38*pulse;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.font='900 '+Math.round(numberSize)+'px '+family;
+    ctx.lineWidth=Math.max(3,numberSize*.075);
+    ctx.strokeStyle=outline;ctx.fillStyle='#ffffff';
+    const value=String(this._loseCountdownValue());
+    ctx.strokeText(value,cx,cy+badgeSize*.015);ctx.fillText(value,cx,cy+badgeSize*.015);
+
+    const r=this._loseEndCtaRect();
+    this._loseCtaRect=r;
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=16*scale;ctx.shadowOffsetY=7*scale;
+    ctx.fillStyle=purple;
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(r.x,r.y,r.w,r.h,r.h*.34);else ctx.rect(r.x,r.y,r.w,r.h);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=Math.max(2,2.5*scale);
+    ctx.beginPath();if(ctx.roundRect)ctx.roundRect(r.x,r.y,r.w,r.h,r.h*.34);else ctx.rect(r.x,r.y,r.w,r.h);ctx.stroke();
+    ctx.fillStyle='#ffffff';ctx.font='800 '+Math.round(Math.max(18,22*scale))+'px '+family;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    const ctaLayout=endLayout&&endLayout.cta;
+    const ctaLabel=(ctaLayout&&typeof ctaLayout.text==='string'&&ctaLayout.text.trim())?ctaLayout.text:(ec.ctaText||'TRY AGAIN');
+    ctx.fillText(String(ctaLabel).toUpperCase(),r.x+r.w/2,r.y+r.h/2+1*scale);
     ctx.restore();
   }
 
@@ -1584,31 +2237,34 @@ class Game{
       st.worldY*=ky;
       st.bgs.forEach(b=>b.relayout());
       for(const o of st.obs){
-        if(o.kin&&o.live){
+        const level3Locked=o.level3Role==='basket'&&st.level3&&!st.level3.touched;
+        if((o.kin||level3Locked)&&o.live){
           o.ix=obstacleLayoutX({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
           o.iy=obstacleLayoutY({coordMode:o.coordMode,x:o.layoutLocalX,y:o.layoutLocalY,w:o.w,h:o.h,anchor:o.anchor,anchorOffsetX:o.anchorOffsetX,anchorOffsetY:o.anchorOffsetY});
           o.x=o.ix;o.y=o.iy;
         }else{o.x*=kx;o.y*=ky;}
       }
+      if(st.refreshLevel1Groups)st.refreshLevel1Groups();
     }
     if(this.spawnTop!=null)this.spawnTop*=ky;
   }
 }
 
 const DEF={
-  lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,
-  chainReaction:false,scatterBounciness:0.08,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'square',
-  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
-  shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
+  lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
+  chainReaction:false,scatterBounciness:0.1,
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:18,tutorialX:50,tutorialY:55,tutorialCaptionGap:0.5,
+  heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
+  playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,
+  shieldColor:'#4fc3f7',shieldSize:1,shieldSpriteColor:"#00eeff",
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',
-  playerDeathFrames:8,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
-  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:'#ffffff',
-  backgroundMode:'perStage',stageBgGradients:null,seamScale:.5,seamOverlayMode:'perStage',seamMulti:true,seamTint:'#ffffff',stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
-  stageColors:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'],stageAccents:true,showGrid:false,stageCount:5,orientation:'portrait',
+  playerDeathFrames:4,playerDeathDuration:900,playerDeathAnimDuration:720,playerDeathFadeStart:650,
+  bgColor:'#1a1a2e',groundColor:'#2a2a40',particleColor:'#f5e642',backgroundSpriteColor:"#ffffff",
+  backgroundMode:"common",stageBgGradients:null,seamScale:0.5,seamOverlayMode:"perStage",seamMulti:true,seamTint:"#ffffff",stageSeamTints:null,bgStageTint:'#ffffff',stageBgTints:null,
+  stageColors:["#e05252", "#52a0e0", "#52e08a", "#e07d52", "#c052e0"],stageAccents:false,showGrid:false,stageCount:4,orientation:"landscape",
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{enabled:true,scale:1,x:0,y:0,overlay:.55,showCta:true,ctaText:'PLAY NOW',ctaY:74},
+  endCard:{"enabled": true, "tryAgainEnabled": true, "tryAgainDelay": 0, "countdownFrom": 10, "tryAgainDuration": 0, "scale": 1, "x": 0, "y": -13, "overlay": 0.68, "overlayColor": "#000000", "showCta": true, "ctaText": "TRY AGAIN", "fontFamily": "Baloo2", "ctaY": "74"},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};

@@ -29,23 +29,37 @@ function readConfig(){
   }
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
-    deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
-    obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),hpBarShowTime:g('cfg-hpBarShowTime')*1000,
+    heightIndicatorEnabled:(function(){var e=document.getElementById('cfg-heightIndicatorEnabled');return e?e.checked:true;})(),
+    heightStart:(function(){var v=g('cfg-heightStart');return isNaN(v)?66:v;})(),
+    heightFeetPerStage:(function(){var v=g('cfg-heightFeetPerStage');return isNaN(v)?100:Math.max(0,v);})(),
+    deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?2500:Math.max(0,v*1000);})(),
+    obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
+    // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
+    level1CenterSpeed:(function(){var v=g('cfg-level1CenterSpeed');return isNaN(v)?33:Math.max(0,v);})(),
+    level3BasketPower:(function(){var v=g('cfg-level3BasketPower');return isNaN(v)?0.6:Math.max(.2,v);})(),
+    level3BallGravity:(function(){var v=g('cfg-level3BallGravity');return isNaN(v)?0.34:Math.max(0,v);})(),
+    hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     chainReaction:false,
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
+    tutorialText:(function(){var e=document.getElementById('cfg-tutorialText');return (e&&e.value!=null)?e.value:'protect your balloon!';})(),
+    tutorialTextSize:(function(){var v=g('cfg-tutorialTextSize');return isNaN(v)?18:Math.max(8,Math.min(96,v));})(),
+    tutorialX:(function(){var v=g('cfg-tutorialX');return isNaN(v)?50:Math.max(0,Math.min(100,v));})(),
+    tutorialY:(function(){var v=g('cfg-tutorialY');return isNaN(v)?55:Math.max(0,Math.min(100,v));})(),
+    tutorialCaptionGap:(function(){var v=g('cfg-tutorialCaptionGap');return isNaN(v)?0.5:Math.max(-2,Math.min(5,v));})(),
     tutorialEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
     tutorialFont:(function(){var e=document.getElementById('cfg-tutorialFont');return (e&&e.value)||'Baloo2';})(),
     tutorialAnimEnabled:(function(){var e=document.getElementById('cfg-tutorialEnabled');return e?e.checked:true;})(),
     tutorialFailEnabled:(function(){var e=document.getElementById('cfg-tutorialFailEnabled');return e?e.checked:true;})(),
     tutorialObstacleShape:(function(){var e=document.getElementById('cfg-tutorialObstacleShape');return (e&&e.value)||'square';})(),
-    playerSize:g('cfg-playerSize'),balloonCount:(function(){var v=g('cfg-balloonCount');return isNaN(v)?1:Math.max(1,Math.round(v));})(),balloonSpacing:(function(){var v=g('cfg-balloonSpacing');return isNaN(v)?30:Math.max(0,v);})(),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
+    tutorialObstacleTint:(function(){var e=document.getElementById('cfg-tutorialObstacleTint');return (e&&e.value)||'#ffffff';})(),
+    playerSize:g('cfg-playerSize'),balloonCount:(function(){var v=g('cfg-balloonCount');return isNaN(v)?1:Math.max(1,Math.round(v));})(),balloonSpacing:(function(){var v=g('cfg-balloonSpacing');return isNaN(v)?30:Math.max(0,v);})(),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerDeathFrames:4,playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     backgroundSpriteColor:g('cfg-bgSpriteColor'),
     stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     showGrid:false,
-    orientation:g('cfg-orientation')||'portrait',
+    orientation:g('cfg-orientation')||'landscape',
     backgroundMode:(function(){var e=document.getElementById('cfg-backgroundMode');return (e&&e.value)||'perStage';})(),
     stageBgGradients:(function(){var a=[],i=0;for(;;){var x=document.getElementById('cfg-bgg'+i+'a'),y=document.getElementById('cfg-bgg'+i+'b');if(!x||!y)break;a.push([x.value,y.value]);i++;}return a.length?a:null;})(),
     seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?0.5:Math.max(0.3,v);})(),
@@ -71,7 +85,8 @@ function readConfig(){
     endCard:{
       enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
       tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),
-      tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?1200:v*1000;})(),
+      tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?0:v*1000;})(),
+      countdownFrom:(function(){var v=g('cfg-endCardCountdown');return isNaN(v)?10:Math.max(1,Math.round(v));})(),
       tryAgainDuration:(function(){var v=g('cfg-tryAgainDuration');return isNaN(v)?0:Math.max(0,v*1000);})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
@@ -79,7 +94,7 @@ function readConfig(){
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
       overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),
-      ctaText:(function(){var e=document.getElementById('cfg-endCardCtaText');return (e&&e.value)||'PLAY NOW';})(),
+      ctaText:(function(){var layouts=(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null;var or=(g('cfg-orientation')==='portrait'?'portrait':'landscape');var group=layouts&&layouts.lose;var layout=group&&(group[or]||group.landscape||group.portrait);var value=layout&&layout.cta&&layout.cta.text;return (typeof value==='string'&&value.trim())?value:'TRY AGAIN';})(),
       fontFamily:(function(){var e=document.getElementById('cfg-endCardFont')||document.getElementById('tx-font');return (e&&e.value)||'Baloo2';})(),
       ctaY:(function(){var v=g('cfg-endCardCtaY');return isNaN(v)?74:v;})(),
       layouts:(window.RiseEndCardEditor&&window.RiseEndCardEditor.getData)?window.RiseEndCardEditor.getData():null
@@ -98,7 +113,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/tutorial_hand.svg','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
+  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/height_arrow.png','textures/endcard_countdown_badge.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
   'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
@@ -124,6 +139,9 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   if(assetMap['textures/balloon_death.png'])cfg.defaultPlayerDeathSrc=assetMap['textures/balloon_death.png'];
   if(assetMap['textures/controller.png'])cfg.defaultShieldSrc=assetMap['textures/controller.png'];
   if(assetMap['textures/tutorial_hand.svg'])cfg.defaultTutorialHandSrc=assetMap['textures/tutorial_hand.svg'];
+  if(assetMap['textures/tutorial_triangle.png'])cfg.defaultTutorialTriangleSrc=assetMap['textures/tutorial_triangle.png'];
+  if(assetMap['textures/height_arrow.png'])cfg.defaultHeightArrowSrc=assetMap['textures/height_arrow.png'];
+  if(assetMap['textures/endcard_countdown_badge.png'])cfg.defaultEndCardCountdownBadgeSrc=assetMap['textures/endcard_countdown_badge.png'];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);
@@ -212,8 +230,8 @@ var cfg=${JSON.stringify(cfg)};
     var go=function(){
       onOrient();
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');else window.open('https://example.com','_blank');}catch(e){}},
-        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://example.com');}catch(e){}},
+        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
+        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
         onLose:function(){},onStageChange:function(){}
       });
       window.RiseGame=game;

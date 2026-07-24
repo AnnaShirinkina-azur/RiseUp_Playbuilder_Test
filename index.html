@@ -208,6 +208,16 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 .color-eyedropper:hover{border-color:var(--accent);background:var(--surf3)}
 .color-eyedropper:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .color-eyedropper:disabled{opacity:.38;cursor:not-allowed}
+/* Selected obstacle tint popover */
+.obstacle-tint-popover{position:fixed;z-index:1200;display:none;min-width:238px;padding:10px 11px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:rgba(24,24,35,.97);box-shadow:0 14px 40px rgba(0,0,0,.52);backdrop-filter:blur(10px);color:var(--txt);text-align:left}
+.obstacle-tint-popover.on{display:block}
+.obstacle-tint-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:12px;font-weight:800}
+.obstacle-tint-head small{font-size:10px;font-weight:600;color:var(--dim)}
+.obstacle-tint-controls{display:grid;grid-template-columns:46px minmax(112px,1fr);align-items:center;gap:8px}
+.obstacle-tint-controls input[type=color]{width:46px;height:34px;padding:2px;cursor:pointer}
+.obstacle-tint-controls .hex-color{width:100%;height:34px;box-sizing:border-box}
+.obstacle-tint-mixed{display:none;margin-top:6px;color:var(--dim);font-size:10px}
+.obstacle-tint-popover.mixed .obstacle-tint-mixed{display:block}
 
 </style>
 </head>
@@ -246,9 +256,13 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
-      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="1" min="1" max="20" step="1"></div>
+      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
+      <div class="sec">Height indicator</div>
+      <div class="row"><label>Show height<small>Динамический показатель высоты справа сверху</small></label><input type="checkbox" id="cfg-heightIndicatorEnabled" checked></div>
+      <div class="row"><label>Start height (ft)<small>Начальное значение</small></label><input type="number" id="cfg-heightStart" value="66" min="0" max="99999" step="1"></div>
+      <div class="row"><label>Feet per level<small>Рост значения за высоту одного обычного уровня</small></label><input type="number" id="cfg-heightFeetPerStage" value="100" min="0" max="10000" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -257,7 +271,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
-      <div class="row"><label>Death pause (s)<small>Пауза после смерти до рестарта (анимация разбивания)</small></label><input type="number" id="cfg-deathPause" value="1.5" min="0" max="6" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
@@ -266,6 +279,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
+      <div class="row wide"><label>Level 1 side squeeze speed<small>px/s; left and right formations move as rigid groups after reaching the player</small></label>
+        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="18" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">18</span></div></div>
+      <div class="row wide"><label>Level 3 basket power<small>How strongly the protector drives and flicks the basket</small></label>
+        <div class="rr"><input type="range" id="cfg-level3BasketPower" value="0.6" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">0.6</span></div></div>
+      <div class="row wide"><label>Level 3 ball gravity<small>Gravity inside the basket; higher values make the balls settle faster</small></label>
+        <div class="rr"><input type="range" id="cfg-level3BallGravity" value="0.34" min="0" max="1.2" step="0.02" oninput="sv('cfg-level3BallGravity-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BallGravity-v">0.34</span></div></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
         <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
     </div>
@@ -273,11 +292,17 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div class="pnl" id="panel-timing" data-title="Tutorial">
       <div class="sec">Tutorial</div>
       <div class="row"><label>Enable tutorial<small>Обучение на старте: рука + пирамида + надпись (объект Tutorial в Level Editor). Выкл — игра стартует сразу, без задержки</small></label><input type="checkbox" id="cfg-tutorialEnabled" checked></div>
-      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
+      <div class="row"><label>Tutorial text<small>Надпись в туториале. Перенос строки — Enter</small></label><textarea id="cfg-tutorialText" rows="2" placeholder="protect your balloon!" style="width:180px;min-height:44px;resize:vertical;line-height:1.25">PROTECT YOUR BALLOON!</textarea></div>
+      <div class="row"><label>Text size (px)<small>Базовый размер текста туториала. Масштабируется вместе с композицией</small></label><input type="number" id="cfg-tutorialTextSize" value="18" min="8" max="96" step="1"></div>
+      <div class="row"><label>Tutorial X (%)<small>Положение центра тутора по горизонтали: 0 — слева, 50 — центр, 100 — справа</small></label><input type="number" id="cfg-tutorialX" value="50" min="0" max="100" step="1"></div>
+      <div class="row"><label>Tutorial Y (%)<small>Положение центра тутора по вертикали: 0 — сверху, 50 — центр, 100 — снизу</small></label><input type="number" id="cfg-tutorialY" value="55" min="0" max="100" step="1"></div>
+      <div class="row"><label>Text gap (triangle h)<small>Расстояние от нижней границы надписи до верхней границы треугольников, в высотах треугольника</small></label><input type="number" id="cfg-tutorialCaptionGap" value="0.5" min="-2" max="5" step="0.1"></div>
+      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2.0" min="0.5" max="8" step="0.1"></div>
       <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
-      <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled" checked></div>
-      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
-      <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+      <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled"></div>
+      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle" selected>Triangle</option></select></div>
+      <div class="row"><label>Triangle tint<small>Цвет изображения треугольников в туториале</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-tutorialObstacleTint" value="#c800ff"></div>
+      <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
       <div class="sec">Hand sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-tutorial_hand"><img src="Assets/textures/tutorial_hand.svg" alt="tutorial hand"></div>
@@ -289,10 +314,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
-      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
-      <div class="row"><label>Show Try Again<small>Показывать экран после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
-      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="1.2" min="0" max="30" step="0.1"></div>
-      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0" min="0" max="60" step="0.1"></div>
+      <div class="row"><label>Enable lose end card<small>Показывать только lose-эндкарту после последней смерти</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="row"><label>Show countdown<small>Показывать обратный отсчёт и CTA после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
+      <div class="row"><label>Countdown from<small>Начальное число обратного отсчёта</small></label><input type="number" id="cfg-endCardCountdown" value="10" min="1" max="99" step="1"></div>
+      <div class="row"><label>Death animation pause (s)<small>Пауза после смерти для анимации разбития сердца перед рестартом или lose-эндкартой</small></label><input type="number" id="cfg-deathPause" value="2.5" min="0" max="10" step="0.1"></div>
+      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="0.0" min="0" max="30" step="0.1"></div>
+      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0.0" min="0" max="60" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
@@ -309,8 +336,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
-      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#00eeff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#84ebfc"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">
@@ -322,7 +349,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#00eeff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
@@ -343,11 +370,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
-      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn" data-or="portrait">Portrait</button><button class="orbtn on" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="landscape"></div>
       <div class="sec">Background mode</div>
       <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
-        <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
+        <input type="hidden" id="cfg-backgroundMode" value="common"></div>
       <div id="bg-perstage-box">
         <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык/край мини-уровня (например, облака). Рисуется поверх всех слоёв. Можно использовать одну общую картинку или отдельную картинку для каждого уровня: Start, Mini и Finish.</small></label></div>
         <div class="row wide seam-mode-row"><label>Mode<small>Per level: у каждого мини-уровня свой PNG-оверлей. Single image: один общий PNG для всех стыков.</small></label>
@@ -379,7 +406,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
       <div class="sec">Stage debug colors</div>
-      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
+      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents"></div>
       <div class="cgrid">
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
@@ -392,8 +419,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-text-fonts" data-title="Text / fonts">
       <div class="sec">Google Fonts</div>
-      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
-      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;" value=""></div>
+      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;" value=""></div>
       <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
       <div class="sec">Local font</div>
       <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
@@ -488,7 +515,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div id="rp-levels" class="ed-pane">
       <div class="level-toolbar">
-        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="1" min="1" max="20" step="1"></div>
+        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="4" min="1" max="20" step="1"></div>
         <button class="et" id="le-generate">Generate level strip</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
@@ -499,6 +526,14 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="orbar" id="orientation-editor" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="editor-phone"><div class="ec-wrap" id="ec-wrap"><canvas id="ec"></canvas></div></div></div>
+      <div class="obstacle-tint-popover" id="obstacle-tint-popover" role="dialog" aria-label="Obstacle tint">
+        <div class="obstacle-tint-head"><span>Obstacle tint</span><small>Selected object</small></div>
+        <div class="obstacle-tint-controls">
+          <input type="color" id="ob-tint-picker" value="#ffffff" data-no-eyedropper="1" title="Choose tint from palette">
+          <input type="text" class="hex-color" inputmode="text" spellcheck="false" maxlength="7" id="ob-tint-hex" value="#FFFFFF" aria-label="Obstacle tint HEX" placeholder="#FFFFFF">
+        </div>
+        <div class="obstacle-tint-mixed">Multiple colors selected. A new value will tint all selected obstacles.</div>
+      </div>
       <div class="etbar">
         <div class="etgroup">
           <span class="etg-label">Препятствия</span>
@@ -523,6 +558,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <span class="etg-label">Изменения</span>
           <button class="et" id="et-sel">✥ Drag</button>
           <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
+          <button class="et" id="et-rotate" title="Выбери obstacle или template и тяни вокруг центра выделения">↻ Rotate</button>
           <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
           <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
           <button class="et" id="et-del">🗑 Del</button>
@@ -535,6 +571,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep">Scale Y<input type="number" id="osy" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Color<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
           <div class="ep">Move±<input type="number" id="om" value="0" min="0" max="180"></div>
+          <div class="ep">Rotate°<input type="number" id="orot" value="0" min="-3600" max="3600" step="1" title="Поворот obstacle; для Whole-template вращает всю группу вокруг общего центра"></div>
+          <label class="ep" title="Включено: obstacle сталкивается с shield и balloon. Выключено: только декоративный объект без коллизий.">Interactable<input type="checkbox" id="ointeractable" checked></label>
           <div class="ep">Anchor
             <div class="anchor-grid" id="ob-anchor">
               <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -654,7 +692,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="tutbar" style="display:none">
         <div class="lp">Tutorial</div>
-        <div class="lp">Text <textarea id="tut-text" rows="2" style="width:180px;min-height:44px;resize:vertical;line-height:1.25"></textarea></div>
+        <div class="lp" style="opacity:.7">Text → вкладка «Tutorial» в настройках</div>
         <div class="lp">Text size <input type="number" id="tut-tsize" value="18" min="8" max="72" step="1"></div>
         <div class="lp">Text color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
         <div class="esep"></div>
@@ -678,14 +716,14 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div id="rp-endcard" class="ed-pane end-pane">
       <div class="level-toolbar">
         <div class="mini">State</div>
-        <button class="et on" id="end-state-win" type="button">Win</button>
-        <button class="et" id="end-state-lose" type="button">Lose</button>
+        <button class="et" id="end-state-win" type="button" style="display:none">Win</button>
+        <button class="et on" id="end-state-lose" type="button">Lose countdown</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
         <div class="esep"></div>
         <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
         <div class="esep"></div>
-        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
+        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
       </div>
       <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
@@ -712,7 +750,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-text-width-wrap" style="display:none">Width<input type="number" id="cfg-endCardTextWidth" value="180" min="1" max="2000" step="1"></div>
           <div class="ep" id="end-text-height-wrap" style="display:none">Height<input type="number" id="cfg-endCardTextHeight" value="40" min="1" max="1000" step="1"></div>
           <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="-13" min="-200" max="200" step="1"></div>
           <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
             <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
@@ -721,9 +759,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="etgroup">
           <span class="etg-label">Content</span>
-          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
+          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardObjectText" value="TRY AGAIN" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
           <div class="ep" id="end-obj-font-wrap">Font<select id="cfg-endCardObjFont" class="font-select"><option value="">General</option><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+          <div class="ep" id="end-image-tint-wrap" style="display:none">Image tint<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-endCardImageTint" value="#ffffff" title="Tints only the selected center image"></div>
           <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
           <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
           <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
@@ -733,8 +772,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
           <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
           <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.55" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
-          <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
+          <div class="ep" id="end-overlay-wrap">Overlay<input type="range" id="cfg-endCardOverlay" value="0.68" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">68%</span></div>
+          <div class="ep" id="end-overlay-color-wrap">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
           <input type="hidden" id="cfg-endCardCtaY" value="74">
         </div>
       </div>
@@ -800,7 +839,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
   }
 
   function enhance(input) {
-    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1') return;
+    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1' || input.dataset.noEyedropper === '1') return;
     input.dataset.eyedropperReady = '1';
 
     const wrap = document.createElement('span');
@@ -841,9 +880,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=64-endcard-object-controls"></script>
-<script src="src/builder.js?v=43-endcard-object-controls"></script>
-<script src="script2.js?v=endcard-cta-sprite-2"></script>
+<script src="src/playable-template.js?v=89-tutorial-text-size"></script>
+<script src="src/builder.js?v=57-tutorial-text-size"></script>
+<script src="script2.js?v=tutorial-text-size"></script>
 
 </body>
 </html>
