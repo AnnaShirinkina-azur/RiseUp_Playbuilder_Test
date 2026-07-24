@@ -758,6 +758,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="TRY AGAIN" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
           <div class="ep" id="end-obj-font-wrap">Font<select id="cfg-endCardObjFont" class="font-select"><option value="">General</option><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+          <div class="ep" id="end-image-tint-wrap" style="display:none">Image tint<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-endCardImageTint" value="#ffffff" title="Tints only the selected center image"></div>
           <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
           <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
           <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
@@ -767,8 +768,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
           <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
           <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.68" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
-          <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
+          <div class="ep" id="end-overlay-wrap">Overlay<input type="range" id="cfg-endCardOverlay" value="0.68" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">68%</span></div>
+          <div class="ep" id="end-overlay-color-wrap">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
           <input type="hidden" id="cfg-endCardCtaY" value="74">
         </div>
       </div>
@@ -875,9 +876,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=73-lose-countdown"></script>
+<script src="src/playable-template.js?v=74-end-image-tint"></script>
 <script src="src/builder.js?v=50-lose-countdown"></script>
-<script src="script2.js?v=lose-countdown"></script>
+<script src="script2.js?v=end-image-tint"></script>
 
 </body>
 </html>

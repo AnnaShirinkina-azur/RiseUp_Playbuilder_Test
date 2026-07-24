@@ -2040,6 +2040,8 @@ class Game{
     const badgeSize=Math.min(portrait?CW*.64:CW*.28,portrait?CH*.30:CH*.56,303*scale);
     const purple=this.cfg.heightAccentColor||'#a552ff';
     const outline=this.cfg.heightOutlineColor||'#7d33ce';
+    const endLayout=ec.layouts&&ec.layouts.lose&&ec.layouts.lose[portrait?'portrait':'landscape'];
+    const imageTint=(endLayout&&endLayout.image&&endLayout.image.tint)||ec.imageTint||'#ffffff';
     const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, Arial, sans-serif';
 
     ctx.save();
@@ -2050,7 +2052,7 @@ class Game{
     if(!this._endCountdownBadge)this._endCountdownBadge=this._spr('endcard_countdown_badge')||makeImg(this.cfg.defaultEndCardCountdownBadgeSrc);
     const badge=this._endCountdownBadge;
     if(imgOk(badge)){
-      ctx.drawImage(badge,cx-badgeSize/2,cy-badgeSize/2,badgeSize,badgeSize);
+      drawTintedImage(ctx,badge,cx-badgeSize/2,cy-badgeSize/2,badgeSize,badgeSize,imageTint);
     }else{
       const g=ctx.createRadialGradient(cx,cy-badgeSize*.10,badgeSize*.06,cx,cy,badgeSize*.5);
       g.addColorStop(0,'rgba(255,255,255,.96)');g.addColorStop(.72,'rgba(245,245,245,.95)');g.addColorStop(1,'rgba(255,255,255,.98)');
