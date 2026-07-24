@@ -117,7 +117,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .end-pane{display:none;flex-direction:column;min-height:0;overflow:hidden;}
 .end-pane.on{display:flex;}
 #end-canvas{display:block;background:#080810;}
-.ec-wrap{flex:1;position:relative;outline:none;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
+.ec-wrap{flex:1;position:relative;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
 .ec-wrap canvas{display:block;margin:0 auto;}
 .level-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-wrap:wrap;}
 .level-toolbar .mini{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px;font-weight:600;}
@@ -145,19 +145,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .et{padding:4px 9px;border-radius:var(--r2);background:var(--surf2);border:1px solid var(--brd);color:var(--dim);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
 .et.on{background:var(--acc);color:#fff;border-color:var(--acc);}
 .et:hover:not(.on){border-color:var(--acc);color:var(--acc);}
-.et.deleted{text-decoration:line-through;opacity:.55;}
-.et.danger{border-color:rgba(224,82,82,.35);color:var(--red);}
-.et.danger:hover{border-color:var(--red);color:#fff;background:rgba(224,82,82,.18);}
 .esep{width:1px;height:18px;background:var(--brd);margin:0 1px;}
 .etgroup{display:flex;align-items:center;gap:5px;padding:4px 8px 4px 6px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.02);}
 .etg-label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-right:2px;white-space:nowrap;}
 .ep{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);}
 .ep input[type=number]{width:50px;font-size:12px;padding:3px 5px;}
 .ep .hex-color{width:86px;height:24px;}
-/* ── Fonts (for label previews in the editor) ── */
-@font-face{font-family:'Baloo2';font-weight:700;src:url('Assets/fonts/Baloo2-Bold.ttf')}
-@font-face{font-family:'Kameron';font-weight:600;src:url('Assets/fonts/Kameron-SemiBold.ttf')}
-@font-face{font-family:'LiberationSans';src:url('Assets/fonts/LiberationSans.ttf')}
+/* ── Fonts: exported playable uses system fonts unless a custom font is imported ── */
 /* ── Labels editor ── */
 .lblbar{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;background:var(--surf);}
 .lblbar .lp{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);font-weight:600;}
@@ -182,33 +176,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .bg-gradient-preview{width:44px;height:28px;border:1px solid var(--brd);border-radius:8px;background:linear-gradient(180deg,#69c5ec,#39a2d8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
 .bg-hex-wrap{display:flex;align-items:center;gap:4px;}
 .bg-color-preview{width:20px;height:26px;border:1px solid var(--brd);border-radius:7px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);flex:0 0 auto;}
-.hex-auto-chip{display:inline-block;vertical-align:middle;width:18px;height:22px;margin-right:5px;}
 .bg-stage-row .hex-color{width:82px;height:26px;}
 .seam-mode-row{align-items:center;}
 .seam-mode-row label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);}
 .seam-list{display:flex;flex-direction:column;gap:5px;margin:4px 0 8px 0;}
-.seam-row{padding:6px 0;border-bottom:1px solid var(--brd);}
-.seam-row:last-child{border-bottom:0;}
-.seam-color-control{display:flex;align-items:center;gap:7px;margin-left:auto;}
-.seam-color-control span{font-size:12px;color:var(--dim);}
-.seam-color-picker{width:42px!important;height:32px!important;padding:2px!important;border:1px solid var(--brd)!important;border-radius:8px!important;background:var(--surf2)!important;cursor:pointer;}
+.seam-row{padding:3px 0;}
 .seam-row .sp-up{display:flex;align-items:center;gap:8px;min-width:0;}
 .seam-label{font-size:12px;color:var(--dim);min-width:92px;}
 .lbl-empty{color:var(--dim);font-size:12px;padding:4px 2px;}
-
-/* stronger editing feedback */
-.editor-phone.edit-active{border-color:#52e08a;box-shadow:0 0 0 2px rgba(82,224,138,.28),0 18px 40px rgba(0,0,0,.5)}
-#end-canvas{cursor:move}
-input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;background:var(--surf2);border:1px solid var(--brd)}
-
-/* Color eyedropper controls */
-.color-picker-wrap{display:inline-flex;align-items:center;gap:5px;max-width:100%;vertical-align:middle}
-.color-picker-wrap>input{min-width:0}
-.color-eyedropper{width:30px;height:30px;min-width:30px;padding:0;border:1px solid var(--line);border-radius:7px;background:var(--surf2);color:var(--txt);font-size:16px;line-height:1;cursor:pointer;display:inline-grid;place-items:center}
-.color-eyedropper:hover{border-color:var(--accent);background:var(--surf3)}
-.color-eyedropper:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.color-eyedropper:disabled{opacity:.38;cursor:not-allowed}
-
 </style>
 </head>
 <body>
@@ -225,7 +200,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <button class="tab on" data-panel="player">Player</button>
         <button class="tab" data-panel="speed">Speed</button>
         <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
-        <button class="tab" data-panel="timing">Tutorial</button>
+        <button class="tab" data-panel="timing">Timing</button>
         <button class="tab" data-panel="endcard-gameplay">End Card</button>
       </div>
       <button class="acc-head on" data-acc="visuals">Visual changes</button>
@@ -246,9 +221,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
-      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
+      <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -257,7 +232,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
-      <div class="row"><label>Death pause (s)<small>Пауза после смерти до рестарта (анимация разбивания)</small></label><input type="number" id="cfg-deathPause" value="1.5" min="0" max="6" step="0.1"></div>
+      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="1" min="1" max="20" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
@@ -266,71 +241,51 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
-      <div class="row wide"><label>Level 1 side squeeze speed<small>px/s; left and right formations move as rigid groups after reaching the player</small></label>
-        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="33" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">33</span></div></div>
-      <div class="row wide"><label>Level 3 basket power<small>How strongly the protector drives and flicks the basket</small></label>
-        <div class="rr"><input type="range" id="cfg-level3BasketPower" value="0.6" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">0.6</span></div></div>
-      <div class="row wide"><label>Level 3 ball gravity<small>Gravity inside the basket; higher values make the balls settle faster</small></label>
-        <div class="rr"><input type="range" id="cfg-level3BallGravity" value="0.34" min="0" max="1.2" step="0.02" oninput="sv('cfg-level3BallGravity-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BallGravity-v">0.34</span></div></div>
+      <div class="row"><label>Chain reaction<small>Разлетающиеся куски сбивают соседние</small></label><input type="checkbox" id="cfg-chainReaction"></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
         <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
     </div>
 
-    <div class="pnl" id="panel-timing" data-title="Tutorial">
-      <div class="sec">Tutorial</div>
-      <div class="row"><label>Enable tutorial<small>Обучение на старте: рука + пирамида + надпись (объект Tutorial в Level Editor). Выкл — игра стартует сразу, без задержки</small></label><input type="checkbox" id="cfg-tutorialEnabled" checked></div>
-      <div class="row"><label>Tutorial text<small>Надпись в туториале. Перенос строки — Enter</small></label><textarea id="cfg-tutorialText" rows="2" placeholder="protect your balloon!" style="width:180px;min-height:44px;resize:vertical;line-height:1.25">Protect your Balloon!</textarea></div>
-      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2.0" min="0.5" max="8" step="0.1"></div>
-      <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
-      <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled"></div>
-      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle" selected>Triangle</option></select></div>
-      <div class="row"><label>Triangle tint<small>Цвет изображения треугольников в туториале</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-tutorialObstacleTint" value="#ffffff"></div>
-      <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
-      <div class="sec">Hand sprite</div>
-      <div class="sp-row"><div class="sp-up">
-        <div class="thumb" id="th-tutorial_hand"><img src="Assets/textures/tutorial_hand.svg" alt="tutorial hand"></div>
-        <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*,.svg" style="display:none" onchange="loadSpr('tutorial_hand',this)"></label>
-        <button class="x-btn" onclick="clearSpr('tutorial_hand')" title="Сбросить спрайт руки">✕</button>
-      </div></div>
-      <div class="row wide"><label><small>Кончик пальца в спрайте должен находиться примерно в верхней центральной части изображения.</small></label></div>
+    <div class="pnl" id="panel-timing" data-title="Timing">
+      <div class="sec">Timing</div>
+      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
+      <div class="row"><label>Tutorial (s)<small>Seconds</small></label><input type="number" id="cfg-tutorialTime" value="3.5" min="0.5" max="10" step="0.1"></div>
+      <div class="sec">Tutorial animation</div>
+      <div class="row"><label>Enable animation<small>Рука + пирамида + надпись. Позиция и вид настраиваются объектом Tutorial в Level Editor</small></label><input type="checkbox" id="cfg-tutorialAnimEnabled" checked></div>
+      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
     </div>
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
-      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
-      <div class="row"><label>Show Try Again<small>Показывать экран после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
-      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="1.2" min="0" max="30" step="0.1"></div>
-      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0.0" min="0" max="60" step="0.1"></div>
+      <div class="row"><label>Enable End Card<small>Показывать win / lose end card после результата</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="sec">CTA</div>
+      <div class="row"><label>Show CTA<small>Показывать кнопку на end card</small></label><input type="checkbox" id="cfg-endCardCtaLeft" checked></div>
+      <div class="row"><label>CTA text<small>Текст кнопки</small></label><input type="text" id="cfg-endCardCtaTextLeft" value="PLAY NOW"></div>
+      <div class="row"><label>CTA Y%<small>Позиция кнопки на экране</small></label><input type="number" id="cfg-endCardCtaYLeft" value="74" min="0" max="100" step="1"></div>
+      <div class="row wide"><label>Store URL<small>Ссылка, куда ведёт клик по CTA / end card</small></label><input type="url" id="cfg-storeUrl" placeholder="https://apps.apple.com/... or https://play.google.com/..." style="width:100%"></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
       <div class="sec">Main ball</div>
-      <div class="row wide"><label>Кол-во шаров / Balloon count<small>Расставляются пирамидой (1 сверху, шире книзу)</small></label>
-        <div class="rr"><input type="range" id="cfg-balloonCount" value="1" min="1" max="10" step="1" oninput="sv('cfg-balloonCount-v',this.value)"><span id="cfg-balloonCount-v">1</span></div></div>
-      <div class="row wide"><label>Расстояние между шарами / Ball spacing<small>Зазор между шарами, px</small></label>
-        <div class="rr"><input type="range" id="cfg-balloonSpacing" value="30" min="0" max="120" step="1" oninput="sv('cfg-balloonSpacing-v',this.value+' px')"><span id="cfg-balloonSpacing-v">30 px</span></div></div>
-      <div class="row wide"><label>Размер шара / Ball size<small>Scale ×</small></label>
-        <div class="rr"><input type="range" id="cfg-ballSizeUI" value="2" min="0.5" max="4" step="0.1" oninput="ballSizeFromUI(this.value)"><span id="cfg-ballSizeUI-v">2.0</span></div></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-player"><img src="Assets/textures/balloon.png" alt="balloon"></div>
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
-      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-playerSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-playerRopeColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">
       <div class="sec">Shield (защитник)</div>
-      <div class="row"><label>Shield size<small>Scale ×</small></label><input type="number" id="cfg-shieldSize" value="1" min="0.5" max="2" step="0.1"></div>
       <div class="sec">Custom sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-shield"><img src="Assets/textures/controller.png" alt="controller"></div>
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
@@ -351,11 +306,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
-      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="landscape"></div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
       <div class="sec">Background mode</div>
       <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
-        <input type="hidden" id="cfg-backgroundMode" value="common"></div>
+        <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
       <div id="bg-perstage-box">
         <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык/край мини-уровня (например, облака). Рисуется поверх всех слоёв. Можно использовать одну общую картинку или отдельную картинку для каждого уровня: Start, Mini и Finish.</small></label></div>
         <div class="row wide seam-mode-row"><label>Mode<small>Per level: у каждого мини-уровня свой PNG-оверлей. Single image: один общий PNG для всех стыков.</small></label>
@@ -365,11 +320,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="thumb" id="th-bg_seam">〰️</div>
           <label class="ul-btn">+ Seam sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('bg_seam',this)"></label>
           <button class="x-btn" onclick="clearSpr('bg_seam')">✕</button>
-          <label class="seam-color-control" title="Окрасить изображение между уровнями"><span>Цвет</span><input type="color" class="seam-color-picker" id="cfg-seamTint" value="#ffffff"></label>
         </div></div>
         <div id="seam-multi-box" class="seam-list"></div>
-        <div class="row wide"><label>Seam scale<small>Start: горы закреплены снизу экрана. Mini/Finish: облака закреплены снизу своего уровня</small></label>
-          <div class="rr"><input type="range" id="cfg-seamScale" value="0.5" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">0.50</span></div></div>
+        <div class="row wide"><label>Seam scale<small>Масштаб спрайта стыка</small></label>
+          <div class="rr"><input type="range" id="cfg-seamScale" value="1" min="0.3" max="3" step="0.05" oninput="sv('cfg-seam-v',parseFloat(this.value).toFixed(2))"><span id="cfg-seam-v">1.00</span></div></div>
         <div class="sec">Per-level backgrounds</div>
         <div class="row wide"><label><small>Картинка = фон мини-уровня (cover, едет с волной). Пока картинки нет — градиент из двух цветов. Пикеры в ряду: нижний цвет градиента · верхний цвет · тинт картинки (окрашивает её по альфе, белый = без тинта).</small></label></div>
         <div id="bg-stage-rows"></div>
@@ -381,7 +335,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Background image<input type="file" accept="image/*" style="display:none" onchange="loadSpr('background',this)"></label>
         <button class="x-btn" onclick="clearSpr('background')">✕</button>
       </div></div>
-      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgSpriteColor" value="#ffffff"></div>
+      <div id="env-bg-common-tint" class="row"><label>Image tint<small>Накладывается поверх картинки по альфе</small></label><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-bgSpriteColor" value="#ffffff"></div>
       </div>
     </div>
 
@@ -389,19 +343,19 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="sec">Stage debug colors</div>
       <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
       <div class="cgrid">
-        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
-        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
-        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
-        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
-        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
+        <div class="cc"><input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
       </div>
     </div>
 
 
     <div class="pnl" id="panel-text-fonts" data-title="Text / fonts">
       <div class="sec">Google Fonts</div>
-      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;" value=""></div>
-      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;" value=""></div>
+      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
+      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
       <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
       <div class="sec">Local font</div>
       <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
@@ -496,12 +450,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div id="rp-levels" class="ed-pane">
       <div class="level-toolbar">
-        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="4" min="1" max="20" step="1"></div>
+        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="5" min="1" max="20" step="1"></div>
         <button class="et" id="le-generate">Generate level strip</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
         <div class="esep"></div>
-        <button class="et" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
+        <button class="et on" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
         <label class="mini" title="Show/hide editor grid"><input type="checkbox" id="le-grid" checked> Grid</label>
         <div class="esep"></div>
       </div>
@@ -531,7 +485,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <span class="etg-label">Изменения</span>
           <button class="et" id="et-sel">✥ Drag</button>
           <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
-          <button class="et" id="et-rotate" title="Выбери obstacle или template и тяни вокруг центра выделения">↻ Rotate</button>
           <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
           <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
           <button class="et" id="et-del">🗑 Del</button>
@@ -542,10 +495,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep">Scale<input type="number" id="os" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale X<input type="number" id="osx" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale Y<input type="number" id="osy" value="1" min="0.05" max="20" step="0.05"></div>
-          <div class="ep">Color<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
+          <div class="ep">Color<input type="text" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
           <div class="ep">Move±<input type="number" id="om" value="0" min="0" max="180"></div>
-          <div class="ep">Rotate°<input type="number" id="orot" value="0" min="-3600" max="3600" step="1" title="Поворот obstacle; для Whole-template вращает всю группу вокруг общего центра"></div>
-          <label class="ep" title="Включено: obstacle сталкивается с shield и balloon. Выключено: только декоративный объект без коллизий.">Interactable<input type="checkbox" id="ointeractable" checked></label>
           <div class="ep">Anchor
             <div class="anchor-grid" id="ob-anchor">
               <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -576,11 +527,11 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="txtbar" style="display:none">
         <div class="lp">Text <textarea id="tx-text" placeholder="TAP TO PLAY" rows="3" style="width:170px;min-height:58px;resize:vertical;line-height:1.25"></textarea></div>
-        <div class="lp">Base <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-base" value="#ffffff"></div>
-        <div class="lp">Accent <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-accent" value="#52e08a"></div>
+        <div class="lp">Base <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-base" value="#ffffff"></div>
+        <div class="lp">Accent <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-accent" value="#52e08a"></div>
         <div class="lp"><button class="et" id="tx-paint-acc" title="Покрасить выделенный текст в акцент">Paint accent</button><button class="et" id="tx-paint-base" title="Покрасить выделенный текст в базовый">Base</button></div>
         <div class="esep"></div>
-        <div class="lp">Font <select id="tx-font" class="font-select">
+        <div class="lp">Font <select id="tx-font">
           <option value="Baloo2">Baloo 2</option>
           <option value="Kameron">Kameron</option>
           <option value="LiberationSans">Liberation Sans</option>
@@ -598,7 +549,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="lp">Offset X% <input type="number" id="tx-offx" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
         <div class="lp">Y% <input type="number" id="tx-offy" value="0" min="-200" max="200" step="1" title="Offset from selected anchor, percent of full screen width/height"></div>
-        <div class="lp">Stroke <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
+        <div class="lp">Stroke <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tx-stroke" value="#000000"><input type="number" id="tx-strokeW" value="0" min="0" max="40" step="1" title="Stroke width"></div>
         <div class="lp"><label><input type="checkbox" id="tx-shadow" checked> Shadow</label></div>
       </div>
       <div class="lblbar" id="pbar" style="display:none">
@@ -607,9 +558,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Fill image<input type="file" accept="image/*" style="display:none" onchange="loadProgressPart('fill',this)"></label><button class="x-btn" id="pb-fill-clear" type="button">✕</button>
         <div class="lp">W<input type="number" id="pb-w" value="64" min="20" max="260" step="1"></div>
         <div class="lp">H<input type="number" id="pb-h" value="300" min="60" max="900" step="1"></div>
-        <div class="lp">Fill <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
-        <div class="lp">Line <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
-        <div class="lp">Appear<select id="pb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
+        <div class="lp">Fill <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-fill" value="#b9ff9b"></div>
+        <div class="lp">Line <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="pb-line" value="#101625"></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="pb-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -625,13 +575,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Heart image<input type="file" accept="image/*" style="display:none" onchange="loadHealthPart(this)"></label><button class="x-btn" id="hb-heart-clear" type="button">✕</button>
         <div class="lp">Size<input type="number" id="hb-size" value="36" min="8" max="180" step="1"></div>
         <div class="lp">Gap<input type="number" id="hb-gap" value="6" min="-20" max="80" step="1"></div>
-        <div class="lp">Tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
-        <label class="ul-btn">+ Bg image<input type="file" accept="image/*" style="display:none" onchange="loadHealthBg(this)"></label><button class="x-btn" id="hb-bg-clear" type="button">✕</button>
-        <div class="lp">Bg tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="hb-bgtint" value="#ffffff"></div>
-        <div class="lp">Plate W<input type="number" id="hb-bgw" value="0" min="0" max="1200" step="1" title="0 = авто по сердечкам"></div>
-        <div class="lp">Plate H<input type="number" id="hb-bgh" value="0" min="0" max="1200" step="1" title="0 = авто по сердечкам"></div>
-        <div class="lp">Appear<select id="hb-appear" class="cfg-select"><option value="start">At start</option><option value="tap">After first tap</option><option value="death">After first death</option></select></div>
-        <div class="lp">Hide after break<input type="checkbox" id="hb-hideafterbreak" title="Прятать сердечки после анимации разбивания (показываются только в момент смерти)"></div>
+        <div class="lp">Empty α<input type="number" id="hb-empty" value="0.28" min="0" max="1" step="0.05"></div>
+        <div class="lp">Tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="hb-tint" value="#ffffff"></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="hb-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -646,13 +591,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">CTA images</div>
         <label class="ul-btn">+ Button bg<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('bg',this)"></label><button class="x-btn" id="cta-bg-clear" type="button">✕</button>
         <label class="ul-btn">+ Text image<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('text',this)"></label><button class="x-btn" id="cta-text-clear" type="button">✕</button>
-        <div class="lp">Text<input type="text" id="cta-text" value="PLAY NOW" style="width:120px"></div>
-        <div class="lp">Text size<input type="number" id="cta-fontsize" value="24" min="6" max="200" step="1"></div>
-        <div class="lp">Font<select id="cta-font" class="font-select cfg-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
         <div class="lp">W<input type="number" id="cta-w" value="260" min="30" max="900" step="1"></div>
         <div class="lp">H<input type="number" id="cta-h" value="86" min="20" max="400" step="1"></div>
-        <div class="lp">Bg tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
-        <div class="lp">Text tint <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cta-text-tint" value="#ffffff"></div>
+        <div class="lp">Bg tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-bg-tint" value="#ffffff"></div>
+        <div class="lp">Text tint <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="cta-text-tint" value="#ffffff"></div>
         <div class="lp">Anchor
           <div class="anchor-grid" id="cta-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -665,12 +607,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="tutbar" style="display:none">
         <div class="lp">Tutorial</div>
-        <div class="lp" style="opacity:.7">Text → вкладка «Tutorial» в настройках</div>
+        <div class="lp">Text <textarea id="tut-text" rows="2" style="width:180px;min-height:44px;resize:vertical;line-height:1.25"></textarea></div>
         <div class="lp">Text size <input type="number" id="tut-tsize" value="18" min="8" max="72" step="1"></div>
-        <div class="lp">Text color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
+        <div class="lp">Text color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
         <div class="esep"></div>
         <div class="lp">Blocks <select id="tut-shape"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
-        <div class="lp">Block color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-bcolor" value="#373843"></div>
+        <div class="lp">Block color <input type="text" class="hex-color" inputmode="text" spellcheck="false" id="tut-bcolor" value="#373843"></div>
         <div class="lp">Scale <input type="number" id="tut-scale" value="1" min="0.3" max="3" step="0.05"></div>
         <div class="esep"></div>
         <div class="lp">Anchor
@@ -695,58 +637,25 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
         <div class="esep"></div>
         <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
-        <div class="esep"></div>
-        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
       </div>
       <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
       <div class="etbar">
         <div class="etgroup">
-          <span class="etg-label">Objects</span>
-          <button class="et" id="end-sel-background" type="button">Background</button>
-          <button class="et on" id="end-sel-image" type="button">Image</button>
-          <button class="et" id="end-sel-text" type="button">Text</button>
-          <button class="et" id="end-sel-cta" type="button">CTA</button>
-          <button class="et danger" id="end-delete-object" type="button">Delete object</button>
+          <span class="etg-label">End card</span>
+          <label class="et" title="Replace current state image with PNG or preview from Unity package">+ Import<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
         </div>
         <div class="etgroup">
-          <span class="etg-label">Assets</span>
-          <label class="et">+ Background<input type="file" id="end-bg-import" accept=".png,.jpg,.jpeg,.webp,image/*" style="display:none"></label>
-          <label class="et">+ Image<input type="file" id="end-import" accept=".png,.unitypackage,image/png" style="display:none"></label>
-          <label class="et">+ CTA sprite<input type="file" id="end-cta-bg-import" accept=".png,.jpg,.jpeg,.webp,.unitypackage,image/png,image/jpeg,image/webp" style="display:none"></label>
-        </div>
-        <div class="etgroup" id="end-transform-group">
-          <span class="etg-label">Transform</span>
-          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.1" max="5" step="0.05"></div>
-          <div class="ep" id="end-cta-width-wrap" style="display:none">Width<input type="number" id="cfg-endCardCtaWidth" value="220" min="20" max="1200" step="1"></div>
-          <div class="ep" id="end-cta-height-wrap" style="display:none">Height<input type="number" id="cfg-endCardCtaHeight" value="54" min="12" max="600" step="1"></div>
-          <div class="ep" id="end-text-width-wrap" style="display:none">Width<input type="number" id="cfg-endCardTextWidth" value="180" min="1" max="2000" step="1"></div>
-          <div class="ep" id="end-text-height-wrap" style="display:none">Height<input type="number" id="cfg-endCardTextHeight" value="40" min="1" max="1000" step="1"></div>
-          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="-5" min="-200" max="200" step="1"></div>
-          <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
-            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
-            <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
-            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
-          </div></div>
+          <span class="etg-label">Position</span>
+          <div class="ep">Scale<input type="number" id="cfg-endCardScale" value="1" min="0.2" max="3" step="0.05"></div>
+          <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-100" max="100" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-100" max="100" step="1"></div>
+          <div class="ep">Overlay<input type="number" id="cfg-endCardOverlay" value="0.55" min="0" max="0.95" step="0.05"></div>
         </div>
         <div class="etgroup">
-          <span class="etg-label">Content</span>
-          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
-          <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
-          <div class="ep" id="end-obj-font-wrap">Font<select id="cfg-endCardObjFont" class="font-select"><option value="">General</option><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
-          <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
-          <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
-          <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
-          <div class="ep" id="end-text-paint-wrap"><button class="et" id="end-paint-accent" type="button" title="Paint selected text with accent color">Accent selected</button><button class="et" id="end-paint-base" type="button" title="Paint selected text with base color">Base selected</button></div>
-          <div class="ep" id="end-stroke-color-wrap">Stroke<input type="color" id="cfg-endCardStrokeColor" value="#000000"></div>
-          <div class="ep" id="end-stroke-width-wrap">Stroke W<input type="number" id="cfg-endCardStrokeWidth" value="0" min="0" max="30" step="0.5" style="width:58px"></div>
-          <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
-          <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
-          <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.55" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
-          <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
-          <input type="hidden" id="cfg-endCardCtaY" value="74">
+          <span class="etg-label">CTA</span>
+          <div class="ep">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:100px"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardCtaY" value="74" min="0" max="100" step="1"></div>
         </div>
       </div>
     </div>
@@ -775,86 +684,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
   </div>
 </div>
 
-<script>
-(() => {
-  const COLOR_SELECTOR = 'input[type="color"], input.hex-color';
-
-  function normalizeHex(value) {
-    const raw = String(value || '').trim();
-    if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
-    if (/^#[0-9a-f]{3}$/i.test(raw)) {
-      return ('#' + raw.slice(1).split('').map(c => c + c).join('')).toLowerCase();
-    }
-    return null;
-  }
-
-  function setColor(input, color) {
-    const normalized = normalizeHex(color);
-    if (!normalized) return;
-    input.value = normalized;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    input.focus({ preventScroll: true });
-  }
-
-  async function pickColor(input, button) {
-    if (!('EyeDropper' in window)) return;
-    button.disabled = true;
-    try {
-      const result = await new EyeDropper().open();
-      if (result && result.sRGBHex) setColor(input, result.sRGBHex);
-    } catch (error) {
-      if (!error || error.name !== 'AbortError') console.warn('EyeDropper failed:', error);
-    } finally {
-      button.disabled = false;
-    }
-  }
-
-  function enhance(input) {
-    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1') return;
-    input.dataset.eyedropperReady = '1';
-
-    const wrap = document.createElement('span');
-    wrap.className = 'color-picker-wrap';
-    input.parentNode.insertBefore(wrap, input);
-    wrap.appendChild(input);
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'color-eyedropper';
-    button.setAttribute('aria-label', 'Выбрать цвет пипеткой с экрана');
-    button.title = 'Пипетка: выбрать цвет с экрана';
-    button.textContent = '◉';
-    if (!('EyeDropper' in window)) {
-      button.disabled = true;
-      button.title = 'Пипетка не поддерживается этим браузером';
-    }
-    button.addEventListener('click', () => pickColor(input, button));
-    wrap.appendChild(button);
-  }
-
-  function enhanceAll(root = document) {
-    if (root.matches && root.matches(COLOR_SELECTOR)) enhance(root);
-    if (root.querySelectorAll) root.querySelectorAll(COLOR_SELECTOR).forEach(enhance);
-  }
-
-  function init() {
-    enhanceAll(document);
-    new MutationObserver(records => {
-      records.forEach(record => record.addedNodes.forEach(node => {
-        if (node.nodeType === Node.ELEMENT_NODE) enhanceAll(node);
-      }));
-    }).observe(document.body, { childList: true, subtree: true });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
-})();
-</script>
-
-<script src="src/playable-template.js?v=70-tutorial-triangle-tint"></script>
-<script src="src/builder.js?v=47-tutorial-triangle-tint"></script>
-<script src="script2.js?v=tutorial-triangle-tint"></script>
+<script src="src/playable-template.js?v=38"></script>
+<script src="src/builder.js?v=39"></script>
+<script src="script2.js?v=loader-fix"></script>
 
 </body>
 </html>
