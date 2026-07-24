@@ -130,10 +130,18 @@ function uiBaseScale(L){
   if(!isFinite(k)||k<=0)k=1;
   return Math.min(1,k);
 }
+function hudCounterScale(){
+  // CTA and health are HUD elements, just like the height counter. Their size
+  // follows the vertical game canvas and must not shrink when an item was
+  // authored on an extra-wide landscape editor canvas (large designW).
+  var k=CH/844;
+  if(!isFinite(k)||k<=0)k=1;
+  return clamp(k,.78,1.18);
+}
 function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||40)*k,strokeW:(L.baseStrokeW!=null?L.baseStrokeW:(L.strokeW||0))*k,letterSpacing:(L.baseLetterSpacing!=null?L.baseLetterSpacing:(L.letterSpacing||0))*k};}
 function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
-function healthDrawSize(L){var k=uiBaseScale(L);return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
-function ctaDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
+function healthDrawSize(L){var k=hudCounterScale();return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
+function ctaDrawSize(L){var k=hudCounterScale();return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
 function progressBoxLocal(L){var a=progressLocal(L),d=progressDrawSize(L);return anchorBoxLocal(L.anchor||'cl',a.x,a.y,d.w,d.h);}
 function healthBoxLocal(L){var a=healthLocal(L),d=healthDrawSize(L),cnt=L.count||3,w=cnt*d.heartW+(cnt-1)*d.gap;return anchorBoxLocal(L.anchor||'tc',a.x,a.y,w,d.heartW);}
 function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L);return anchorBoxLocal(L.anchor||'bc',a.x,a.y,d.w,d.h);}
@@ -1465,7 +1473,7 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this._levelNumberT=0;this._levelNumberIndex=0;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
+  _die(){if(this.state!=='playing')return;this._heightTravelStages=0;this._levelNumberT=0;this._levelNumberIndex=0;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
@@ -1745,7 +1753,7 @@ class Game{
 
     if(!this._heightArrow)this._heightArrow=this._spr('height_arrow')||makeImg(this.cfg.defaultHeightArrowSrc);
     const portrait=CW<=CH;
-    const scale=clamp(CH/844,.78,1.18);
+    const scale=hudCounterScale();
     const right=(portrait?18:28)*scale;
     const top=(portrait?30:24)*scale;
     const numberSize=(portrait?54:50)*scale;
@@ -2079,7 +2087,7 @@ class Game{
 
   _loseEndCtaRect(){
     const portrait=CW<=CH;
-    const scale=clamp(CH/844,.72,1.18);
+    const scale=hudCounterScale();
     const w=Math.min(CW*(portrait ? .72 : .42),300*scale);
     const h=Math.max(52,60*scale);
     const bottom=(portrait?48:24)*scale;
@@ -2099,7 +2107,7 @@ class Game{
     const overlay=ec.overlay==null ? .68 : clamp(parseFloat(ec.overlay)||0,0,1);
     const overlayColor=ec.overlayColor||'#000000';
     const portrait=CW<=CH;
-    const scale=clamp(CH/844,.72,1.18);
+    const scale=hudCounterScale();
     const cx=CW/2;
     const cy=portrait?CH*.39:CH*.43;
     const badgeSize=Math.min(portrait?CW*.64:CW*.28,portrait?CH*.30:CH*.56,303*scale);

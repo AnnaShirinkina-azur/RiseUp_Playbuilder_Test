@@ -60,5 +60,11 @@
     "shieldSpriteColor": "#00eeff",
     "endCardCountdown": 10,
     "endCardCtaText": "TRY AGAIN"
+  },
+  "hudScaleFix": {
+    "ctaAndHealthMatchHeightCounter": true,
+    "scaleFormula": "clamp(gameHeight / 844, 0.78, 1.18)",
+    "ignoresLandscapeDesignWidth": true,
+    "heightCounterResetsOnEveryDeath": true
   }
 }
