@@ -78,6 +78,7 @@
   "tutorialControls": {
     "positionXPercent": 50,
     "positionYPercent": 55,
-    "captionGapTriangleHeights": 0.5
+    "captionGapTriangleHeights": 0.5,
+    "textSizePx": 18
   }
 }

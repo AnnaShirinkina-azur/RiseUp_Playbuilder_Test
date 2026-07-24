@@ -43,6 +43,7 @@ function readConfig(){
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialText:(function(){var e=document.getElementById('cfg-tutorialText');return (e&&e.value!=null)?e.value:'protect your balloon!';})(),
+    tutorialTextSize:(function(){var v=g('cfg-tutorialTextSize');return isNaN(v)?18:Math.max(8,Math.min(96,v));})(),
     tutorialX:(function(){var v=g('cfg-tutorialX');return isNaN(v)?50:Math.max(0,Math.min(100,v));})(),
     tutorialY:(function(){var v=g('cfg-tutorialY');return isNaN(v)?55:Math.max(0,Math.min(100,v));})(),
     tutorialCaptionGap:(function(){var v=g('cfg-tutorialCaptionGap');return isNaN(v)?0.5:Math.max(-2,Math.min(5,v));})(),

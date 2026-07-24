@@ -1908,10 +1908,11 @@ class Game{
     ctx.save();ctx.globalAlpha=this.tutA;
     if(this.cfg.tutorialAnimEnabled!==false)this._drawTutAnim(ctx);
     else{
-      ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
+      const _tfs=Math.max(8,Math.min(96,parseFloat(this.cfg.tutorialTextSize)||18));
+      ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold '+_tfs+'px sans-serif';ctx.textAlign='center';
       const _tCap=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:'protect your balloon!';
-      let _ty=Math.max(34,CH*.105);
-      String(_tCap).split('\n').forEach(function(ln){ctx.fillText(ln,CW/2,_ty);_ty+=15*1.25;});
+      let _ty=Math.max(_tfs*1.5,CH*.105);
+      String(_tCap).split('\n').forEach(function(ln){ctx.fillText(ln,CW/2,_ty);_ty+=_tfs*1.25;});
       const ay=this.shield.y-this.shield.r-8+Math.sin(Date.now()/500)*4;
       ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2-7,ay+11);ctx.moveTo(CW/2,ay);ctx.lineTo(CW/2+7,ay+11);ctx.stroke();
@@ -2043,7 +2044,9 @@ class Game{
       }
     }
     // text
-    const fs=Math.max(6,((T&&parseFloat(T.textSize))||18)*(S/(Math.min(CW,CH)*0.14)));
+    const cfgTextSize=parseFloat(this.cfg.tutorialTextSize);
+    const baseTextSize=Number.isFinite(cfgTextSize)?clamp(cfgTextSize,8,96):((T&&parseFloat(T.textSize))||18);
+    const fs=Math.max(6,baseTextSize*(S/(Math.min(CW,CH)*0.14)));
     ctx.fillStyle=(T&&T.textColor)||'rgba(255,255,255,.92)';
     var _tf=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[this.cfg.tutorialFont])?RiseFontCSS[this.cfg.tutorialFont]:(this.cfg.tutorialFont||'sans-serif');
     ctx.font='bold '+fs+'px '+_tf;ctx.textAlign='center';
@@ -2250,7 +2253,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.1,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialX:50,tutorialY:55,tutorialCaptionGap:0.5,
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:18,tutorialX:50,tutorialY:55,tutorialCaptionGap:0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1,shieldSpriteColor:"#00eeff",
