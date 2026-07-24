@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1784890833968.html",
+  "source": "rise_playable_1784892769967.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -7,7 +7,7 @@
     98,
     11,
     3,
-    2
+    0
   ],
   "spriteKeys": [
     "background",
@@ -47,10 +47,11 @@
     "shield",
     "tutorial_triangle"
   ],
-  "deathAnimationPauseMs": 2500,
+  "spriteCount": 36,
   "defaultsSummary": {
     "lives": 3,
-    "stageCount": 4,
+    "orientation": "landscape",
+    "deathPauseMs": 2500,
     "level1CenterSpeed": 18,
     "level3BasketPower": 0.6,
     "level3BallGravity": 0.34,
