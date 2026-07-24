@@ -510,5 +510,13 @@
     ],
     "defaultTint": "#ffffff",
     "configField": "cfg-tutorialObstacleTint"
+  },
+  "obstacleTint": {
+    "enabled": true,
+    "field": "tint",
+    "legacyFallback": "color",
+    "editor": "Drag selection popover with native palette and HEX input",
+    "scope": "single obstacle or current multi-selection/template group",
+    "runtime": "Preview and exported HTML"
   }
 }

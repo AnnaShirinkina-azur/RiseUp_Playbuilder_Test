@@ -254,7 +254,7 @@ class Obs{
     this.x=obstacleLayoutX({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});this.y=obstacleLayoutY({coordMode:this.coordMode,x:o.x??0,y:o.y??0,w:this.w,h:this.h,anchor:this.anchor,anchorOffsetX:this.anchorOffsetX,anchorOffsetY:this.anchorOffsetY});
     this.shape=o.shape||'rect';
     this.points=(o.points||null);
-    this.color=o.color||'#e05252';
+    this.tint=o.tint||o.color||'#e05252';this.color=this.tint;
     this.spr=o.sprite||null;
     this.imageSrc=o.imageSrc||null;
     this.customImg=makeImg(this.imageSrc);
@@ -324,9 +324,9 @@ class Obs{
     const ang=this.baseRot+((this.level3Role==='basket'||this.level3Role==='ball'||this.level3Role==='ballVisual'||!this.kin)?this.rot:0);
     if(ang)ctx.rotate(ang);
     const im=imgOk(this.customImg)?this.customImg:this.spr;
-    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
+    if(imgOk(im)){drawTintedImage(ctx,im,-this.w/2,-this.h/2,this.w,this.h,this.tint||this.color||((this.cfg&&this.cfg.obstacleSpriteColor)||'#ffffff'));}
     else{
-      ctx.fillStyle=this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
+      ctx.fillStyle=this.tint||this.color;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;
       if(this.shape==='circle'){ctx.beginPath();ctx.arc(0,0,this.w/2,0,Math.PI*2);ctx.fill();ctx.stroke();}
       else if(this.shape==='triangle'){const hw=this.w/2,hh=this.h/2;ctx.beginPath();ctx.moveTo(0,-hh);ctx.lineTo(hw,hh);ctx.lineTo(-hw,hh);ctx.closePath();ctx.fill();ctx.stroke();}
       else if(this.shape==='custom'&&this.points&&this.points.length>=3){ctx.beginPath();this.points.forEach((p,i)=>{const px=p.x*this.w,py=p.y*this.h;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);});ctx.closePath();ctx.fill();ctx.stroke();}
@@ -879,7 +879,7 @@ class Game{
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
-          const ob=new Obs({...o,cfg:c,color:o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
+          const ob=new Obs({...o,cfg:c,tint:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt),color:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
           obs.push(ob);
         });
