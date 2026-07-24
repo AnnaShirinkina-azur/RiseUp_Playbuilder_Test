@@ -71,7 +71,7 @@
   "gameplayFixes": {
     "tutorialTextPosition": "top-center",
     "respawnCheckpoint": "corridor-before-failed-level",
-    "tutorialCaptionGap": "5% of stage height above tutorial composition",
+    "tutorialCaptionGap": "one rendered tutorial triangle height above tutorial composition",
     "completedLevelsRemainCompleted": true,
     "failedLevelNumberShownAgain": true
   }
