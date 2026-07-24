@@ -2047,12 +2047,12 @@ class Game{
     const lines=String(_tutCaption).split('\n');
     // Keep the caption attached to the tutorial instead of pinning it to the
     // top of the viewport. The gap from the bottom of the last text line to
-    // the tutorial composition equals one rendered tutorial-block height.
+    // the tutorial composition equals half a rendered tutorial-block height.
     const tutorialTop=this._tutAnchor.ay-2.19*S;
     const tutorialBlockHeight=0.5224*S*(shape==='triangle'?1.16:1);
     const lineH=fs*1.25;
     const textDescent=fs*.22;
-    const lastBaseline=tutorialTop-tutorialBlockHeight-textDescent;
+    const lastBaseline=tutorialTop-tutorialBlockHeight*.5-textDescent;
     let ty=lastBaseline-(lines.length-1)*lineH;
     const tx=CW/2;
     for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=lineH;}
