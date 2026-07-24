@@ -1005,6 +1005,7 @@ class Game{
     // first interactable obstacle opens the store. Keep it one-shot across
     // pointer/touch/mouse fallback events and collision frames.
     this._level4StoreTriggered=false;
+    this._respawnStageIndex=1;
     // Height HUD starts at the configured real-world value and advances by
     // actual world travel measured in normal-stage heights. Keeping the
     // accumulator in stage units makes the number stable across orientation
@@ -1085,6 +1086,28 @@ class Game{
     this.spawnTop=Math.min(...this.stages.map(s=>s.worldY));
     this.completedStages=0;
     this.si=0;
+  }
+  _resetFallingStagesFrom(levelIndex){
+    // Respawn at the checkpoint immediately before the failed numbered level.
+    // Completed stages stay parked below the screen; the failed level and all
+    // following stages are rebuilt in their authored order above a half-stage
+    // empty corridor that already surrounds the player on fade-in.
+    const last=this._lastMiniIndex();
+    const target=Math.max(1,Math.min(last,parseInt(levelIndex,10)||1));
+    const H=this.stages[0].H,gap=this._levelInterludeHeight();
+    const corridorTop=CH*.34;
+    const targetTop=corridorTop-H;
+    const targetGapCount=this._levelGapCountBefore(target);
+    this.stages.forEach((stage,i)=>{
+      if(i<target){stage.complete();return;}
+      const rel=i-target;
+      const extraGaps=this._levelGapCountBefore(i)-targetGapCount;
+      stage.resetAt(targetTop-rel*H-extraGaps*gap);
+    });
+    this.spawnTop=Math.min(...this.stages.filter(s=>!s.done).map(s=>s.worldY));
+    this.completedStages=target;
+    this.si=target;
+    this.cb.onStageChange&&this.cb.onStageChange(target);
   }
   _start(){
     this.state='playing';
@@ -1473,14 +1496,14 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
+  _die(){if(this.state!=='playing')return;this._respawnStageIndex=Math.max(1,Math.min(this._lastMiniIndex(),parseInt(this.si,10)||1));this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
     // Keep the current height visible throughout the death animation and
     // pause. Reset it only when the falling level is actually restarted.
     this._heightTravelStages=0;
     this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
-    this._resetFallingStages();
+    this._resetFallingStagesFrom(this._respawnStageIndex);
     this.shield.respawn();this.ball.respawn();
     this.state='respawning';this.ball.start(this._ballSpeed(),this.camY);
     setTimeout(()=>{if(this.state==='respawning')this.state='playing';},500);
@@ -1887,7 +1910,7 @@ class Game{
     else{
       ctx.fillStyle='rgba(255,255,255,.88)';ctx.font='bold 15px sans-serif';ctx.textAlign='center';
       const _tCap=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:'protect your balloon!';
-      let _ty=this.shield.y-this.shield.r-24;
+      let _ty=Math.max(34,CH*.105);
       String(_tCap).split('\n').forEach(function(ln){ctx.fillText(ln,CW/2,_ty);_ty+=15*1.25;});
       const ay=this.shield.y-this.shield.r-8+Math.sin(Date.now()/500)*4;
       ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;
@@ -2022,8 +2045,8 @@ class Game{
     const _cfgTut=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:null;
     const _tutCaption=(_cfgTut!=null)?_cfgTut:((T&&T.text!=null)?T.text:'protect your balloon!');
     const lines=String(_tutCaption).split('\n');
-    let ty=this._tutU(0,2.9).y;
-    const tx=this._tutAnchor.ax;
+    let ty=Math.max(fs*1.35,CH*.105);
+    const tx=CW/2;
     for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=fs*1.25;}
   }
 

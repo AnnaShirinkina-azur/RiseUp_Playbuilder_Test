@@ -65,6 +65,13 @@
     "ctaAndHealthMatchHeightCounter": true,
     "scaleFormula": "clamp(gameHeight / 844, 0.78, 1.18)",
     "ignoresLandscapeDesignWidth": true,
-    "heightCounterResetsOnEveryDeath": true
+    "heightCounterResetsOnEveryDeath": false,
+    "heightCounterResetsOnLevelRestart": true
+  },
+  "gameplayFixes": {
+    "tutorialTextPosition": "top-center",
+    "respawnCheckpoint": "corridor-before-failed-level",
+    "completedLevelsRemainCompleted": true,
+    "failedLevelNumberShownAgain": true
   }
 }
