@@ -2045,9 +2045,16 @@ class Game{
     const _cfgTut=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:null;
     const _tutCaption=(_cfgTut!=null)?_cfgTut:((T&&T.text!=null)?T.text:'protect your balloon!');
     const lines=String(_tutCaption).split('\n');
-    let ty=Math.max(fs*1.35,CH*.105);
+    // Keep the caption attached to the tutorial instead of pinning it to the
+    // top of the viewport. The bottom of the last text line sits exactly 5%
+    // of the canvas height above the tutorial composition.
+    const tutorialTop=this._tutAnchor.ay-2.19*S;
+    const lineH=fs*1.25;
+    const textDescent=fs*.22;
+    const lastBaseline=tutorialTop-CH*.05-textDescent;
+    let ty=lastBaseline-(lines.length-1)*lineH;
     const tx=CW/2;
-    for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=fs*1.25;}
+    for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=lineH;}
   }
 
   _tutShape(ctx,x,y,s,shape){
