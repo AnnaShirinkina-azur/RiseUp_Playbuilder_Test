@@ -76,5 +76,19 @@
     "#e03af4",
     "#ff00bb"
   ],
-  "resetRestoresUploadedPlayable": true
+  "resetRestoresUploadedPlayable": true,
+  "level3ColliderFix": {
+    "basketPrefab": "Frame 24",
+    "ballPrefab": "Frame 23",
+    "ballCount": 8,
+    "collider": "open-top U: left wall, right wall, bottom",
+    "customBallObjectsUseCircularPhysics": true
+  },
+  "level3BallActivation": {
+    "mode": "per-ball basket contact",
+    "startsSuspended": true,
+    "requiresBasketEngagedByShield": true,
+    "requiresBasketWallMovingIntoBall": true,
+    "gravityBeforeContact": false
+  }
 }

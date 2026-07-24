@@ -307,7 +307,9 @@ class Obs{
     // direct shield contact: the player has to use the basket.
     if(this.level3Role==='ball'&&!includeDynamic)return false;
     if(!includeDynamic&&!this.kin)return false;
-    if(this.shape==='circle'){const dx=this.x-cx,dy=this.y-cy,r=this.w/2;return dx*dx+dy*dy<(r+cr)*(r+cr);}
+    // Level 3 ball sprites may be authored as custom image objects. Their
+    // gameplay body is still circular, regardless of the editor shape type.
+    if(this.shape==='circle'||this.level3Role==='ball'){const dx=this.x-cx,dy=this.y-cy,r=Math.max(5,Math.min(this.w,this.h)*.5);return dx*dx+dy*dy<(r+cr)*(r+cr);}
     const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang);
     if(this.shape==='custom'&&this.points&&this.points.length>=3){const pts=this.points.map(p=>{const lx=p.x*this.w,ly=p.y*this.h;return{x:this.x+lx*co-ly*si,y:this.y+lx*si+ly*co};});return circlePolyHit(cx,cy,cr,pts);}
     // Rotate the test point into the box's local (unrotated) frame, then do the
@@ -417,14 +419,30 @@ class Stage{
     // of those circles. Only the circles must participate in physics.
     const candidates=this.obs.filter(o=>o.interactable!==false&&o.w>150&&o.h>80);
     const basket=candidates.sort((a,b)=>b.w*b.h-a.w*a.h)[0]||null;
-    const balls=this.obs.filter(o=>o.interactable!==false&&o.shape==='circle');
+    // Older level data used primitive circles plus a decorative custom layer.
+    // The current prefab stores each visible ball as one custom image object.
+    // Prefer authored circles when they exist; otherwise promote compact,
+    // near-square custom objects above the basket to circular physics bodies.
+    const circleBalls=this.obs.filter(o=>o.interactable!==false&&o!==basket&&o.shape==='circle');
+    const customBalls=this.obs.filter(o=>{
+      if(o.interactable===false||o===basket||o.shape!=='custom')return false;
+      const min=Math.min(o.w,o.h),max=Math.max(o.w,o.h),aspect=max/Math.max(1,min);
+      const smallEnough=basket?max<=Math.max(84,basket.w*.36):max<=84;
+      const aboveBasket=!basket||o.iy<=basket.iy+basket.h*.12;
+      return min>=10&&smallEnough&&aspect<=1.35&&aboveBasket;
+    });
+    const balls=circleBalls.length?circleBalls:customBalls;
     const visuals=[];
     if(basket){
       basket.level3Role='basket';basket.level3Safe=true;basket.kin=false;
       basket.vx=0;basket.vy=0;basket.av=0;basket.rot=0;
     }
     for(const ball of balls){
-      ball.level3Role='ball';ball.kin=true;ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
+      // Balls are suspended at their authored positions until the moving
+      // U-basket physically touches them. Activation is tracked per ball so
+      // one contact does not release the whole cluster at once.
+      ball.level3Role='ball';ball.level3Activated=false;ball.kin=true;
+      ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
       // Match the inner prefab polygon by authored centre. It remains visible
       // but no longer creates a second collider at the same location.
       let best=null,bd=1e9;
@@ -506,15 +524,18 @@ class Stage{
     const l=this.level3;if(!l||!l.basket||!l.balls.length)return;
     if(!l.active&&this.worldY+l.activeBottom>=-24){
       l.active=true;
-      for(const b of l.balls){b.kin=false;b.vx=0;b.vy=0;}
+      for(const ball of l.balls){
+        ball.level3Activated=false;ball.kin=true;
+        ball.x=ball.ix;ball.y=ball.iy;ball.vx=0;ball.vy=0;ball.av=0;ball.rot=0;
+      }
     }
     if(l.contactCooldown>0)l.contactCooldown-=dt;
     if(!l.active){this._syncLevel3Visuals();return;}
     const f=dt/16.6667,b=l.basket;
     // Until the protector reaches the level the basket stays locked to its
-    // authored position and travels only with the stage. The balls may settle
-    // inside it, but the tool itself must not drift away before the player can
-    // use it. After first contact it becomes a heavy dynamic body.
+    // authored position and travels only with the stage. The balls remain
+    // suspended at their authored positions until the basket touches each one.
+    // After first protector contact the basket becomes a heavy dynamic body.
     if(!l.touched){
       b.x=b.ix;b.y=b.iy;b.vx=0;b.vy=0;b.av=0;b.rot=0;
     }else{
@@ -523,20 +544,48 @@ class Stage{
       b.vx*=Math.pow(.965,f);b.vy*=Math.pow(.975,f);b.av*=Math.pow(.955,f);
       b.av=clamp(b.av,-.085,.085);
     }
+    const walls=this._level3Walls();
     const ballGravity=Math.max(0,parseFloat(this.cfg.level3BallGravity)||.34);
     for(const o of l.balls){
       if(!o.live)continue;
+      const r=Math.max(5,Math.min(o.w,o.h)*.5);
+      if(!o.level3Activated){
+        // A locked ball is a visual/static target: no gravity, no drift and no
+        // rotation. Only a real overlap with a basket wall releases it.
+        o.kin=true;o.x=o.ix;o.y=o.iy;o.vx=0;o.vy=0;o.av=0;o.rot=0;
+        // Before the protector has engaged the basket, authored near-tangent
+        // placement must not count as gameplay contact.
+        if(!l.touched)continue;
+        let contactWall=null;
+        for(const wall of walls){
+          const hit=this._level3CircleRect(o,r,wall,b,this.worldY,dt,false);
+          if(!hit)continue;
+          // Existing near-tangent authoring is not enough: the wall must be
+          // moving into the ball. This prevents a mere shield tap on the
+          // basket from releasing balls that the basket has not scooped yet.
+          const ang=b.baseRot+b.rot,co=Math.cos(ang),si=Math.sin(ang);
+          const crx=hit.qx*co-hit.qy*si,cry=hit.qx*si+hit.qy*co;
+          const svx=b.vx-b.av*cry,svy=b.vy+b.av*crx;
+          const approach=svx*hit.nwx+svy*hit.nwy;
+          if(approach>.005){contactWall=wall;break;}
+        }
+        if(!contactWall)continue;
+        o.level3Activated=true;o.kin=false;
+        // Resolve the first contact immediately and inherit the basket surface
+        // velocity, so the release feels like a physical scoop rather than a
+        // delayed gravity switch.
+        this._level3CircleRect(o,r,contactWall,b,this.worldY,dt,true);
+      }
       o.vy+=ballGravity*gravityModifier*f;
       o.x+=o.vx*f;o.y+=o.vy*f;o.rot+=o.av*f;
       o.vx*=Math.pow(.997,f);o.vy*=Math.pow(.998,f);o.av*=Math.pow(.98,f);
       if(o.y>CH+700||o.y<-900||o.x<-900||o.x>CW+900)o.live=false;
     }
-    const walls=this._level3Walls();
     // A few inexpensive solver iterations keep the small balls inside the U
     // even when the player flicks the basket quickly.
     for(let it=0;it<3;it++){
       for(const o of l.balls){
-        if(!o.live)continue;
+        if(!o.live||!o.level3Activated)continue;
         const r=Math.max(5,Math.min(o.w,o.h)*.5);
         for(const w of walls)this._level3CircleRect(o,r,w,b,this.worldY,dt,true);
       }
@@ -545,12 +594,28 @@ class Stage{
         const ar=Math.max(5,Math.min(A.w,A.h)*.5);
         for(let j=i+1;j<l.balls.length;j++){
           const B=l.balls[j];if(!B.live)continue;
+          const aFree=!!A.level3Activated,bFree=!!B.level3Activated;
+          // Two suspended balls stay exactly at their authored positions.
+          if(!aFree&&!bFree)continue;
           const br=Math.max(5,Math.min(B.w,B.h)*.5),dx=B.x-A.x,dy=B.y-A.y,rr=ar+br;
           const d2=dx*dx+dy*dy;if(d2>=rr*rr)continue;
-          const d=Math.sqrt(d2)||1,nx=dx/d,ny=dy/d,ov=(rr-d)*.5;
-          A.x-=nx*ov;A.y-=ny*ov;B.x+=nx*ov;B.y+=ny*ov;
-          const rel=(B.vx-A.vx)*nx+(B.vy-A.vy)*ny;
-          if(rel<0){const imp=-rel*.68;A.vx-=nx*imp;A.vy-=ny*imp;B.vx+=nx*imp;B.vy+=ny*imp;}
+          const d=Math.sqrt(d2)||1,nx=dx/d,ny=dy/d,overlap=rr-d;
+          if(aFree&&bFree){
+            const ov=overlap*.5;
+            A.x-=nx*ov;A.y-=ny*ov;B.x+=nx*ov;B.y+=ny*ov;
+            const rel=(B.vx-A.vx)*nx+(B.vy-A.vy)*ny;
+            if(rel<0){const imp=-rel*.68;A.vx-=nx*imp;A.vy-=ny*imp;B.vx+=nx*imp;B.vy+=ny*imp;}
+          }else if(aFree){
+            // B is still suspended, so resolve only the released body A.
+            A.x-=nx*overlap;A.y-=ny*overlap;
+            const vn=A.vx*nx+A.vy*ny;
+            if(vn>0){A.vx-=nx*vn*1.45;A.vy-=ny*vn*1.45;}
+          }else{
+            // A is still suspended, so resolve only the released body B.
+            B.x+=nx*overlap;B.y+=ny*overlap;
+            const vn=B.vx*nx+B.vy*ny;
+            if(vn<0){B.vx-=nx*vn*1.45;B.vy-=ny*vn*1.45;}
+          }
         }
       }
     }
