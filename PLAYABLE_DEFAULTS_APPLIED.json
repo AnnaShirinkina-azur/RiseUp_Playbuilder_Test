@@ -1,375 +1,19 @@
 {
-  "source_html": "rise_playable_1784723809598.html",
-  "cfg": {
-    "lives": 3,
-    "gameSpeed": 3.2,
-    "acceleration": 0.4,
-    "stageCount": 4,
-    "deathPause": 1500,
-    "obstaclePushForce": 7,
-    "gravityModifier": 1,
-    "level1CenterSpeed": 33,
-    "level3BasketPower": 0.6,
-    "level3BallGravity": 0.34,
-    "hpBarShowTime": 2000,
-    "chainReaction": false,
-    "scatterBounciness": 0.1,
-    "tutorialDisplayTime": 4800,
-    "tutorialText": "Protect your Balloon!",
-    "tutorialEnabled": true,
-    "tutorialFont": "Baloo2",
-    "tutorialAnimEnabled": true,
-    "tutorialFailEnabled": false,
-    "tutorialObstacleShape": "triangle",
-    "playerSize": 2,
-    "balloonCount": 1,
-    "balloonSpacing": 30,
-    "playerDeathAnimSpeed": 1,
-    "playerSpriteColor": "#ffffff",
-    "playerRopeColor": "#ffffff",
-    "playerStart": {
-      "coordMode": "center",
-      "x": 0,
-      "y": 169
-    },
-    "shieldSize": 1,
-    "shieldSpriteColor": "#ffffff",
-    "backgroundSpriteColor": "#ffffff",
-    "stageColors": [
-      "#e05252",
-      "#52a0e0",
-      "#52e08a",
-      "#e07d52",
-      "#c052e0"
-    ],
-    "stageAccents": true,
-    "showGrid": false,
-    "orientation": "landscape",
-    "backgroundMode": "common",
-    "stageBgGradients": [
-      [
-        "#5bc0de",
-        "#69c5ec"
-      ],
-      [
-        "#ef5350",
-        "#f97f6f"
-      ],
-      [
-        "#b03c02",
-        "#cc4a05"
-      ],
-      [
-        "#f0a44c",
-        "#f9c178"
-      ],
-      [
-        "#ee4630",
-        "#fa6a4b"
-      ],
-      [
-        "#5bc0de",
-        "#69c5ec"
-      ]
-    ],
-    "seamScale": 0.5,
-    "seamOverlayMode": "perStage",
-    "seamMulti": true,
-    "seamTint": "#ffffff",
-    "stageSeamTints": [
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff"
-    ],
-    "bgStageTint": "#ffffff",
-    "stageBgTints": [
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff",
-      "#ffffff"
-    ],
-    "googleFontUrl": "",
-    "googleFontFamily": "",
-    "localFontFamily": "CustomFont",
-    "soundEnabled": true,
-    "soundVolume": 0.8,
-    "soundVolumes": {
-      "bgm": 0.7,
-      "win": 1,
-      "lose": 1,
-      "hit": 1,
-      "shield": 0.9
-    },
-    "endCard": {
-      "enabled": true,
-      "tryAgainEnabled": true,
-      "tryAgainDelay": 1200,
-      "tryAgainDuration": 0,
-      "scale": 1,
-      "x": 0,
-      "y": -5,
-      "overlay": 0.55,
-      "overlayColor": "#000000",
-      "showCta": true,
-      "ctaText": "PLAY NOW",
-      "fontFamily": "Baloo2",
-      "ctaY": "74",
-      "layouts": {
-        "win": {
-          "portrait": {
-            "background": {
-              "srcKey": "endcard_win_frame",
-              "fillMode": "gradient",
-              "colorA": "#69c5ec",
-              "colorB": "#39a2d8"
-            },
-            "image": {
-              "anchor": "cc",
-              "x": 0,
-              "y": -5,
-              "scale": 1
-            },
-            "text": {
-              "anchor": "tc",
-              "x": 0,
-              "y": 10,
-              "scale": 1,
-              "text": "YOU WIN!",
-              "fontSize": 28,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "YOU WIN!",
-                  "color": "#ffffff"
-                }
-              ],
-              "width": 148,
-              "height": 32
-            },
-            "cta": {
-              "anchor": "bc",
-              "x": 0,
-              "y": -12,
-              "scale": 1,
-              "width": 220,
-              "height": 54,
-              "bgTint": "#ffffff",
-              "text": "PLAY NOW",
-              "fontSize": 17,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "PLAY NOW",
-                  "color": "#ffffff"
-                }
-              ]
-            }
-          },
-          "landscape": {
-            "background": {
-              "srcKey": "endcard_win_frame",
-              "fillMode": "gradient",
-              "colorA": "#69c5ec",
-              "colorB": "#39a2d8"
-            },
-            "image": {
-              "anchor": "cc",
-              "x": 0,
-              "y": -5,
-              "scale": 1
-            },
-            "text": {
-              "anchor": "tc",
-              "x": 0,
-              "y": 10,
-              "scale": 1,
-              "text": "YOU WIN!",
-              "fontSize": 28,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "YOU WIN!",
-                  "color": "#ffffff"
-                }
-              ],
-              "width": 148,
-              "height": 32
-            },
-            "cta": {
-              "anchor": "bc",
-              "x": 0,
-              "y": -12,
-              "scale": 1,
-              "width": 220,
-              "height": 54,
-              "bgTint": "#ffffff",
-              "text": "PLAY NOW",
-              "fontSize": 17,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "PLAY NOW",
-                  "color": "#ffffff"
-                }
-              ]
-            }
-          }
-        },
-        "lose": {
-          "portrait": {
-            "background": {
-              "srcKey": "endcard_lose_bg",
-              "fillMode": "gradient",
-              "colorA": "#69c5ec",
-              "colorB": "#39a2d8"
-            },
-            "image": {
-              "anchor": "tc",
-              "x": 0,
-              "y": 15,
-              "scale": 1
-            },
-            "text": {
-              "anchor": "cc",
-              "x": 0,
-              "y": -3,
-              "scale": 1,
-              "text": "TRY AGAIN",
-              "fontSize": 28,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "TRY AGAIN",
-                  "color": "#ffffff"
-                }
-              ]
-            },
-            "cta": {
-              "anchor": "bc",
-              "x": 0,
-              "y": -12,
-              "scale": 1,
-              "width": 220,
-              "height": 54,
-              "bgTint": "#ffffff",
-              "text": "PLAY NOW",
-              "fontSize": 17,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "PLAY NOW",
-                  "color": "#ffffff"
-                }
-              ]
-            }
-          },
-          "landscape": {
-            "background": {
-              "srcKey": "endcard_lose_bg",
-              "fillMode": "gradient",
-              "colorA": "#69c5ec",
-              "colorB": "#39a2d8"
-            },
-            "image": {
-              "anchor": "tc",
-              "x": 0,
-              "y": 15,
-              "scale": 1
-            },
-            "text": {
-              "anchor": "cc",
-              "x": 0,
-              "y": -3,
-              "scale": 1,
-              "text": "TRY AGAIN",
-              "fontSize": 28,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "TRY AGAIN",
-                  "color": "#ffffff"
-                }
-              ]
-            },
-            "cta": {
-              "anchor": "bc",
-              "x": 0,
-              "y": -12,
-              "scale": 1,
-              "width": 220,
-              "height": 54,
-              "bgTint": "#ffffff",
-              "text": "PLAY NOW",
-              "fontSize": 17,
-              "baseColor": "#ffffff",
-              "accentColor": "#52e08a",
-              "color": "#ffffff",
-              "stroke": "#000000",
-              "strokeW": 0,
-              "segments": [
-                {
-                  "t": "PLAY NOW",
-                  "color": "#ffffff"
-                }
-              ]
-            }
-          }
-        }
-      }
-    }
-  },
-  "level_counts": [
+  "source": "rise_playable_1784887826408.html",
+  "appliedAt": "2026-07-24",
+  "stageCount": 4,
+  "levelObjectCounts": [
     0,
     26,
     98,
-    19,
+    11,
     3,
     2
   ],
-  "sprite_keys": [
+  "spriteKeys": [
+    "background",
     "bg_seam_stage0",
     "bg_seam_stage1",
-    "bg_seam_stage2",
-    "bg_seam_stage3",
-    "bg_seam_stage4",
-    "bg_seam_stage5",
-    "bg_seam_stage6",
-    "bg_seam_stage7",
-    "bg_seam_stage8",
-    "bg_seam_stage9",
     "bg_seam_stage10",
     "bg_seam_stage11",
     "bg_seam_stage12",
@@ -380,162 +24,57 @@
     "bg_seam_stage17",
     "bg_seam_stage18",
     "bg_seam_stage19",
+    "bg_seam_stage2",
     "bg_seam_stage20",
     "bg_seam_stage21",
+    "bg_seam_stage3",
+    "bg_seam_stage4",
+    "bg_seam_stage5",
+    "bg_seam_stage6",
+    "bg_seam_stage7",
+    "bg_seam_stage8",
+    "bg_seam_stage9",
+    "endcard_countdown_badge",
+    "endcard_lose_bg",
+    "endcard_lose_button",
+    "endcard_lose_landscape_cta_bg",
+    "endcard_lose_logo",
+    "endcard_lose_portrait_cta_bg",
     "endcard_win",
     "endcard_win_frame",
-    "endcard_lose_bg",
-    "endcard_lose_logo",
-    "endcard_lose_button",
-    "background",
+    "height_arrow",
     "player",
+    "player_death",
     "shield",
-    "player_death"
+    "tutorial_triangle"
   ],
-  "sprite_sizes": {
-    "bg_seam_stage0": 39394,
-    "bg_seam_stage1": 30514,
-    "bg_seam_stage2": 30514,
-    "bg_seam_stage3": 30514,
-    "bg_seam_stage4": 30514,
-    "bg_seam_stage5": 30514,
-    "bg_seam_stage6": 30514,
-    "bg_seam_stage7": 30514,
-    "bg_seam_stage8": 30514,
-    "bg_seam_stage9": 30514,
-    "bg_seam_stage10": 30514,
-    "bg_seam_stage11": 30514,
-    "bg_seam_stage12": 30514,
-    "bg_seam_stage13": 30514,
-    "bg_seam_stage14": 30514,
-    "bg_seam_stage15": 30514,
-    "bg_seam_stage16": 30514,
-    "bg_seam_stage17": 30514,
-    "bg_seam_stage18": 30514,
-    "bg_seam_stage19": 30514,
-    "bg_seam_stage20": 30514,
-    "bg_seam_stage21": 30514,
-    "endcard_win": 27694,
-    "endcard_win_frame": 166618,
-    "endcard_lose_bg": 43066,
-    "endcard_lose_logo": 19550,
-    "endcard_lose_button": 2818,
-    "background": 3483326,
-    "player": 7842,
-    "shield": 12262,
-    "player_death": 10098
+  "spriteCount": 36,
+  "importantDefaults": {
+    "tutorialObstacleTint": "#c800ff",
+    "playerSpriteColor": "#00eeff",
+    "playerRopeColor": "#84ebfc",
+    "shieldSpriteColor": "#00eeff",
+    "endCardImageTint": "#9a5bf6",
+    "endCardY": -13,
+    "endCardCountdown": 10,
+    "endCardCtaText": "TRY AGAIN",
+    "heightStart": 66
   },
-  "preserved_patches": {
-    "level1": "rigid side-group squeeze, activation on reaching player line",
-    "level3": "U-basket collection and throw physics",
-    "level4": "one-shot store trigger on first tap or protector collision"
-  },
-  "storeUrl": "https://play.google.com/store/apps/details?id=com.riseup.game&hl=en",
-  "storeRedirectSources": [
-    "end-card CTA",
-    "Level 4 first tap",
-    "Level 4 first shield collision",
-    "win callback"
+  "obstacleTintValues": [
+    "#00d5ff",
+    "#6fc6cd",
+    "#b044d1",
+    "#b847d9",
+    "#ba48da",
+    "#bd49df",
+    "#be49df",
+    "#c800ff",
+    "#c806fe",
+    "#c806ff",
+    "#c84deb",
+    "#e037b6",
+    "#e03af4",
+    "#ff00bb"
   ],
-  "levelNumberOverlay": {
-    "enabled": true,
-    "levels": [
-      1,
-      2,
-      3,
-      4
-    ],
-    "style": "large semi-transparent white numeral",
-    "durationMs": 1100,
-    "trigger": "when each mini-level begins entering the viewport after tutorial"
-  },
-  "levelNumberInterludes": {
-    "enabled": true,
-    "heightRatio": 0.5,
-    "beforeLevels": [
-      1,
-      2,
-      3,
-      4
-    ],
-    "beforeFinish": false,
-    "behavior": "physical empty stage band; numeral remains screen-space while band crosses label line"
-  },
-  "deathAnimation": {
-    "sprite": "player_death",
-    "source": "Poof.png (white 512x128 PNG)",
-    "frames": 4,
-    "frameSize": "128x128",
-    "tintSource": "playerSpriteColor"
-  },
-  "whiteSpriteDefaults": {
-    "player": "balloon.png",
-    "shield": "Controller.png",
-    "player_death": "Poof.png",
-    "tintBehavior": {
-      "player": "playerSpriteColor",
-      "shield": "shieldSpriteColor",
-      "player_death": "playerSpriteColor"
-    },
-    "files": {
-      "player": {
-        "source": "balloon.png",
-        "asset": "Assets/textures/balloon.png",
-        "bytes": 5864,
-        "dataUrlChars": 7842,
-        "sha256": "3540c685a743901a796b501c489bfc6832f75495d05fab364dc4c3f52d3846f8"
-      },
-      "shield": {
-        "source": "Controller.png",
-        "asset": "Assets/textures/controller.png",
-        "bytes": 9179,
-        "dataUrlChars": 12262,
-        "sha256": "38e74657333589ee326a38ec52045178625e9afab95046cec60556cff6dc40d5"
-      },
-      "player_death": {
-        "source": "Poof.png",
-        "asset": "Assets/textures/balloon_death.png",
-        "bytes": 7557,
-        "dataUrlChars": 10098,
-        "sha256": "9b990f64baa4698bb71b995d52890ca68288397cb776d1922d89017548f3128e"
-      }
-    }
-  },
-  "tutorialTriangle": {
-    "spriteKey": "tutorial_triangle",
-    "asset": "Assets/textures/tutorial_triangle.png",
-    "size": [
-      128,
-      128
-    ],
-    "defaultTint": "#ffffff",
-    "configField": "cfg-tutorialObstacleTint"
-  },
-  "obstacleTint": {
-    "enabled": true,
-    "field": "tint",
-    "legacyFallback": "color",
-    "editor": "Drag selection popover with native palette and HEX input",
-    "scope": "single obstacle or current multi-selection/template group",
-    "runtime": "Preview and exported HTML"
-  },
-  "heightIndicator": {
-    "enabled": true,
-    "startFeet": 66,
-    "feetPerStage": 100,
-    "position": "top-right",
-    "spriteKey": "height_arrow",
-    "asset": "Assets/textures/height_arrow.png",
-    "source": "high.zip/Playable/Sprites/034_01/arrow.png"
-  },
-  "loseEndCard": {
-    "winEndCardEnabled": false,
-    "countdownFrom": 10,
-    "countdownTo": 1,
-    "badgeSpriteKey": "endcard_countdown_badge",
-    "asset": "Assets/textures/endcard_countdown_badge.png",
-    "ctaText": "TRY AGAIN",
-    "ctaAction": "store redirect",
-    "overlayOpacity": 0.68
-  }
+  "resetRestoresUploadedPlayable": true
 }

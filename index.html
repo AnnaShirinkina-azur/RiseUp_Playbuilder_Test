@@ -293,12 +293,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div class="pnl" id="panel-timing" data-title="Tutorial">
       <div class="sec">Tutorial</div>
       <div class="row"><label>Enable tutorial<small>Обучение на старте: рука + пирамида + надпись (объект Tutorial в Level Editor). Выкл — игра стартует сразу, без задержки</small></label><input type="checkbox" id="cfg-tutorialEnabled" checked></div>
-      <div class="row"><label>Tutorial text<small>Надпись в туториале. Перенос строки — Enter</small></label><textarea id="cfg-tutorialText" rows="2" placeholder="protect your balloon!" style="width:180px;min-height:44px;resize:vertical;line-height:1.25">Protect your Balloon!</textarea></div>
+      <div class="row"><label>Tutorial text<small>Надпись в туториале. Перенос строки — Enter</small></label><textarea id="cfg-tutorialText" rows="2" placeholder="protect your balloon!" style="width:180px;min-height:44px;resize:vertical;line-height:1.25">PROTECT YOUR BALLOON!</textarea></div>
       <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2.0" min="0.5" max="8" step="0.1"></div>
       <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
       <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled"></div>
       <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle" selected>Triangle</option></select></div>
-      <div class="row"><label>Triangle tint<small>Цвет изображения треугольников в туториале</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-tutorialObstacleTint" value="#ffffff"></div>
+      <div class="row"><label>Triangle tint<small>Цвет изображения треугольников в туториале</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-tutorialObstacleTint" value="#c800ff"></div>
       <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
       <div class="sec">Hand sprite</div>
       <div class="sp-row"><div class="sp-up">
@@ -332,8 +332,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
-      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#00eeff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#84ebfc"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">
@@ -345,7 +345,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#00eeff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
@@ -402,7 +402,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
       <div class="sec">Stage debug colors</div>
-      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
+      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents"></div>
       <div class="cgrid">
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
@@ -746,7 +746,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-text-width-wrap" style="display:none">Width<input type="number" id="cfg-endCardTextWidth" value="180" min="1" max="2000" step="1"></div>
           <div class="ep" id="end-text-height-wrap" style="display:none">Height<input type="number" id="cfg-endCardTextHeight" value="40" min="1" max="1000" step="1"></div>
           <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="-5" min="-200" max="200" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="-13" min="-200" max="200" step="1"></div>
           <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
             <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
