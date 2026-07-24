@@ -1927,15 +1927,20 @@ class Game{
   _tutInit(){
     const T=this.tutorialObj;
     let S,ax,ay;
-    if(T){
-      // позиция/масштаб из объекта Level Editor (anchor + offset; центр композиции = uy 4.28)
-      S=Math.min(CW,CH)*0.14*(parseFloat(T.scale)||1);
+    S=Math.min(CW,CH)*0.14*(T?(parseFloat(T.scale)||1):1);
+    const cfgX=parseFloat(this.cfg.tutorialX),cfgY=parseFloat(this.cfg.tutorialY);
+    if(Number.isFinite(cfgX)&&Number.isFinite(cfgY)){
+      // Global Tutorial controls use viewport percentages and therefore stay
+      // predictable in both portrait and landscape exports.
+      ax=CW*clamp(cfgX,0,100)/100;
+      ay=CH*clamp(cfgY,0,100)/100;
+    }else if(T){
+      // Backward compatibility for projects exported before the global controls.
       const b=progressAnchorBaseLocal(T.anchor||'cc');
       const cx=CW/2+b.x+(parseFloat(T.anchorOffsetX)||0)*CW/100;
       const cy=CH/2+b.y+(parseFloat(T.anchorOffsetY)||0)*CH/100;
       ax=cx;ay=cy-(4.28-4.6)*S;
     }else{
-      S=Math.min(CW,CH)*0.14;
       ax=CW/2;ay=clamp(this.shield.y-this.shield.r-120,CH*0.16,CH*0.5);
     }
     this._tutAnchor={ax,ay,S};
@@ -2045,16 +2050,18 @@ class Game{
     const _cfgTut=(this.cfg.tutorialText!=null&&String(this.cfg.tutorialText).trim()!=='')?this.cfg.tutorialText:null;
     const _tutCaption=(_cfgTut!=null)?_cfgTut:((T&&T.text!=null)?T.text:'protect your balloon!');
     const lines=String(_tutCaption).split('\n');
-    // Keep the caption attached to the tutorial instead of pinning it to the
-    // top of the viewport. The gap from the bottom of the last text line to
-    // the tutorial composition equals half a rendered tutorial-block height.
+    // Caption follows the tutorial centre. Its vertical gap is configurable in
+    // rendered triangle heights, which makes the same value usable in portrait
+    // and landscape without relying on viewport height.
     const tutorialTop=this._tutAnchor.ay-2.19*S;
     const tutorialBlockHeight=0.5224*S*(shape==='triangle'?1.16:1);
+    const captionGapRaw=parseFloat(this.cfg.tutorialCaptionGap);
+    const captionGap=Number.isFinite(captionGapRaw)?clamp(captionGapRaw,-2,5):.5;
     const lineH=fs*1.25;
     const textDescent=fs*.22;
-    const lastBaseline=tutorialTop-tutorialBlockHeight*.5-textDescent;
+    const lastBaseline=tutorialTop-tutorialBlockHeight*captionGap-textDescent;
     let ty=lastBaseline-(lines.length-1)*lineH;
-    const tx=CW/2;
+    const tx=this._tutAnchor.ax;
     for(const ln of lines){ctx.fillText(ln,tx,ty);ty+=lineH;}
   }
 
@@ -2243,7 +2250,7 @@ class Game{
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.1,
-  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",
+  hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:false,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialX:50,tutorialY:55,tutorialCaptionGap:0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1,shieldSpriteColor:"#00eeff",

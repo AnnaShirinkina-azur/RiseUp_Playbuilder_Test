@@ -69,10 +69,15 @@
     "heightCounterResetsOnLevelRestart": true
   },
   "gameplayFixes": {
-    "tutorialTextPosition": "top-center",
+    "tutorialTextPosition": "configurable viewport X/Y",
     "respawnCheckpoint": "corridor-before-failed-level",
-    "tutorialCaptionGap": "half a rendered tutorial triangle height above tutorial composition",
+    "tutorialCaptionGap": "configurable in rendered triangle heights",
     "completedLevelsRemainCompleted": true,
     "failedLevelNumberShownAgain": true
+  },
+  "tutorialControls": {
+    "positionXPercent": 50,
+    "positionYPercent": 55,
+    "captionGapTriangleHeights": 0.5
   }
 }
