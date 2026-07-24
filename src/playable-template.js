@@ -932,6 +932,12 @@ class Game{
     // first interactable obstacle opens the store. Keep it one-shot across
     // pointer/touch/mouse fallback events and collision frames.
     this._level4StoreTriggered=false;
+    // Height HUD starts at the configured real-world value and advances by
+    // actual world travel measured in normal-stage heights. Keeping the
+    // accumulator in stage units makes the number stable across orientation
+    // changes and responsive canvas resizing.
+    this._heightTravelStages=0;
+    this._heightArrow=null;
     this.paused=false;
     if(this._raf)cancelAnimationFrame(this._raf);
     this._last=null;
@@ -1196,6 +1202,13 @@ class Game{
           const overshoot=next.worldY-limit;
           this.stages.forEach(s=>{if(!s.done)s.worldY-=overshoot;});
         }
+      }
+      // The height counter starts at 66 ft and follows actual world movement.
+      // Tutorial clamping is intentionally excluded, so the visible value does
+      // not rise before the player reaches real gameplay.
+      if(this.tutDone){
+        const stageH=this.stages&&this.stages[0]?this.stages[0].H:CH;
+        this._heightTravelStages+=Math.max(0,fall*dt/Math.max(1,stageH));
       }
       this._scatterPhysics();
     }
@@ -1613,11 +1626,69 @@ class Game{
     this._drawProgressBars(ctx);
     this._drawHealthBars(ctx);
     this._drawCtas(ctx);
+    this._drawHeightIndicator(ctx);
     if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
     if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
+  }
+
+  _heightValue(){
+    const start=parseFloat(this.cfg.heightStart);
+    const perStage=parseFloat(this.cfg.heightFeetPerStage);
+    const base=isFinite(start)?start:66;
+    const rate=isFinite(perStage)?Math.max(0,perStage):100;
+    return Math.max(0,Math.floor(base+(this._heightTravelStages||0)*rate));
+  }
+
+  _drawHeightIndicator(ctx){
+    if(this.cfg.heightIndicatorEnabled===false||!this._startedAt)return;
+    if(this.state==='endcard'||this.state==='finished'||this.state==='lost')return;
+    const elapsed=Date.now()-this._startedAt;
+    const raw=clamp(elapsed/720,0,1),show=raw*raw*(3-2*raw);
+    if(show<=0)return;
+
+    if(!this._heightArrow)this._heightArrow=this._spr('height_arrow')||makeImg(this.cfg.defaultHeightArrowSrc);
+    const portrait=CW<=CH;
+    const scale=clamp(CH/844,.78,1.18);
+    const right=(portrait?18:28)*scale;
+    const top=(portrait?30:24)*scale;
+    const numberSize=(portrait?54:50)*scale;
+    const ftSize=21*scale;
+    const arrowSize=64*scale;
+    const numberX=CW-right-48*scale-(1-show)*125*scale;
+    const numberY=top+numberSize*.53;
+    const arrowX=numberX-88*scale;
+    const arrowY=top+40*scale;
+    const purple=this.cfg.heightAccentColor||'#a552ff';
+    const outline=this.cfg.heightOutlineColor||'#7d33ce';
+
+    ctx.save();
+    ctx.globalAlpha=show;
+    if(imgOk(this._heightArrow)){
+      ctx.save();ctx.translate(arrowX,arrowY);ctx.rotate(-Math.PI/2);
+      drawTintedImage(ctx,this._heightArrow,-arrowSize/2+3*scale,-arrowSize/2+3*scale,arrowSize,arrowSize,purple);
+      drawTintedImage(ctx,this._heightArrow,-arrowSize/2,-arrowSize/2,arrowSize,arrowSize,'#ffffff');
+      ctx.restore();
+    }else{
+      // Fallback keeps the HUD usable if a custom export strips the source PNG.
+      const arrowPath=()=>{ctx.beginPath();ctx.moveTo(-10*scale,22*scale);ctx.lineTo(-10*scale,-5*scale);ctx.lineTo(-23*scale,-5*scale);ctx.lineTo(0,-29*scale);ctx.lineTo(23*scale,-5*scale);ctx.lineTo(10*scale,-5*scale);ctx.lineTo(10*scale,22*scale);ctx.closePath();};
+      ctx.save();ctx.translate(arrowX+3*scale,arrowY+3*scale);ctx.fillStyle=purple;arrowPath();ctx.fill();ctx.restore();
+      ctx.save();ctx.translate(arrowX,arrowY);ctx.fillStyle='#fff';arrowPath();ctx.fill();ctx.restore();
+    }
+
+    const family='Arial, Helvetica, sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.font='900 '+Math.round(numberSize)+'px '+family;
+    ctx.lineWidth=Math.max(3,5*scale);ctx.strokeStyle=outline;ctx.fillStyle='#ffffff';
+    const value=String(this._heightValue());
+    ctx.strokeText(value,numberX,numberY);ctx.fillText(value,numberX,numberY);
+    ctx.font='900 '+Math.round(ftSize)+'px '+family;
+    ctx.lineWidth=Math.max(2,3.5*scale);
+    const ftY=top+numberSize+20*scale;
+    ctx.strokeText('FT',numberX,ftY);ctx.fillText('FT',numberX,ftY);
+    ctx.restore();
   }
 
   _flaskPath(ctx,x,y,w,h){
@@ -2013,6 +2084,7 @@ const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:33,level3BasketPower:0.6,level3BallGravity:0.34,
   chainReaction:false,scatterBounciness:0.08,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:'triangle',tutorialObstacleTint:'#ffffff',tutorialText:'protect your balloon!',
+  heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2.0,playerDeathAnimSpeed:1,playerSpriteColor:'#ffffff',playerRopeColor:'#ffffff',playerStart:null,
   shieldColor:'#4fc3f7',shieldSize:1.0,shieldSpriteColor:'#ffffff',
   obstacleColor:'#e05252',obstacleColorAlt:'#5282e0',obstacleSpriteColor:'#ffffff',

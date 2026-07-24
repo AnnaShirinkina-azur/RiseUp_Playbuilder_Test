@@ -29,6 +29,9 @@ function readConfig(){
   }
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
+    heightIndicatorEnabled:(function(){var e=document.getElementById('cfg-heightIndicatorEnabled');return e?e.checked:true;})(),
+    heightStart:(function(){var v=g('cfg-heightStart');return isNaN(v)?66:v;})(),
+    heightFeetPerStage:(function(){var v=g('cfg-heightFeetPerStage');return isNaN(v)?100:Math.max(0,v);})(),
     deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?1500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
     // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
@@ -105,7 +108,7 @@ function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' 
 const BUNDLE=[
   'textures/bg_bathroom.png','textures/bg_light_overlay.png','textures/bg_sky.png',
   'textures/endcard_lose_image.png','textures/endcard_win_image.png',
-  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
+  'textures/hand.png','textures/tutorial_hand.svg','textures/tutorial_triangle.png','textures/height_arrow.png','textures/heart.png','textures/balloon.png','textures/balloon_death.png','textures/controller.png','textures/obj_brush.png','textures/obj_brush_mask.png',
   'audio/bgm.wav','audio/bgm_fail_loop.wav','audio/sfx_confetti.wav',
   'audio/sfx_correct.wav','audio/sfx_lose.wav','audio/sfx_win.wav','audio/sfx_wrong.wav',
   'fonts/Baloo2-Bold.ttf','fonts/Kameron-SemiBold.ttf',
@@ -132,6 +135,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
   if(assetMap['textures/controller.png'])cfg.defaultShieldSrc=assetMap['textures/controller.png'];
   if(assetMap['textures/tutorial_hand.svg'])cfg.defaultTutorialHandSrc=assetMap['textures/tutorial_hand.svg'];
   if(assetMap['textures/tutorial_triangle.png'])cfg.defaultTutorialTriangleSrc=assetMap['textures/tutorial_triangle.png'];
+  if(assetMap['textures/height_arrow.png'])cfg.defaultHeightArrowSrc=assetMap['textures/height_arrow.png'];
   const googleFamily=cfg.googleFontFamily||googleFontFamilyFromUrl(cfg.googleFontUrl);
   if(googleFamily)cfg.googleFontFamily=googleFamily;
   const googleHref=googleFontCssUrl(cfg.googleFontUrl,googleFamily);

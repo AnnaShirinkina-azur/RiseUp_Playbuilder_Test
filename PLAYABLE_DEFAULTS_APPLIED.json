@@ -518,5 +518,14 @@
     "editor": "Drag selection popover with native palette and HEX input",
     "scope": "single obstacle or current multi-selection/template group",
     "runtime": "Preview and exported HTML"
+  },
+  "heightIndicator": {
+    "enabled": true,
+    "startFeet": 66,
+    "feetPerStage": 100,
+    "position": "top-right",
+    "spriteKey": "height_arrow",
+    "asset": "Assets/textures/height_arrow.png",
+    "source": "high.zip/Playable/Sprites/034_01/arrow.png"
   }
 }

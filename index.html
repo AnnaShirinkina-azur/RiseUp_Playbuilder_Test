@@ -259,6 +259,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
+      <div class="sec">Height indicator</div>
+      <div class="row"><label>Show height<small>Динамический показатель высоты справа сверху</small></label><input type="checkbox" id="cfg-heightIndicatorEnabled" checked></div>
+      <div class="row"><label>Start height (ft)<small>Начальное значение</small></label><input type="number" id="cfg-heightStart" value="66" min="0" max="99999" step="1"></div>
+      <div class="row"><label>Feet per level<small>Рост значения за высоту одного обычного уровня</small></label><input type="number" id="cfg-heightFeetPerStage" value="100" min="0" max="10000" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -870,9 +874,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=71-obstacle-tint"></script>
-<script src="src/builder.js?v=48-obstacle-tint"></script>
-<script src="script2.js?v=obstacle-tint"></script>
+<script src="src/playable-template.js?v=72-height-indicator"></script>
+<script src="src/builder.js?v=49-height-indicator"></script>
+<script src="script2.js?v=height-indicator"></script>
 
 </body>
 </html>
