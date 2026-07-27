@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1784898303564.html",
+  "source": "rise_playable_1785142623499.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -41,61 +41,46 @@
     "endcard_lose_portrait_cta_bg",
     "endcard_win",
     "endcard_win_frame",
+    "endcard_win_landscape_cta_bg",
+    "endcard_win_portrait_cta_bg",
     "height_arrow",
     "player",
     "player_death",
     "shield",
     "tutorial_triangle"
   ],
-  "spriteCount": 36,
+  "spriteCount": 38,
   "defaultsSummary": {
     "lives": 3,
     "orientation": "landscape",
     "deathPauseMs": 2500,
-    "level1CenterSpeed": 18,
-    "level3BasketPower": 0.6,
-    "level3BallGravity": 0.34,
-    "tutorialObstacleTint": "#c800ff",
     "tutorialText": "PROTECT YOUR BALLOON!",
     "tutorialTextSizePx": 30,
     "tutorialXPercent": 50,
     "tutorialYPercent": 35,
     "tutorialCaptionGapTriangleHeights": -0.5,
     "tutorialFailEnabled": true,
-    "playerSpriteColor": "#00eeff",
-    "shieldSpriteColor": "#00eeff",
-    "endCardCountdown": 10,
-    "endCardCtaText": "TRY AGAIN",
     "winEndCardEnabled": true,
-    "loseEndCardEnabled": true
+    "loseEndCardEnabled": true,
+    "endCardYPercent": 10,
+    "endCardCountdown": 10,
+    "winCtaText": "PLAY NOW",
+    "winCtaHeight": 110,
+    "winCtaFontSize": 30,
+    "winCtaBgTint": "#c800ff",
+    "winCtaCustomSprite": true
   },
-  "hudScaleFix": {
-    "ctaAndHealthMatchHeightCounter": true,
-    "scaleFormula": "clamp(gameHeight / 844, 0.78, 1.18)",
-    "ignoresLandscapeDesignWidth": true,
-    "heightCounterResetsOnEveryDeath": false,
-    "heightCounterResetsOnLevelRestart": false,
-    "heightCounterRestoresLevelCheckpoint": true
-  },
-  "gameplayFixes": {
-    "tutorialTextPosition": "configurable viewport X/Y",
-    "respawnCheckpoint": "corridor-before-failed-level",
-    "tutorialCaptionGap": "configurable in rendered triangle heights",
-    "completedLevelsRemainCompleted": true,
-    "failedLevelNumberShownAgain": true,
-    "heightRespawnCheckpoint": "height saved at the entrance of the failed numbered level",
-    "heightRemainsVisibleDuringDeathPause": true
-  },
-  "tutorialControls": {
-    "positionXPercent": 50,
-    "positionYPercent": 35,
-    "captionGapTriangleHeights": -0.5,
-    "textSizePx": 30
+  "gameplayPreserved": {
+    "level0Corridor": true,
+    "heightCheckpointRespawn": true,
+    "checkpointRespawn": true,
+    "deathPause": true,
+    "level3BasketContactRelease": true,
+    "portraitCtaScaleFix": true
   },
   "endCardFeatures": {
-    "winCardImportedFrom": "RiseUp_Playbuilder_Test-09.07.2026 (3)(1).zip",
     "independentWinLoseToggles": true,
-    "winCtaOnlyRedirect": true,
+    "winAndLoseLayoutsImported": true,
     "loseCountdownPreserved": true
   }
 }

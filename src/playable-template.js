@@ -2371,7 +2371,7 @@ const DEF={
   stageColors:["#e05252", "#52a0e0", "#52e08a", "#e07d52", "#c052e0"],stageAccents:false,showGrid:false,stageCount:4,orientation:"landscape",
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{"enabled": true, "winEnabled": true, "loseEnabled": true, "tryAgainEnabled": true, "tryAgainDelay": 0, "countdownFrom": 10, "tryAgainDuration": 0, "scale": 1, "x": 0, "y": -13, "overlay": 0.68, "overlayColor": "#000000", "showCta": true, "ctaText": "TRY AGAIN", "fontFamily": "Baloo2", "ctaY": "74"},
+  endCard:{"enabled":true,"winEnabled":true,"loseEnabled":true,"tryAgainEnabled":true,"tryAgainDelay":0,"countdownFrom":10,"tryAgainDuration":0,"scale":1,"x":0,"y":10,"overlay":0.68,"overlayColor":"#000000","showCta":true,"ctaText":"TRY AGAIN","fontFamily":"Baloo2","ctaY":"74"},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};
