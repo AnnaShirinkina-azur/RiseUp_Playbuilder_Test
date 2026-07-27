@@ -549,7 +549,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="obstacle-tint-head"><span>Obstacle tint</span><small>Selected object</small></div>
         <div class="obstacle-tint-controls">
           <input type="color" id="ob-tint-picker" value="#ffffff" data-no-eyedropper="1" title="Choose tint from palette">
-          <input type="text" class="hex-color" inputmode="text" spellcheck="false" maxlength="7" id="ob-tint-hex" value="#FFFFFF" aria-label="Obstacle tint HEX" placeholder="#FFFFFF">
+          <input type="text" class="hex-color" inputmode="text" spellcheck="false" maxlength="7" id="ob-tint-hex" value="#FFFFFF" data-no-eyedropper="1" aria-label="Obstacle tint HEX" placeholder="#FFFFFF">
         </div>
         <div class="obstacle-tint-mixed">Multiple colors selected. A new value will tint all selected obstacles.</div>
       </div>
@@ -858,7 +858,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
   }
 
   function enhance(input) {
-    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1' || input.dataset.noEyedropper === '1') return;
+    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1' || input.dataset.noEyedropper === '1' || input.closest('#obstacle-tint-popover')) return;
     input.dataset.eyedropperReady = '1';
 
     const wrap = document.createElement('span');
