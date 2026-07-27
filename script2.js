@@ -862,6 +862,7 @@ const LE=(function(){
   }
   const PHYSICS_PREFABS=[
     {id:'level1_squeeze',name:'Level 1 — Squeeze Walls',description:'26 objects · side squeeze physics',sourceStage:1,icon:'↔'},
+    {id:'level2_grid',name:'Level 2 — Grid Corridor',description:'98 objects · authored obstacle grid',sourceStage:2,icon:'≡'},
     {id:'level3_basket',name:'Level 3 — Basket & Balls',description:'11 objects · basket contact physics',sourceStage:3,icon:'∪'}
   ].map(def=>{const objects=obstacleOnly(PLAYABLE_DEFAULT_LEVEL_DATA[def.sourceStage]),bounds=prefabBounds(objects);return {...def,objects,bounds};});
   const PLAYABLE_DEFAULT_PLAYER_START={"coordMode":"center","x":0,"y":169};
@@ -869,7 +870,7 @@ const LE=(function(){
     try{
       PLAYABLE_DEFAULT_LEVEL_DATA.forEach((stage,i)=>{
         if(!lvls[i])lvls[i]=[];
-        const prefab=i===1?PHYSICS_PREFABS.find(p=>p.id==='level1_squeeze'):(i===3?PHYSICS_PREFABS.find(p=>p.id==='level3_basket'):null);
+        const prefab=i===1?PHYSICS_PREFABS.find(p=>p.id==='level1_squeeze'):(i===2?PHYSICS_PREFABS.find(p=>p.id==='level2_grid'):(i===3?PHYSICS_PREFABS.find(p=>p.id==='level3_basket'):null));
         const gid=prefab?('default_'+prefab.id):null;
         (stage||[]).forEach((source,index)=>{
           const o=cloneJson(source);
@@ -1318,6 +1319,7 @@ bindHexColorInputs(document);
   renderPhysicsPrefabList();
   function physicsRoleFor(prefabId,o,index,bounds){
     if(prefabId==='level1_squeeze')return (parseFloat(o.x)||0)<bounds.cx?'left':'right';
+    if(prefabId==='level2_grid')return o.interactable===false?'decor':'bar';
     if(prefabId==='level3_basket'){
       if(o.interactable!==false&&(parseFloat(o.w)||0)>150&&(parseFloat(o.h)||0)>80)return 'basket';
       if(o.interactable!==false){const w=parseFloat(o.w)||0,h=parseFloat(o.h)||0,ratio=Math.max(w,h)/Math.max(1,Math.min(w,h));if(Math.max(w,h)<=90&&ratio<=1.4)return 'ball';}

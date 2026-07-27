@@ -96,7 +96,13 @@
     "level1Squeeze": true,
     "level3BasketAndBalls": true,
     "physicsMetadataExported": true,
-    "editableAsWholeOrIndividual": true
+    "editableAsWholeOrIndividual": true,
+    "level2GridCorridor": true,
+    "availablePrefabs": [
+      "Level 1 — Squeeze Walls",
+      "Level 2 — Grid Corridor",
+      "Level 3 — Basket & Balls"
+    ]
   },
   "prefabsPanel": "separate sidebar item under Obstacles"
 }
