@@ -149,6 +149,7 @@ function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L),anchor=L.anchor||'bc'
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
   'Baloo2':"'Baloo2',sans-serif",
+  'RobotoMono':"'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",
   'Kameron':"'Kameron',serif",
   'LiberationSans':"'LiberationSans',Arial,sans-serif",
   'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
@@ -1212,14 +1213,18 @@ class Game{
   _drawLevelNumeral(ctx,value,y,a){
     if(a<=0)return;
     const size=Math.round(Math.min(CW,CH)*.18);
-    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, sans-serif';
+    const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.RobotoMono)?RiseFontCSS.RobotoMono:'"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+    const numeric=parseInt(value,10);
+    // The intro corridor remains `0`; numbered gameplay corridors use a
+    // fixed two-character label: 01, 02, 03, 04, ...
+    const label=numeric===0?'0':String(isFinite(numeric)?numeric:value).padStart(2,'0');
     ctx.save();
     ctx.globalAlpha=a;
     ctx.fillStyle='#ffffff';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font='700 '+size+'px '+family;
     ctx.shadowColor='rgba(0,0,0,.08)';ctx.shadowBlur=Math.max(2,size*.035);ctx.shadowOffsetY=Math.max(1,size*.015);
-    ctx.fillText(String(value),CW/2,y);
+    ctx.fillText(label,CW/2,y);
     ctx.restore();
   }
 

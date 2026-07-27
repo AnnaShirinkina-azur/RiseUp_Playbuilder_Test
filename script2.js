@@ -1533,7 +1533,7 @@ bindHexColorInputs(document);
   function stageOf(row){return totalStages()-1-row;}
   function rowFromGlobalY(globalY){return Math.max(0,Math.min(totalStages()-1,Math.floor(globalY/GH)));}
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
-  function stageLabel(si){return si===0?'Start scene':(si===NS+1?'Finish scene':'Mini-level '+si);}
+  function stageLabel(si){return si===0?'Start scene':(si===NS+1?'Finish scene':'Mini-level '+String(si).padStart(2,'0'));}
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
   function anchorBaseLocal(anchor){
     const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
@@ -2394,7 +2394,7 @@ bindHexColorInputs(document);
   bindTx('tx-stroke','stroke');
   bindTx('tx-strokeW','strokeW',v=>Math.max(0,parseFloat(v)||0));
   $('tx-shadow').addEventListener('change',()=>{const o=selItem();if(!o||o.kind!=='text')return;o.shadow=$('tx-shadow').checked;draw();});
-  if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('800 40px Baloo2'),document.fonts.load('600 40px Kameron'),document.fonts.load('400 40px LiberationSans')]).then(draw).catch(()=>{});}
+  if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('800 40px Baloo2'),document.fonts.load('600 40px Kameron'),document.fonts.load('400 40px LiberationSans'),document.fonts.load('700 40px "Roboto Mono"')]).then(draw).catch(()=>{});}
 
   $('et-progress').addEventListener('click',()=>{selectedTemplateId=null;selectedPhysicsPrefabId=null;renderTemplateList();renderPhysicsPrefabList();mode='progress';clearToolButtons();$('et-progress').classList.add('on');});
   document.querySelectorAll('#pb-anchor button').forEach(b=>b.addEventListener('click',()=>{const o=selItem();if(!o||o.kind!=='progress')return;o.anchor=b.dataset.a;setProgressLocalFromOffset(o);document.querySelectorAll('#pb-anchor button').forEach(x=>x.classList.toggle('on',x===b));draw();}));
@@ -2462,6 +2462,7 @@ window.RiseLevelEditor=LE;
 // ── Text labels — level text with per-segment colors (must match playable-template.js) ──
 const FONT_CSS={
   'Baloo2':"'Baloo2',sans-serif",
+  'RobotoMono':"'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",
   'Kameron':"'Kameron',serif",
   'LiberationSans':"'LiberationSans',Arial,sans-serif",
   'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',

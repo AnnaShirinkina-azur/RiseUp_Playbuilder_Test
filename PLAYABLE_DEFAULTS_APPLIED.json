@@ -104,5 +104,7 @@
       "Level 3 — Basket & Balls"
     ]
   },
-  "prefabsPanel": "separate sidebar item under Obstacles"
+  "prefabsPanel": "separate sidebar item under Obstacles",
+  "levelNumberFormat": "0, 01, 02, 03, 04",
+  "levelNumberFont": "Roboto Mono"
 }

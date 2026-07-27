@@ -171,6 +171,7 @@ function buildHTML(cfg,assetMap,sprMap,gameSrc){
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>Rise – Playable</title>
 <style>
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap");
 ${googleHref?'@import url("'+googleHref.replace(/"/g,'')+'");':''}
 ${ff}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -249,7 +250,7 @@ var cfg=${JSON.stringify(cfg)};
       };
     };
     if(document.fonts&&document.fonts.load){
-      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans")${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(go).catch(go);
+      Promise.all([document.fonts.load("700 40px Baloo2"),document.fonts.load("600 40px Kameron"),document.fonts.load("400 40px LiberationSans"),document.fonts.load('700 40px "Roboto Mono"')${googleFontFamilyCss?`,document.fonts.load(${JSON.stringify('700 40px '+googleFontFamilyCss)})`:''}${localFontCss?`,document.fonts.load(${JSON.stringify('700 40px '+localFontCss)})`:''}]).then(go).catch(go);
     }else{go();}
   }
   function loadImage(k){
