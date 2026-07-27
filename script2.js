@@ -1580,45 +1580,6 @@ bindHexColorInputs(document);
   function selectionBounds(){const ids=selectionIndices();if(!ids.length)return null;let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;ids.forEach(i=>{const o=lvls[cur][i];let bx,by,bw,bh;if(o.kind==='text'){const l=textLocal(o),sz=textLabelSize(ctx,o),bp=txBox(o.anchor,l.x,l.y,sz.w,sz.h);bx=bp.x;by=bp.y;bw=sz.w;bh=sz.h;}else if(o.kind==='progress'){const b=progressBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='health'){const b=healthBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='cta'){const b=ctaBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else if(o.kind==='tutorial'){const b=tutorialBoxLocal(o);bx=b.x;by=b.y;bw=b.w;bh=b.h;}else{const l=itemLocal(o),w=o.kind===PLAYER_KIND?Math.max(40,(20*(parseFloat($('cfg-playerSize')?.value)||2)*4.15)):(o.w||o.heartW||60),h=o.kind===PLAYER_KIND?Math.max(80,(20*(parseFloat($('cfg-playerSize')?.value)||2)*7.4)):(o.h||o.heartW||60);bx=l.x-w/2;by=l.y-h/2;bw=w;bh=h;}minX=Math.min(minX,bx);maxX=Math.max(maxX,bx+bw);minY=Math.min(minY,by);maxY=Math.max(maxY,by+bh);});return {x:(minX+maxX)/2,y:(minY+maxY)/2,w:maxX-minX,h:maxY-minY};}
   function moveSelectionCenterTo(nx,ny){const b=selectionBounds();if(!b)return;const dx=nx-b.x,dy=ny-b.y;selectionIndices().forEach(i=>{const it=lvls[cur][i],l=uiCenterLocal(it);if(it.kind==='progress'||it.kind==='health'||it.kind==='cta'||it.kind==='tutorial')moveUiCenterTo(it,l.x+dx,l.y+dy);else moveItemTo(it,l.x+dx,l.y+dy);});}
   function selectedObstacleIndices(){return selectionIndices().filter(i=>isObstacleItem(lvls[cur]&&lvls[cur][i]));}
-  function selectedObstacleTintState(){
-    const ids=selectedObstacleIndices();
-    if(!ids.length)return {color:'#ffffff',mixed:false};
-    const values=ids.map(i=>normalizeHexColor((lvls[cur][i]&&((lvls[cur][i].tint)||(lvls[cur][i].color)))||'#ffffff','#ffffff'));
-    return {color:values[0]||'#ffffff',mixed:values.some(v=>v!==values[0])};
-  }
-  function setObstacleTintControls(color,mixed){
-    color=normalizeHexColor(color,'#ffffff');
-    const picker=$('ob-tint-picker'),hex=$('ob-tint-hex'),pop=$('obstacle-tint-popover'),swatch=$('ob-tint-swatch-fill');
-    if(picker&&picker.value.toLowerCase()!==color)picker.value=color;
-    if(swatch)swatch.style.backgroundColor=color;
-    if(hex&&document.activeElement!==hex)setHexValue('ob-tint-hex',color,'#ffffff');
-    if(pop)pop.classList.toggle('mixed',!!mixed);
-  }
-  function applySelectedObstacleTint(value){
-    const ids=selectedObstacleIndices();if(!ids.length)return;
-    const state=selectedObstacleTintState(),color=normalizeHexColor(value,state.color||'#ffffff');
-    ids.forEach(i=>{const o=lvls[cur][i];if(!o)return;o.tint=color;o.color=color;});
-    setObstacleTintControls(color,false);setHexValue('oc',color,'#ffffff');draw();
-  }
-  function updateObstacleTintPopover(){
-    const pop=$('obstacle-tint-popover'),o=selItem(),ids=selectedObstacleIndices();if(!pop)return;
-    if(mode!=='drag'||!o||!isObstacleItem(o)||!ids.length){pop.classList.remove('on');return;}
-    const state=selectedObstacleTintState();setObstacleTintControls(state.color,state.mixed);
-    const b=selectionBounds();if(!b){pop.classList.remove('on');return;}
-    pop.classList.add('on');
-    const rc=cv.getBoundingClientRect(),sx=rc.width/Math.max(1,cv.width),sy=rc.height/Math.max(1,cv.height);
-    const px=rc.left+(GW/2+b.x)*zoom*sx;
-    const py=rc.top+(rowOf(cur)*GH+GH/2+b.y-b.h/2)*zoom*sy;
-    const margin=10,pw=pop.offsetWidth||238,ph=pop.offsetHeight||86;
-    let left=Math.max(margin,Math.min(window.innerWidth-pw-margin,px-pw/2));
-    let top=py-ph-12;if(top<margin)top=py+(b.h*zoom*sy)/2+12;
-    top=Math.max(margin,Math.min(window.innerHeight-ph-margin,top));
-    pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px';
-  }
-  $('ob-tint-picker')?.addEventListener('input',e=>applySelectedObstacleTint(e.target.value));
-  $('ob-tint-hex')?.addEventListener('input',e=>{const v=String(e.target.value||'').trim();if(/^#?[0-9a-fA-F]{3}$/.test(v)||/^#?[0-9a-fA-F]{6}$/.test(v))applySelectedObstacleTint(v);});
-  $('ob-tint-hex')?.addEventListener('change',e=>{const state=selectedObstacleTintState();const v=normalizeHexColor(e.target.value,state.color);setHexValue('ob-tint-hex',v,'#ffffff');applySelectedObstacleTint(v);});
-  window.addEventListener('resize',()=>updateObstacleTintPopover());
   function selectedWholeTemplateGroup(){
     const ids=selectedObstacleIndices();if(ids.length<2)return null;
     const first=lvls[cur][ids[0]],gid=first&&first.templateGroupId;
@@ -2313,7 +2274,6 @@ bindHexColorInputs(document);
     }
     
     let no=0,nt=0,nb=0,np=0,nh=0,nc=0;lvls.forEach(s=>s.forEach(o=>{if(!o)return;if(o.kind==='text')nt++;else if(o.kind==='bg')nb++;else if(o.kind==='progress')np++;else if(o.kind==='health')nh++;else if(o.kind==='cta')nc++;else if(o.kind===PLAYER_KIND){}else no++;}));ctx.fillStyle='rgba(255,255,255,.45)';ctx.font='11px monospace';ctx.textAlign='left';ctx.fillText('Start scene + '+NS+' mini-levels + Finish scene · '+no+' obstacles · '+nb+' images · '+nt+' text · '+np+' progress · '+nh+' health · '+nc+' cta · '+Math.round(zoom*100)+'% zoom',8,cv.height-8);
-    updateObstacleTintPopover();
   }
   function getLevelData(){ensurePlayerObject();return lvls.map(stage=>{const out=[];stage.forEach(o=>{if(!o||o.kind===PLAYER_KIND)return;if(o.kind==='svgTemplate'){flattenSvgTemplate(o).forEach(x=>out.push({...x,coordMode:'center'}));}else{if(!o.kind)ensureObstacleScale(o);if(['text','progress','health','cta'].includes(o.kind))ensureResponsiveBase(o);out.push({...o,coordMode:'center'});}});return out;});}
   function getPlayerStart(){const p=ensurePlayerObject();ensurePlayerAnchor(p);setPlayerLocalFromOffset(p);return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.20):p.y)};}
@@ -2395,11 +2355,10 @@ bindHexColorInputs(document);
     } else if(o&&o.kind==='bg'){
       $('os').value=1;$('osx').value=1;$('osy').value=1;setHexValue('oc',o.tint,'#ffffff');$('om').value=0;if($('orot'))$('orot').value=0;if($('ointeractable')){$('ointeractable').checked=false;$('ointeractable').indeterminate=false;}
     } else if(o){
-      ensureObstacleScale(o);$('os').value=Number(o.scale||1).toFixed(2);$('osx').value=Number(o.scaleX||1).toFixed(2);$('osy').value=Number(o.scaleY||1).toFixed(2);setHexValue('oc',o.tint||o.color,'#ffffff');setObstacleTintControls(o.tint||o.color||'#ffffff',selectedObstacleTintState().mixed);$('om').value=o.moveX||0;if($('orot'))$('orot').value=selectionRotationValue();
+      ensureObstacleScale(o);$('os').value=Number(o.scale||1).toFixed(2);$('osx').value=Number(o.scaleX||1).toFixed(2);$('osy').value=Number(o.scaleY||1).toFixed(2);setHexValue('oc',o.tint||o.color,'#ffffff');$('om').value=o.moveX||0;if($('orot'))$('orot').value=selectionRotationValue();
       const intEl=$('ointeractable');if(intEl){const oi=selectedObstacleIndices(),vals=oi.map(i=>lvls[cur][i].interactable!==false);intEl.checked=vals.length?vals.every(Boolean):true;intEl.indeterminate=vals.some(Boolean)&&vals.some(v=>!v);}
       if(hasMultiSelection())syncGroupAnchorFields();else{ensureObstacleAnchor(o);$('ob-offx').value=o.anchorOffsetX||0;$('ob-offy').value=o.anchorOffsetY||0;document.querySelectorAll('#ob-anchor button').forEach(b=>b.classList.toggle('on',b.dataset.a===(o.anchor||'cc')));}
     }
-    updateObstacleTintPopover();
   }
   function paintRange(color){
     const o=selItem();if(!o||o.kind!=='text')return;const inp=$('tx-text');
