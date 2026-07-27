@@ -1588,8 +1588,9 @@ bindHexColorInputs(document);
   }
   function setObstacleTintControls(color,mixed){
     color=normalizeHexColor(color,'#ffffff');
-    const picker=$('ob-tint-picker'),hex=$('ob-tint-hex'),pop=$('obstacle-tint-popover');
+    const picker=$('ob-tint-picker'),hex=$('ob-tint-hex'),pop=$('obstacle-tint-popover'),swatch=$('ob-tint-swatch-fill');
     if(picker&&picker.value.toLowerCase()!==color)picker.value=color;
+    if(swatch)swatch.style.backgroundColor=color;
     if(hex&&document.activeElement!==hex)setHexValue('ob-tint-hex',color,'#ffffff');
     if(pop)pop.classList.toggle('mixed',!!mixed);
   }
