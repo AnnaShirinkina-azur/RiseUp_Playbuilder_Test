@@ -82,5 +82,11 @@
     "independentWinLoseToggles": true,
     "winAndLoseLayoutsImported": true,
     "loseCountdownPreserved": true
+  },
+  "editorRuntimeSync": {
+    "endCardLogicalViewport": true,
+    "landscapeLogicalHeight": 844,
+    "landscapeLogicalWidthFromAspect": true,
+    "loseCountdownPreviewMatchesRuntime": true
   }
 }
