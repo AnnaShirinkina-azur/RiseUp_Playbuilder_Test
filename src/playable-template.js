@@ -276,6 +276,7 @@ class Obs{
     this.interactable=o.interactable!==false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
     // Runtime-only role used by the Level 3 basket simulation.
+    this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
     this.level3Role=null;this.level3Follow=null;this.level3Safe=false;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
@@ -354,85 +355,69 @@ class Stage{
     // Level 1 is a pair of horizontal side assemblies. Every item on one side
     // receives exactly the same X translation, so the large rectangle keeps
     // its authored gap to the triangles instead of overtaking them.
-    this.level1SqueezeActive=false;
-    this.level1SideProgress={left:0,right:0};
-    this.level1Groups=null;
-    this.level1ActivationBottom=0;
+    this.level1Systems=[];
     this.cfg=(obs&&obs.length&&obs[0].cfg)||{};
     this.level3=null;
-    if(this.idx===3)this._buildLevel3Physics();
+    if(this._hasLevel1Physics())this._buildLevel1Groups();
+    if(this._hasLevel3Physics())this._buildLevel3Physics();
   }
   reset(){
     this.done=false;this.obs.forEach(o=>o.reset());
-    this.level1SqueezeActive=false;
-    this.level1SideProgress={left:0,right:0};
-    this.level1Groups=null;
-    this.level1ActivationBottom=0;
-    if(this.idx===3)this._buildLevel3Physics();
+    this.level1Systems=[];
+    if(this._hasLevel1Physics())this._buildLevel1Groups();
+    if(this._hasLevel3Physics())this._buildLevel3Physics();
   }
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
+  _hasLevel1Physics(){return this.idx===1||this.obs.some(o=>o.physicsPrefab==='level1_squeeze');}
+  _hasLevel3Physics(){return this.idx===3||this.obs.some(o=>o.physicsPrefab==='level3_basket');}
   _buildLevel1Groups(){
-    if(this.idx!==1)return;
-    const cx=CW/2;
-    const groups={left:{items:[],dir:1,target:0},right:{items:[],dir:-1,target:0}};
-    for(const o of this.obs){
-      const side=o.ix<cx-1?'left':(o.ix>cx+1?'right':null);
-      if(side)groups[side].items.push(o);
+    if(!this._hasLevel1Physics())return;
+    const tagged=this.obs.filter(o=>o.physicsPrefab==='level1_squeeze');
+    const buckets=new Map();
+    if(tagged.length){for(const o of tagged){const key=o.physicsGroupId||'physics_level1';if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);}}
+    else buckets.set('legacy_level1',this.obs.slice());
+    this.level1Systems=[];
+    for(const items of buckets.values()){
+      if(!items.length)continue;
+      const minX=Math.min(...items.map(o=>o.ix)),maxX=Math.max(...items.map(o=>o.ix)),cx=(minX+maxX)/2;
+      const groups={left:{items:[],dir:1,target:0},right:{items:[],dir:-1,target:0}};
+      for(const o of items){const role=o.physicsRole;const side=role==='left'?'left':(role==='right'?'right':(o.ix<cx-1?'left':(o.ix>cx+1?'right':null)));if(side)groups[side].items.push(o);}
+      let activationBottom=-Infinity;
+      for(const side of ['left','right']){
+        const g=groups[side];if(!g.items.length)continue;
+        const nearest=Math.min(...g.items.map(o=>Math.abs(o.ix-cx)));g.target=g.dir*nearest*.9;
+        const source=g.items.filter(o=>o.interactable!==false);for(const o of (source.length?source:g.items))activationBottom=Math.max(activationBottom,o.iy+o.h/2);
+      }
+      this.level1Systems.push({active:false,sideProgress:{left:0,right:0},groups,activationBottom:isFinite(activationBottom)?activationBottom:CH/2});
     }
-    let activationBottom=-Infinity;
-    for(const side of ['left','right']){
-      const g=groups[side];
-      if(!g.items.length)continue;
-      // The nearest-to-centre obstacle defines the stop point. It retains 10%
-      // of its authored horizontal offset; every other item on that side uses
-      // the same translation and therefore preserves the complete formation.
-      const nearest=Math.min(...g.items.map(o=>Math.abs(o.ix-cx)));
-      g.target=g.dir*nearest*.9;
-      const p=clamp(this.level1SideProgress[side]||0,0,1);
-      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
-      const triggerItems=g.items.filter(o=>o.interactable!==false);
-      const source=triggerItems.length?triggerItems:g.items;
-      for(const o of source)activationBottom=Math.max(activationBottom,o.iy+o.h/2);
-    }
-    this.level1Groups=groups;
-    this.level1ActivationBottom=isFinite(activationBottom)?activationBottom:CH/2;
   }
-  refreshLevel1Groups(){
-    if(this.idx!==1)return;
-    this.level1Groups=null;
-    this._buildLevel1Groups();
-  }
+  refreshLevel1Groups(){if(!this._hasLevel1Physics())return;this._buildLevel1Groups();}
   _updateLevel1Squeeze(dt,speed,activationY){
-    if(this.idx!==1)return;
-    if(!this.level1Groups)this._buildLevel1Groups();
-    if(!this.level1SqueezeActive&&this.worldY+this.level1ActivationBottom>=activationY){
-      this.level1SqueezeActive=true;
-    }
-    if(!this.level1SqueezeActive||speed<=0)return;
+    if(!this._hasLevel1Physics())return;if(!this.level1Systems.length)this._buildLevel1Groups();if(speed<=0)return;
     const step=Math.max(0,speed)*dt/1000;
-    for(const side of ['left','right']){
-      const g=this.level1Groups&&this.level1Groups[side];
-      if(!g||!g.items.length||Math.abs(g.target)<.001)continue;
-      let p=clamp(this.level1SideProgress[side]||0,0,1);
-      p=Math.min(1,p+step/Math.abs(g.target));
-      this.level1SideProgress[side]=p;
-      for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;
+    for(const sys of this.level1Systems){
+      if(!sys.active&&this.worldY+sys.activationBottom>=activationY)sys.active=true;if(!sys.active)continue;
+      for(const side of ['left','right']){const g=sys.groups&&sys.groups[side];if(!g||!g.items.length||Math.abs(g.target)<.001)continue;let p=clamp(sys.sideProgress[side]||0,0,1);p=Math.min(1,p+step/Math.abs(g.target));sys.sideProgress[side]=p;for(const o of g.items)if(o.kin&&o.live)o.x=o.ix+g.target*p;}
     }
   }
   _buildLevel3Physics(){
-    if(this.idx!==3)return;
+    if(!this._hasLevel3Physics())return;
     // The authored Level 3 prefab contains one wide U-shaped basket, eight
     // circle bodies and eight smaller decorative inner polygons placed on top
     // of those circles. Only the circles must participate in physics.
-    const candidates=this.obs.filter(o=>o.interactable!==false&&o.w>150&&o.h>80);
+    const tagged=this.obs.filter(o=>o.physicsPrefab==='level3_basket');
+    const pool=tagged.length?tagged:this.obs;
+    const roleBasket=pool.filter(o=>o.physicsRole==='basket');
+    const candidates=roleBasket.length?roleBasket:pool.filter(o=>o.interactable!==false&&o.w>150&&o.h>80);
     const basket=candidates.sort((a,b)=>b.w*b.h-a.w*a.h)[0]||null;
     // Older level data used primitive circles plus a decorative custom layer.
     // The current prefab stores each visible ball as one custom image object.
     // Prefer authored circles when they exist; otherwise promote compact,
     // near-square custom objects above the basket to circular physics bodies.
-    const circleBalls=this.obs.filter(o=>o.interactable!==false&&o!==basket&&o.shape==='circle');
-    const customBalls=this.obs.filter(o=>{
+    const roleBalls=pool.filter(o=>o.physicsRole==='ball');
+    const circleBalls=roleBalls.length?roleBalls:pool.filter(o=>o.interactable!==false&&o!==basket&&o.shape==='circle');
+    const customBalls=pool.filter(o=>{
       if(o.interactable===false||o===basket||o.shape!=='custom')return false;
       const min=Math.min(o.w,o.h),max=Math.max(o.w,o.h),aspect=max/Math.max(1,min);
       const smallEnough=basket?max<=Math.max(84,basket.w*.36):max<=84;
@@ -454,7 +439,7 @@ class Stage{
       // Match the inner prefab polygon by authored centre. It remains visible
       // but no longer creates a second collider at the same location.
       let best=null,bd=1e9;
-      for(const o of this.obs){
+      for(const o of pool){
         if(o===basket||o===ball||o.shape!=='custom'||o.w>=80)continue;
         const d=(o.ix-ball.ix)**2+(o.iy-ball.iy)**2;
         if(d<bd){bd=d;best=o;}

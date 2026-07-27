@@ -90,5 +90,12 @@
     "landscapeLogicalWidthFromAspect": true,
     "loseCountdownPreviewMatchesRuntime": true,
     "loseLayoutPositionScaleSize": true
+  },
+  "obstaclePrefabs": {
+    "folder": "Obstacles / Prefabs",
+    "level1Squeeze": true,
+    "level3BasketAndBalls": true,
+    "physicsMetadataExported": true,
+    "editableAsWholeOrIndividual": true
   }
 }

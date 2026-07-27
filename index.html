@@ -67,6 +67,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .tpl-card{width:100%;display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);padding:6px;color:var(--txt);cursor:pointer;text-align:left;}
 .tpl-card:hover,.tpl-card.on{border-color:var(--acc);background:rgba(124,108,245,.13);}
 .tpl-card .thumb{width:34px;height:34px;}
+.prefab-folder{margin:8px 0 4px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.018);overflow:hidden;}
+.prefab-folder>summary{list-style:none;cursor:pointer;padding:8px 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt);display:flex;align-items:center;gap:7px;}
+.prefab-folder>summary::-webkit-details-marker{display:none;}
+.prefab-folder>summary:before{content:'▾';color:var(--mut);font-size:10px;transition:transform .15s;}
+.prefab-folder:not([open])>summary:before{transform:rotate(-90deg);}
+.prefab-folder .tpl-list{margin:0;padding:0 7px 8px;}
+.physics-prefab-card .tpl-meta{color:#aaa0ff;}
+.physics-prefab-card .tpl-badge{font-size:9px;font-weight:800;color:#d9d4ff;background:rgba(124,108,245,.22);border:1px solid rgba(124,108,245,.5);padding:2px 5px;border-radius:999px;}
 .tpl-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tpl-meta{font-size:10px;color:var(--dim);margin-top:1px;}
 .tpl-del{background:transparent;border:0;color:var(--dim);font-size:15px;cursor:pointer;padding:2px 5px;}
@@ -361,6 +369,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="circle"><div class="thumb"><img src="Assets/textures/shape_circle.svg"></div><div><div class="tpl-name">Circle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
         <button class="tpl-card builtin-obstacle-card" type="button" data-shape-pick="triangle"><div class="thumb"><img src="Assets/textures/shape_triangle.svg"></div><div><div class="tpl-name">Triangle</div><div class="tpl-meta">single obstacle</div></div><span>+</span></button>
       </div>
+      <details class="prefab-folder" open>
+        <summary>📁 Prefabs</summary>
+        <div id="physics-prefab-list" class="tpl-list"></div>
+      </details>
       <div class="sec">Templates import</div>
       <div class="row wide"><label>Custom templates<small>Можно загрузить SVG, PNG или Unity .unitypackage. SVG и Unity prefab раскладываются на отдельные obstacle-объекты; PNG вставляется как один obstacle с прямоугольным коллайдером.</small></label></div>
       <div class="sp-row"><div class="sp-up">
@@ -881,9 +893,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=91-lose-card-drag"></script>
-<script src="src/builder.js?v=61-defaults-1785142623499"></script>
-<script src="script2.js?v=lose-card-drag-1"></script>
+<script src="src/playable-template.js?v=92-physics-prefabs"></script>
+<script src="src/builder.js?v=62-physics-prefabs"></script>
+<script src="script2.js?v=physics-prefabs-1"></script>
 
 </body>
 </html>
