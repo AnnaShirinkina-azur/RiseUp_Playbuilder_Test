@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1785142623499.html",
+  "source": "rise_playable_1785155594291.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -62,13 +62,15 @@
     "tutorialFailEnabled": true,
     "winEndCardEnabled": true,
     "loseEndCardEnabled": true,
-    "endCardYPercent": 10,
+    "endCardYPercent": 0,
     "endCardCountdown": 10,
     "winCtaText": "PLAY NOW",
     "winCtaHeight": 110,
     "winCtaFontSize": 30,
     "winCtaBgTint": "#c800ff",
-    "winCtaCustomSprite": true
+    "winCtaCustomSprite": true,
+    "loseImageYPercent": 0,
+    "loseCountdownYPercent": 0
   },
   "gameplayPreserved": {
     "level0Corridor": true,
@@ -106,5 +108,6 @@
   },
   "prefabsPanel": "separate sidebar item under Obstacles",
   "levelNumberFormat": "0, 01, 02, 03, 04",
-  "levelNumberFont": "Roboto Mono"
+  "levelNumberFont": "Roboto Mono",
+  "defaultImport": "Exact configuration from uploaded playable; current builder/editor features preserved"
 }
