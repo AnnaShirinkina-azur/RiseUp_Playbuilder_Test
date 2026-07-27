@@ -97,5 +97,6 @@
     "level3BasketAndBalls": true,
     "physicsMetadataExported": true,
     "editableAsWholeOrIndividual": true
-  }
+  },
+  "prefabsPanel": "separate sidebar item under Obstacles"
 }

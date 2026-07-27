@@ -59,7 +59,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('.orbtn[data-or]'
   const inspector=document.createElement('aside');
   inspector.className='inspector';
   inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
-  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-prefabs','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();
@@ -1183,7 +1183,7 @@ bindHexColorInputs(document);
     const p=PHYSICS_PREFABS.find(x=>x.id===id);if(!p)return;
     selectedPhysicsPrefabId=id;selectedTemplateId=null;customShape={name:p.name,physicsPrefab:true,prefabDef:p};shape='custom';mode='add';clearToolButtons();
     document.querySelectorAll('.et[data-shape]').forEach(x=>x.classList.remove('on'));
-    const tab=document.querySelector('.tab[data-panel="obstacles-visual"]');if(tab)tab.click();
+    const tab=document.querySelector('.tab[data-panel="prefabs"]');if(tab)tab.click();
     const rt=document.querySelector('.rtab[data-rt="levels"]');if(rt)rt.click();
     renderTemplateList();renderPhysicsPrefabList();
   }
