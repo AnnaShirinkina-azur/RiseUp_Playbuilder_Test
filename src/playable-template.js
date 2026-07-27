@@ -1220,14 +1220,7 @@ class Game{
     }
   }
 
-  _drawLevelNumber(ctx){
-    const i=this._levelNumberIndex;
-    if(this.state!=='playing'||!i||this._levelNumberT<=0)return;
-    const gap=this._levelGapRect(i);if(!gap)return;
-    const y=CH*.34,p=clamp((y-gap.top)/Math.max(1,gap.h),0,1);
-    // Fade only near the physical edges of the transition band. The middle
-    // remains fully readable for most of the half-screen pause.
-    const edge=.16,a=Math.min(1,p/edge,(1-p)/edge)*.62;
+  _drawLevelNumeral(ctx,value,y,a){
     if(a<=0)return;
     const size=Math.round(Math.min(CW,CH)*.18);
     const family=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS.Baloo2)?RiseFontCSS.Baloo2:'Baloo2, sans-serif';
@@ -1237,8 +1230,35 @@ class Game{
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font='700 '+size+'px '+family;
     ctx.shadowColor='rgba(0,0,0,.08)';ctx.shadowBlur=Math.max(2,size*.035);ctx.shadowOffsetY=Math.max(1,size*.015);
-    ctx.fillText(String(i),CW/2,y);
+    ctx.fillText(String(value),CW/2,y);
     ctx.restore();
+  }
+
+  _drawIntroZeroCorridor(ctx){
+    // The opening fly + brake is the empty corridor before the tutorial.
+    // Show it as level 0 without adding a real gameplay stage, so numbered
+    // levels, respawn checkpoints and height checkpoints remain 1..N.
+    if(this.state!=='playing'||this.tutDone)return;
+    let a=0;
+    if(this.tutPhase==='fly'){
+      const k=clamp(this.tutPhaseT/180,0,1);
+      a=k*k*(3-2*k)*.62;
+    }else if(this.tutPhase==='brake'){
+      const k=clamp((400-this.tutPhaseT)/220,0,1);
+      a=k*k*(3-2*k)*.62;
+    }
+    this._drawLevelNumeral(ctx,0,CH*.34,a);
+  }
+
+  _drawLevelNumber(ctx){
+    const i=this._levelNumberIndex;
+    if(this.state!=='playing'||!i||this._levelNumberT<=0)return;
+    const gap=this._levelGapRect(i);if(!gap)return;
+    const y=CH*.34,p=clamp((y-gap.top)/Math.max(1,gap.h),0,1);
+    // Fade only near the physical edges of the transition band. The middle
+    // remains fully readable for most of the half-screen pause.
+    const edge=.16,a=Math.min(1,p/edge,(1-p)/edge)*.62;
+    this._drawLevelNumeral(ctx,i,y,a);
   }
 
   _level4Index(){return 4;}
@@ -1786,6 +1806,7 @@ class Game{
     // Transition clouds stay above stage content. The large level numeral is
     // held in screen-space while its physical half-stage interlude passes.
     this._drawSeamOverlays(ctx,'clouds');
+    this._drawIntroZeroCorridor(ctx);
     this._drawLevelNumber(ctx);
     // ball below shield, both above seam overlays and level numeral
     this.ball.draw(ctx);
