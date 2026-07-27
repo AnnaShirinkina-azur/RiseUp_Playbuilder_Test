@@ -1043,8 +1043,12 @@ class Game{
         if(this._pointInCta(x,y)){this.cb.onCTA&&this.cb.onCTA();return;}
         if(this.tutDone||this.tutPhase==='learn')this.shield.down(x,y);
       }
-      if(this.state==='endcard'&&!this.isWin&&this._pointInLoseEndCta(x,y)){
-        this.cb.onCTA&&this.cb.onCTA({source:'lose_try_again'});
+      if(this.state==='endcard'){
+        if(this.isWin&&this._pointInWinEndCta(x,y)){
+          this.cb.onCTA&&this.cb.onCTA({source:'win_play_now'});
+        }else if(!this.isWin&&this._pointInLoseEndCta(x,y)){
+          this.cb.onCTA&&this.cb.onCTA({source:'lose_try_again'});
+        }
       }
     };
     const move=(x,y)=>{
@@ -1574,17 +1578,25 @@ class Game{
     this.si=n;
     this.cb.onStageChange&&this.cb.onStageChange(n);
   }
-  _endCardsEnabled(){const ec=this.cfg.endCard||{};return ec.enabled!==false;}
+  _endCardsEnabled(kind){
+    const ec=this.cfg.endCard||{};
+    if(ec.enabled===false)return false;
+    if(kind==='win')return ec.winEnabled!==false;
+    if(kind==='lose')return ec.loseEnabled!==false;
+    return true;
+  }
   _win(){
-    // This playable uses no win end card. Finish the run after the fly-away
-    // animation; Level 4 keeps its existing conversion trigger.
     this.state='won';this.isWin=true;this.snd.stopBgm();this.snd.play('win');this.ball.flyAway();
-    setTimeout(()=>{this.state='finished';this.cb.onWin&&this.cb.onWin();},1400);
+    setTimeout(()=>{
+      if(this._endCardsEnabled('win')){this.state='endcard';this.endA=0;}
+      else this.state='finished';
+      this.cb.onWin&&this.cb.onWin();
+    },1400);
   }
   _lose(){
     this.isWin=false;this.snd.stopBgm();this.snd.play('lose');
     const ec=this.cfg.endCard||{};
-    const show=this._endCardsEnabled()&&ec.tryAgainEnabled!==false;
+    const show=this._endCardsEnabled('lose')&&ec.tryAgainEnabled!==false;
     this.state='lost';
     const delay=Math.max(0,parseFloat(ec.tryAgainDelay)||0);
     const duration=Math.max(0,parseFloat(ec.tryAgainDuration)||0);
@@ -2205,9 +2217,43 @@ class Game{
     return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
   }
 
+  _pointInWinEndCta(x,y){
+    const r=this._winCtaRect;
+    return !!r&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
+  }
+
+  _drawWinEnd(ctx){
+    const ec=this.cfg.endCard||{},W=CW,H=CH,orientation=W>H?'landscape':'portrait';
+    const layout=ec.layouts&&ec.layouts.win&&ec.layouts.win[orientation];
+    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?0:(a[1]==='r'?W:W/2),y:a[0]==='t'?0:(a[0]==='b'?H:H/2)};};
+    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*W/100,y:b.y+((o&&o.y)||0)*H/100};};
+    const joined=(o)=>Array.isArray(o&&o.segments)?o.segments.map(v=>String(v&&v.t!=null?v.t:'')).join(''):'';
+    const richLines=(o,fallback)=>{const text=typeof(o&&o.text)==='string'?o.text:fallback,base=(o&&o.baseColor)||(o&&o.color)||'#ffffff',segs=Array.isArray(o&&o.segments)&&joined(o)===text?o.segments:[{t:text,color:base}],lines=[[]];segs.forEach(seg=>{const color=seg.color||base,parts=String(seg.t==null?'':seg.t).split('\n');parts.forEach((part,i)=>{if(i>0)lines.push([]);if(part!=='')lines[lines.length-1].push({t:part,color});});});return lines;};
+    const drawRich=(o,cx,cy,size,family,scale,fallback,boxW,boxH)=>{const lines=richLines(o,fallback),lineH=size*1.16,totalH=Math.max(lineH,lines.length*lineH);ctx.save();ctx.font='800 '+size+'px '+family;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineJoin='round';let maxW=1;const info=lines.map(runs=>{const lineText=runs.map(r=>r.t).join(''),m=ctx.measureText(lineText||' '),w=runs.reduce((sum,r)=>sum+ctx.measureText(r.t).width,0),asc=m.actualBoundingBoxAscent||size*.75,desc=m.actualBoundingBoxDescent||size*.2;maxW=Math.max(maxW,w);return{runs,w,asc,desc};});const targetW=parseFloat(boxW)>0?parseFloat(boxW):maxW,targetH=parseFloat(boxH)>0?parseFloat(boxH):totalH,sx=targetW/maxW,sy=targetH/totalH;ctx.translate(cx,cy);ctx.scale(sx,sy);info.forEach((line,i)=>{const centerY=-totalH/2+lineH*(i+.5),baseline=centerY+(line.asc-line.desc)/2,start=-line.w/2;let xx=start;if(((o&&o.strokeW)||0)>0){ctx.lineWidth=((o&&o.strokeW)||0)*scale;ctx.strokeStyle=(o&&o.stroke)||'#000000';line.runs.forEach(r=>{ctx.strokeText(r.t,xx,baseline);xx+=ctx.measureText(r.t).width;});}xx=start;line.runs.forEach(r=>{ctx.fillStyle=r.color||((o&&o.baseColor)||(o&&o.color)||'#ffffff');ctx.fillText(r.t,xx,baseline);xx+=ctx.measureText(r.t).width;});});ctx.restore();};
+    const fam=(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[ec.fontFamily])?RiseFontCSS[ec.fontFamily]:(ec.fontFamily||'sans-serif');
+    const famOf=(o)=>{const fn=(o&&o.font)||ec.fontFamily;return(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[fn])?RiseFontCSS[fn]:(fn||'sans-serif');};
+    ctx.save();ctx.globalAlpha=this.endA;
+    const bgo=(layout&&layout.background)||{},bgHidden=!!bgo.hidden,bgFill=bgo.fillMode||'image';
+    if(!bgHidden&&(bgFill==='solid'||bgFill==='gradient')){if(bgFill==='gradient'){const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bgo.colorA||'#69c5ec');gr.addColorStop(1,bgo.colorB||'#39a2d8');ctx.fillStyle=gr;}else ctx.fillStyle=bgo.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else{const bg=!bgHidden?this._spr('endcard_win_'+orientation+'_background'):null;if(imgOk(bg))this._drawCover(ctx,bg,0,0,W,H);else{ctx.fillStyle='#111827';ctx.fillRect(0,0,W,H);}}
+    ctx.fillStyle=rgba(ec.overlayColor||'#000000',ec.overlay==null?.55:clamp(parseFloat(ec.overlay)||0,0,1));ctx.fillRect(0,0,W,H);
+    if(layout){
+      const io=layout.image||{},ip=point(io),art=this._spr('endcard_win'),is=io.scale==null?1:io.scale,iw=(orientation==='landscape'?W*.48:W*.84)*is,ih=(orientation==='landscape'?H*.58:H*.34)*is;
+      if(!io.hidden&&imgOk(art)){const sc=Math.min(iw/art.naturalWidth,ih/art.naturalHeight),dw=art.naturalWidth*sc,dh=art.naturalHeight*sc;drawTintedImage(ctx,art,ip.x-dw/2,ip.y-dh/2,dw,dh,io.tint||'#ffffff');}
+      const to=layout.text||{},tp=point(to),ts=to.scale==null?1:to.scale,tfz=(to.fontSize==null?(orientation==='landscape'?26:28):to.fontSize)*ts,tw=parseFloat(to.width)>0?to.width*ts:null,th=parseFloat(to.height)>0?to.height*ts:null;
+      if(!to.hidden)drawRich(to,tp.x,tp.y,tfz,famOf(to),ts,'YOU WIN!',tw,th);
+      this._winCtaRect=null;
+      if(ec.showCta!==false&&!(layout.cta&&layout.cta.hidden)){const co=layout.cta||{},cp=point(co),cs=co.scale==null?1:co.scale,portrait=W<H,portraitScale=portrait?.8:1,baseW=Math.max(20,co.width==null?220:co.width),baseH=Math.max(12,co.height==null?54:co.height),bw=baseW*cs*portraitScale,bh=baseH*cs*portraitScale,bx=(portrait?W/2:cp.x)-bw/2,by=cp.y-bh/2,btn=this._spr('endcard_win_'+orientation+'_cta_bg')||this._spr('endcard_lose_button'),tint=co.bgTint||'#ffffff';this._winCtaRect={x:bx,y:by,w:bw,h:bh};if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,tint);else{ctx.fillStyle=tint;ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}drawRich(co,bx+bw/2,by+bh/2,(co.fontSize==null?17:co.fontSize)*cs*portraitScale,famOf(co),cs*portraitScale,'PLAY NOW');}
+    }else{
+      const card=this._spr('endcard_win'),sc=ec.scale==null?1:ec.scale,cx=W/2+(ec.x||0)*W/100,cy=H*.45+(ec.y||0)*H/100;
+      if(imgOk(card)){const k=Math.min(W*.88*sc/card.naturalWidth,H*.38*sc/card.naturalHeight),dw=card.naturalWidth*k,dh=card.naturalHeight*k;ctx.drawImage(card,cx-dw/2,cy-dh/2,dw,dh);}else{ctx.fillStyle='#fff';ctx.font='bold 32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU WIN!',W/2,H*.35);}
+      this._winCtaRect=null;
+      if(ec.showCta!==false){const portrait=W<H,k=portrait?.8:1,bw=220*k,bh=54*k,bx=(W-bw)/2,by=(ec.ctaY==null?74:ec.ctaY)*H/100;this._winCtaRect={x:bx,y:by,w:bw,h:bh};const btn=this._spr('endcard_lose_button');if(imgOk(btn))drawTintedImage(ctx,btn,bx,by,bw,bh,'#52e08a');else{ctx.fillStyle='#52e08a';ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,12):ctx.rect(bx,by,bw,bh);ctx.fill();}drawRich({text:'PLAY NOW',baseColor:'#ffffff'},bx+bw/2,by+bh/2,17*k,fam,k,'PLAY NOW');}
+    }
+    ctx.restore();
+  }
+
   _drawEnd(ctx){
-    // Win end card is intentionally disabled for this playable.
-    if(this.isWin)return;
+    if(this.isWin){this._drawWinEnd(ctx);return;}
     const ec=this.cfg.endCard||{};
     const a=this.endA;
     const overlay=ec.overlay==null ? .68 : clamp(parseFloat(ec.overlay)||0,0,1);
@@ -2325,7 +2371,7 @@ const DEF={
   stageColors:["#e05252", "#52a0e0", "#52e08a", "#e07d52", "#c052e0"],stageAccents:false,showGrid:false,stageCount:4,orientation:"landscape",
   soundEnabled:true,soundVolume:0.8,soundVolumes:null,audioSources:null,
   levelData:null,
-  endCard:{"enabled": true, "tryAgainEnabled": true, "tryAgainDelay": 0, "countdownFrom": 10, "tryAgainDuration": 0, "scale": 1, "x": 0, "y": -13, "overlay": 0.68, "overlayColor": "#000000", "showCta": true, "ctaText": "TRY AGAIN", "fontFamily": "Baloo2", "ctaY": "74"},
+  endCard:{"enabled": true, "winEnabled": true, "loseEnabled": true, "tryAgainEnabled": true, "tryAgainDelay": 0, "countdownFrom": 10, "tryAgainDuration": 0, "scale": 1, "x": 0, "y": -13, "overlay": 0.68, "overlayColor": "#000000", "showCta": true, "ctaText": "TRY AGAIN", "fontFamily": "Baloo2", "ctaY": "74"},
 };
 
 W.RisePlayable={DEF,init(el,cfg,assets,cb){return new Game(el,cfg,assets||{},cb||{});}};

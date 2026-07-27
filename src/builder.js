@@ -83,7 +83,9 @@ function readConfig(){
     },
     levelData,
     endCard:{
-      enabled:(function(){var e=document.getElementById('cfg-endCardEnabled');return e?e.checked:true;})(),
+      enabled:true,
+      winEnabled:(function(){var e=document.getElementById('cfg-winEndCardEnabled');return e?e.checked:true;})(),
+      loseEnabled:(function(){var e=document.getElementById('cfg-loseEndCardEnabled');return e?e.checked:true;})(),
       tryAgainEnabled:(function(){var e=document.getElementById('cfg-tryAgainEnabled');return e?e.checked:true;})(),
       tryAgainDelay:(function(){var v=g('cfg-tryAgainDelay');return isNaN(v)?0:v*1000;})(),
       countdownFrom:(function(){var v=g('cfg-endCardCountdown');return isNaN(v)?10:Math.max(1,Math.round(v));})(),
@@ -231,7 +233,10 @@ var cfg=${JSON.stringify(cfg)};
       onOrient();
       game=RisePlayable.init(root,cfg,imgs,{
         onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
-        onWin:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
+        // Level 4 already has its own one-shot conversion trigger. Keep the
+        // completion callback passive so an enabled Win Card remains visible
+        // until the player presses its CTA.
+        onWin:function(){},
         onLose:function(){},onStageChange:function(){}
       });
       window.RiseGame=game;

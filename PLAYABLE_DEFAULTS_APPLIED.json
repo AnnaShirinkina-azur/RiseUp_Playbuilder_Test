@@ -65,7 +65,9 @@
     "playerSpriteColor": "#00eeff",
     "shieldSpriteColor": "#00eeff",
     "endCardCountdown": 10,
-    "endCardCtaText": "TRY AGAIN"
+    "endCardCtaText": "TRY AGAIN",
+    "winEndCardEnabled": true,
+    "loseEndCardEnabled": true
   },
   "hudScaleFix": {
     "ctaAndHealthMatchHeightCounter": true,
@@ -89,5 +91,11 @@
     "positionYPercent": 35,
     "captionGapTriangleHeights": -0.5,
     "textSizePx": 30
+  },
+  "endCardFeatures": {
+    "winCardImportedFrom": "RiseUp_Playbuilder_Test-09.07.2026 (3)(1).zip",
+    "independentWinLoseToggles": true,
+    "winCtaOnlyRedirect": true,
+    "loseCountdownPreserved": true
   }
 }

@@ -314,7 +314,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
-      <div class="row"><label>Enable lose end card<small>Показывать только lose-эндкарту после последней смерти</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
+      <div class="row"><label>Enable Win Card<small>Показывать Win Card после успешного прохождения</small></label><input type="checkbox" id="cfg-winEndCardEnabled" checked></div>
+      <div class="row"><label>Enable Lose Card<small>Показывать Lose Card после последней смерти</small></label><input type="checkbox" id="cfg-loseEndCardEnabled" checked></div>
       <div class="row"><label>Show countdown<small>Показывать обратный отсчёт и CTA после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
       <div class="row"><label>Countdown from<small>Начальное число обратного отсчёта</small></label><input type="number" id="cfg-endCardCountdown" value="10" min="1" max="99" step="1"></div>
       <div class="row"><label>Death animation pause (s)<small>Пауза после смерти для анимации разбития сердца перед рестартом или lose-эндкартой</small></label><input type="number" id="cfg-deathPause" value="2.5" min="0" max="10" step="0.1"></div>
@@ -716,7 +717,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div id="rp-endcard" class="ed-pane end-pane">
       <div class="level-toolbar">
         <div class="mini">State</div>
-        <button class="et" id="end-state-win" type="button" style="display:none">Win</button>
+        <button class="et" id="end-state-win" type="button">Win</button>
         <button class="et on" id="end-state-lose" type="button">Lose countdown</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
@@ -880,9 +881,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=93-level0-corridor"></script>
-<script src="src/builder.js?v=59-defaults-830"></script>
-<script src="script2.js?v=defaults-830"></script>
+<script src="src/playable-template.js?v=94-win-lose-toggles"></script>
+<script src="src/builder.js?v=60-win-lose-toggles"></script>
+<script src="script2.js?v=win-lose-toggles"></script>
 
 </body>
 </html>
