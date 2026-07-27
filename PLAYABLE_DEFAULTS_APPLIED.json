@@ -72,14 +72,17 @@
     "scaleFormula": "clamp(gameHeight / 844, 0.78, 1.18)",
     "ignoresLandscapeDesignWidth": true,
     "heightCounterResetsOnEveryDeath": false,
-    "heightCounterResetsOnLevelRestart": true
+    "heightCounterResetsOnLevelRestart": false,
+    "heightCounterRestoresLevelCheckpoint": true
   },
   "gameplayFixes": {
     "tutorialTextPosition": "configurable viewport X/Y",
     "respawnCheckpoint": "corridor-before-failed-level",
     "tutorialCaptionGap": "configurable in rendered triangle heights",
     "completedLevelsRemainCompleted": true,
-    "failedLevelNumberShownAgain": true
+    "failedLevelNumberShownAgain": true,
+    "heightRespawnCheckpoint": "height saved at the entrance of the failed numbered level",
+    "heightRemainsVisibleDuringDeathPause": true
   },
   "tutorialControls": {
     "positionXPercent": 50,

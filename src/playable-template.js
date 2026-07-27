@@ -1007,10 +1007,13 @@ class Game{
     this._level4StoreTriggered=false;
     this._respawnStageIndex=1;
     // Height HUD starts at the configured real-world value and advances by
-    // actual world travel measured in normal-stage heights. Keeping the
-    // accumulator in stage units makes the number stable across orientation
-    // changes and responsive canvas resizing.
+    // actual world travel measured in normal-stage heights. Each numbered
+    // level stores the accumulator value at the entrance to its interlude, so
+    // a checkpoint respawn restores the height at the beginning of the failed
+    // level instead of always returning to the global 66 ft start value.
     this._heightTravelStages=0;
+    this._heightLevelStarts=Object.create(null);
+    this._respawnHeightStages=0;
     this._heightArrow=null;
     // Lose-only end card: a 10 -> 1 countdown on the supplied round badge.
     // The win path never opens an end card.
@@ -1167,6 +1170,34 @@ class Game{
     const h=this._levelInterludeHeight();
     return {top:stage.worldY+stage.H,h,bottom:stage.worldY+stage.H+h};
   }
+  _rememberHeightCheckpoint(levelIndex){
+    const i=Math.max(1,Math.min(this._lastMiniIndex(),parseInt(levelIndex,10)||1));
+    if(!this._heightLevelStarts)this._heightLevelStarts=Object.create(null);
+    if(!Object.prototype.hasOwnProperty.call(this._heightLevelStarts,i)){
+      const travel=Number(this._heightTravelStages);
+      this._heightLevelStarts[i]=isFinite(travel)?Math.max(0,travel):0;
+    }
+    return this._heightLevelStarts[i];
+  }
+  _heightCheckpointFor(levelIndex){
+    const i=Math.max(1,Math.min(this._lastMiniIndex(),parseInt(levelIndex,10)||1));
+    if(this._heightLevelStarts&&Object.prototype.hasOwnProperty.call(this._heightLevelStarts,i)){
+      const saved=Number(this._heightLevelStarts[i]);
+      if(isFinite(saved))return Math.max(0,saved);
+    }
+    // Level 1 can fail during the tutorial before its numbered interlude has
+    // crossed the checkpoint line. Its authored start is the global baseline.
+    if(i===1)return 0;
+    // Defensive fallback for unusual overlapping stages: use the nearest
+    // previously recorded level start rather than jumping all the way to 66.
+    for(let n=i-1;n>=1;n--){
+      if(this._heightLevelStarts&&Object.prototype.hasOwnProperty.call(this._heightLevelStarts,n)){
+        const saved=Number(this._heightLevelStarts[n]);
+        if(isFinite(saved))return Math.max(0,saved);
+      }
+    }
+    return Math.max(0,Number(this._heightTravelStages)||0);
+  }
 
   _updateLevelNumber(dt){
     if(this.state!=='playing'||!this.tutDone){this._levelNumberIndex=0;this._levelNumberT=0;return;}
@@ -1181,7 +1212,12 @@ class Game{
     }
     this._levelNumberIndex=active;
     this._levelNumberT=active?1:0;
-    if(active)this._shownLevelNumbers.add(active);
+    if(active){
+      this._shownLevelNumbers.add(active);
+      // The respawn layout places this same interlude edge back on labelY, so
+      // saving here keeps the visual height and physical checkpoint aligned.
+      this._rememberHeightCheckpoint(active);
+    }
   }
 
   _drawLevelNumber(ctx){
@@ -1263,6 +1299,9 @@ class Game{
         // START stage -> exactly stageCount mini-levels -> FINISH stage.
         st.complete();
         this.si=this.completedStages;
+        // Usually the numbered interlude already recorded this checkpoint.
+        // Keep a fallback here for very fast/custom layouts that skip it.
+        if(this.si>=1&&this.si<=this._lastMiniIndex())this._rememberHeightCheckpoint(this.si);
         this.cb.onStageChange&&this.cb.onStageChange(this.si);
       }
     }
@@ -1444,7 +1483,7 @@ class Game{
       this.ball.flash=400;
       this.fx.burst(this.ball.x,this.ball.y,this.cfg.particleColor);
       this.fx.burst(obs.x,obs.y+top,this.cfg.particleColor);
-      this._die();
+      this._die(stageIndex);
       this.tutDone=true;
       return;
     }
@@ -1496,12 +1535,13 @@ class Game{
     }
   }
 
-  _die(){if(this.state!=='playing')return;this._respawnStageIndex=Math.max(1,Math.min(this._lastMiniIndex(),parseInt(this.si,10)||1));this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
+  _die(stageIndex){if(this.state!=='playing')return;const hitIndex=parseInt(stageIndex,10);const failed=isFinite(hitIndex)&&hitIndex>=1&&hitIndex<=this._lastMiniIndex()?hitIndex:(parseInt(this.si,10)||1);this._respawnStageIndex=Math.max(1,Math.min(this._lastMiniIndex(),failed));this._respawnHeightStages=this._heightCheckpointFor(this._respawnStageIndex);this.state='dying';this.shield.die();this.ball.die();this.dtimer=0;this._afterDeathDone=false;this._breakPauseT=0;this._pendingLoseAfterBreak=false;this.hpA=0;this.hpT=0;this.snd.play('hit');}  _afterDeath(){if(!this._firstDeathAt)this._firstDeathAt=Date.now();this.lives--;this._heartBreakAt=Date.now();this._heartBreakIdx=this.lives;this.hpA=0;this.hpT=0;const pause=Math.max(0,this.cfg.deathPause!=null?parseFloat(this.cfg.deathPause)||0:2500);if(this.lives<=0){this._pendingLoseAfterBreak=true;if(pause>0)this._breakPauseT=pause;else{this._pendingLoseAfterBreak=false;this._lose();}return;}if(pause>0)this._breakPauseT=pause;else this.fadeDir=1;}
   _onFadeIn(){
     this.camY=Math.max(0,this.camY-this.stages[0].H*.25);
-    // Keep the current height visible throughout the death animation and
-    // pause. Reset it only when the falling level is actually restarted.
-    this._heightTravelStages=0;
+    // Keep the death-frame value visible during the animation and pause. On
+    // the actual restart, restore the accumulator saved at the entrance to the
+    // failed level (for example 100 ft), not the global 66 ft game baseline.
+    this._heightTravelStages=Math.max(0,Number(this._respawnHeightStages)||0);
     this._shownLevelNumbers=new Set();this._levelNumberIndex=0;this._levelNumberT=0;
     this._resetFallingStagesFrom(this._respawnStageIndex);
     this.shield.respawn();this.ball.respawn();
