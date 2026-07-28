@@ -84,14 +84,21 @@
     "independentWinLoseToggles": true,
     "winAndLoseLayoutsImported": true,
     "loseCountdownPreserved": true,
-    "loseCardObjectsDraggable": true
+    "loseCardObjectsDraggable": true,
+    "independentWinLoseLayouts": true,
+    "independentPortraitLandscapeLayouts": true,
+    "perLayoutOverlayFontAndCtaVisibility": true,
+    "perLayoutBackgroundArtworkAndCtaSprites": true,
+    "ctaPositionUsesSavedXInBothOrientations": true
   },
   "editorRuntimeSync": {
     "endCardLogicalViewport": true,
     "landscapeLogicalHeight": 844,
     "landscapeLogicalWidthFromAspect": true,
     "loseCountdownPreviewMatchesRuntime": true,
-    "loseLayoutPositionScaleSize": true
+    "loseLayoutPositionScaleSize": true,
+    "endCardOrientationSwitchDoesNotChangePlayableOrientation": true,
+    "winCtaUsesSameAnchorPositionInEditorAndRuntime": true
   },
   "obstaclePrefabs": {
     "folder": "Obstacles / Prefabs",
