@@ -1228,21 +1228,6 @@ class Game{
     ctx.restore();
   }
 
-  _drawIntroZeroCorridor(ctx){
-    // The opening fly + brake is the empty corridor before the tutorial.
-    // Show it as level 0 without adding a real gameplay stage, so numbered
-    // levels, respawn checkpoints and height checkpoints remain 1..N.
-    if(this.state!=='playing'||this.tutDone)return;
-    let a=0;
-    if(this.tutPhase==='fly'){
-      const k=clamp(this.tutPhaseT/180,0,1);
-      a=k*k*(3-2*k)*.62;
-    }else if(this.tutPhase==='brake'){
-      const k=clamp((400-this.tutPhaseT)/220,0,1);
-      a=k*k*(3-2*k)*.62;
-    }
-    this._drawLevelNumeral(ctx,0,CH*.34,a);
-  }
 
   _drawLevelNumber(ctx){
     const i=this._levelNumberIndex;
@@ -1805,10 +1790,9 @@ class Game{
     // stages
     for(let i=0;i<this.stages.length;i++){if(!this.stages[i].done)this.stages[i].draw(ctx,this._sst(i));}
     this.fx.draw(ctx);
-    // Transition clouds stay above stage content. The large level numeral is
-    // held in screen-space while its physical half-stage interlude passes.
+    // Transition clouds stay above stage content. Numbered level numerals are
+    // held in screen-space while their physical half-stage interludes pass.
     this._drawSeamOverlays(ctx,'clouds');
-    this._drawIntroZeroCorridor(ctx);
     this._drawLevelNumber(ctx);
     // ball below shield, both above seam overlays and level numeral
     this.ball.draw(ctx);

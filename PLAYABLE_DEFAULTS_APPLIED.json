@@ -73,7 +73,7 @@
     "loseCountdownYPercent": 0
   },
   "gameplayPreserved": {
-    "level0Corridor": true,
+    "level0Corridor": false,
     "heightCheckpointRespawn": true,
     "checkpointRespawn": true,
     "deathPause": true,
