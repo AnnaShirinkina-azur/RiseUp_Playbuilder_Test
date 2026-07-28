@@ -64,7 +64,7 @@ document.addEventListener('click',e=>{
   const inspector=document.createElement('aside');
   inspector.className='inspector';
   inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
-  ['panel-player','panel-speed','panel-obstacles-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-prefabs','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-prefab-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-prefabs','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();

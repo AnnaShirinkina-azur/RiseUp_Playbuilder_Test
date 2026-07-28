@@ -120,5 +120,19 @@
   "prefabsPanel": "separate sidebar item under Obstacles",
   "levelNumberFormat": "0, 01, 02, 03, 04",
   "levelNumberFont": "Roboto Mono",
-  "defaultImport": "Exact configuration from uploaded playable; current builder/editor features preserved"
+  "defaultImport": "Exact configuration from uploaded playable; current builder/editor features preserved",
+  "prefabPhysicsPanel": {
+    "separateSidebarSubitem": true,
+    "commonPhysicsPanel": [
+      "pushForce",
+      "gravityModifier",
+      "scatterBounciness"
+    ],
+    "prefabSpecificControls": [
+      "level1CenterSpeed",
+      "level3BasketPower",
+      "level3BallGravity"
+    ],
+    "level2UsesCommonPhysics": true
+  }
 }
