@@ -929,7 +929,7 @@ class Game{
     const hasLD=Array.isArray(ld);
     const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
     for(let si=0;si<stageCount;si++){
-      let obs=[],labels=[],bgs=[];
+      let obs=[],labels=[],bgs=[],winTrigger=null;
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
@@ -937,6 +937,7 @@ class Game{
           if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.count=Math.max(1,parseInt(this.cfg.lives,10)||ho.count||3);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
+          if(o&&o.kind==='winTrigger'){winTrigger={x:layoutX(o),y:layoutY(o),source:Object.assign({},o)};return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,tint:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt),color:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -956,7 +957,9 @@ class Game{
           obs.push(ob);
         }
       }
-      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs));
+      const stage=new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs);
+      stage.winTriggerY=winTrigger&&isFinite(winTrigger.y)?winTrigger.y:null;
+      this.stages.push(stage);
     }
   }
 
@@ -986,9 +989,9 @@ class Game{
     this._levelNumberIndex=0;
     this._levelNumberT=0;
     this._levelNumberDuration=1100;
-    // Level 4 is the final interaction beat. With Win Card enabled, reaching
-    // the authored Level 04 gameplay line starts the win fly-away and opens
-    // the Win Card. With Win Card disabled, the legacy one-shot store trigger
+    // Level 4 is the final interaction beat. With Win Card enabled, crossing
+    // the authored Win trigger line after the obstacles starts the fly-away and
+    // opens the Win Card. With Win Card disabled, the legacy one-shot store trigger
     // on tap / first obstacle contact remains available.
     this._level4StoreTriggered=false;
     this._level4WinTriggered=false;
@@ -1255,8 +1258,19 @@ class Game{
     const playerY=this.ball?this.ball.y:CH*.8;
     return s.worldY+s.H>=playerY;
   }
+  _isLevel4WinTriggerReached(){
+    const i=this._level4Index(),s=this.stages[i];
+    if(this.state!=='playing'||!this.tutDone||!s||s.done)return false;
+    const playerY=this.ball?this.ball.y:CH*.8;
+    // The editor stores the trigger in stage-local screen coordinates. Because
+    // the whole level band falls downward, an authored line above the last
+    // obstacle reaches the player only after that obstacle has passed.
+    if(isFinite(s.winTriggerY))return s.worldY+s.winTriggerY>=playerY;
+    // Backward compatibility for older exports without an explicit line.
+    return this._isLevel4Reached();
+  }
   _triggerLevel4WinIfReady(){
-    if(this._level4WinTriggered||!this._endCardsEnabled('win')||!this._isLevel4Reached())return false;
+    if(this._level4WinTriggered||!this._endCardsEnabled('win')||!this._isLevel4WinTriggerReached())return false;
     this._level4WinTriggered=true;
     // Block the Level 04 store-conversion gesture while the Win Card path is
     // active, otherwise the same arrival could open the store before the card.
@@ -1408,8 +1422,8 @@ class Game{
       }
     }
     this._updateLevelNumber(dt);
-    // Level 04 is the Win Card checkpoint. Trigger it as soon as the fourth
-    // authored stage reaches the gameplay line, before collision/store logic.
+    // Level 04 owns an authored Win trigger line. The player clears the level
+    // first; crossing that line then starts the fly-away before End Card logic.
     if(st==='playing'&&this.tutDone&&this._triggerLevel4WinIfReady())return;
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
