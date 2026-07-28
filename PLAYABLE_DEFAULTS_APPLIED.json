@@ -78,7 +78,8 @@
     "checkpointRespawn": true,
     "deathPause": true,
     "level3BasketContactRelease": true,
-    "portraitCtaScaleFix": true
+    "portraitCtaScaleFix": true,
+    "level4WinCardToggleGate": true
   },
   "endCardFeatures": {
     "independentWinLoseToggles": true,
@@ -89,7 +90,9 @@
     "independentPortraitLandscapeLayouts": true,
     "perLayoutOverlayFontAndCtaVisibility": true,
     "perLayoutBackgroundArtworkAndCtaSprites": true,
-    "ctaPositionUsesSavedXInBothOrientations": true
+    "ctaPositionUsesSavedXInBothOrientations": true,
+    "winCardTriggersOnLevel04Arrival": true,
+    "level04StoreTriggerOnlyWhenWinCardDisabled": true
   },
   "editorRuntimeSync": {
     "endCardLogicalViewport": true,

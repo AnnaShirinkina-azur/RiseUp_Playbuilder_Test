@@ -986,11 +986,12 @@ class Game{
     this._levelNumberIndex=0;
     this._levelNumberT=0;
     this._levelNumberDuration=1100;
-    // Level 4 is the final interaction beat: either the first fresh tap after
-    // the level becomes current or the protector's first contact with its
-    // first interactable obstacle opens the store. Keep it one-shot across
-    // pointer/touch/mouse fallback events and collision frames.
+    // Level 4 is the final interaction beat. With Win Card enabled, reaching
+    // the authored Level 04 gameplay line starts the win fly-away and opens
+    // the Win Card. With Win Card disabled, the legacy one-shot store trigger
+    // on tap / first obstacle contact remains available.
     this._level4StoreTriggered=false;
+    this._level4WinTriggered=false;
     this._respawnStageIndex=1;
     // Height HUD starts at the configured real-world value and advances by
     // actual world travel measured in normal-stage heights. Each numbered
@@ -1001,8 +1002,8 @@ class Game{
     this._heightLevelStarts=Object.create(null);
     this._respawnHeightStages=0;
     this._heightArrow=null;
-    // Lose-only end card: a 10 -> 1 countdown on the supplied round badge.
-    // The win path never opens an end card.
+    // Lose Card uses a 10 -> 1 countdown on the supplied round badge. Win
+    // Card is opened independently when Level 04 is reached and its toggle is on.
     this._loseCountdownStart=0;
     this._loseCtaRect=null;
     this._endCountdownBadge=null;
@@ -1245,18 +1246,35 @@ class Game{
     const s=this.stages[this._level4Index()];
     return s&&s.obs?s.obs.find(o=>o&&o.interactable!==false&&o.live)||null:null;
   }
-  _isLevel4TapActive(){
+  _isLevel4Reached(){
     const i=this._level4Index(),s=this.stages[i];
-    if(this._level4StoreTriggered||this.state!=='playing'||!this.tutDone||!s||s.done)return false;
-    // The level becomes tappable when its stage band reaches the player's
-    // gameplay line. Using geometry instead of `si` is important because the
-    // stage counter advances only after the previous band has fully left the
-    // screen, which would be too late for this large first obstacle.
+    if(this.state!=='playing'||!this.tutDone||!s||s.done)return false;
+    // Geometry is used instead of `si`: the stage counter advances only after
+    // the previous band has completely left the viewport, which is too late
+    // for the authored Level 04 entrance.
     const playerY=this.ball?this.ball.y:CH*.8;
     return s.worldY+s.H>=playerY;
   }
+  _triggerLevel4WinIfReady(){
+    if(this._level4WinTriggered||!this._endCardsEnabled('win')||!this._isLevel4Reached())return false;
+    this._level4WinTriggered=true;
+    // Block the Level 04 store-conversion gesture while the Win Card path is
+    // active, otherwise the same arrival could open the store before the card.
+    this._level4StoreTriggered=true;
+    this.shield.up();
+    this.si=this._level4Index();
+    this.cb.onStageChange&&this.cb.onStageChange(this.si);
+    this._win();
+    return true;
+  }
+  _isLevel4TapActive(){
+    // When Win Card is enabled, merely reaching Level 04 owns the completion
+    // flow; tap/collision must not bypass it with a store redirect.
+    if(this._endCardsEnabled('win'))return false;
+    return !this._level4StoreTriggered&&this._isLevel4Reached();
+  }
   _triggerLevel4Store(reason){
-    if(this._level4StoreTriggered)return false;
+    if(this._endCardsEnabled('win')||this._level4StoreTriggered)return false;
     this._level4StoreTriggered=true;
     this.shield.up();
     try{if(this.cb.onCTA)this.cb.onCTA({source:'level4_'+reason});}catch(e){}
@@ -1390,6 +1408,9 @@ class Game{
       }
     }
     this._updateLevelNumber(dt);
+    // Level 04 is the Win Card checkpoint. Trigger it as soon as the fourth
+    // authored stage reaches the gameplay line, before collision/store logic.
+    if(st==='playing'&&this.tutDone&&this._triggerLevel4WinIfReady())return;
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 
@@ -1444,7 +1465,7 @@ class Game{
     // Collision is the fallback Level 4 conversion trigger. It does not wait
     // for the stage counter: touching the authored first obstacle is itself
     // proof that the player has reached the final level.
-    if(who==='shield'&&stageIndex===this._level4Index()&&obs===this._level4FirstObstacle()){
+    if(who==='shield'&&stageIndex===this._level4Index()&&obs===this._level4FirstObstacle()&&!this._endCardsEnabled('win')){
       this._triggerLevel4Store('collision');
       return;
     }
