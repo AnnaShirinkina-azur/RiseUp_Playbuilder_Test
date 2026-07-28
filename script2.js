@@ -959,7 +959,7 @@ const LE=(function(){
     const safeId=String(prefab.id||'prefab').replace(/[^a-z0-9_-]/gi,'_');
     const svg=previewSvgEl('svg',{
       viewBox:[bounds.x,bounds.y,bounds.w,bounds.h].join(' '),
-      preserveAspectRatio:'xMidYMid slice',
+      preserveAspectRatio:'xMidYMid meet',
       role:'img',
       'aria-label':(prefab.name||'Prefab')+' live preview'
     });
@@ -1268,9 +1268,9 @@ bindHexColorInputs(document);
     PHYSICS_PREFABS.forEach(p=>{
       const card=document.createElement('button');card.type='button';card.className='tpl-card physics-prefab-card'+(p.id===selectedPhysicsPrefabId?' on':'');
       const thumb=document.createElement('div');thumb.className='thumb';thumb.appendChild(buildPhysicsPrefabPreview(p));
-      const copy=document.createElement('div'),name=document.createElement('div'),meta=document.createElement('div');
-      name.className='tpl-name';name.textContent=p.name;meta.className='tpl-meta';meta.textContent=p.description;
-      copy.append(name,meta);card.append(thumb,copy);
+      const copy=document.createElement('div'),name=document.createElement('div'),meta=document.createElement('div'),badge=document.createElement('span');
+      name.className='tpl-name';name.textContent=p.name;meta.className='tpl-meta';meta.textContent=p.description;badge.className='tpl-badge';badge.textContent='PHYSICS';
+      copy.append(name,meta);card.append(thumb,copy,badge);
       card.addEventListener('click',()=>selectPhysicsPrefab(p.id));box.appendChild(card);
     });
   }
