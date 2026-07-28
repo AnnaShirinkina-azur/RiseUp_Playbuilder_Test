@@ -910,6 +910,75 @@ const LE=(function(){
   const imageCache=new Map();
   function getEditorImage(src){if(!src)return null;if(imageCache.has(src))return imageCache.get(src);const im=new Image();im.onload=()=>draw();im.onerror=()=>draw();im.src=src;imageCache.set(src,im);return im;}
   function imageReady(im){return !!(im&&((im.complete&&im.naturalWidth>0)||(typeof im.getContext==='function'&&im.width>0&&im.height>0)));}
+  function previewSvgEl(tag,attrs){
+    const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    Object.entries(attrs||{}).forEach(([key,value])=>{if(value!=null)el.setAttribute(key,String(value));});
+    return el;
+  }
+  function physicsPrefabPreviewBounds(objects){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    (objects||[]).forEach(o=>{
+      const x=parseFloat(o.x)||0,y=parseFloat(o.y)||0;
+      const w=Math.max(1,parseFloat(o.w)||parseFloat(o.baseW)||60),h=Math.max(1,parseFloat(o.h)||parseFloat(o.baseH)||60);
+      const angle=(parseFloat(o.rotation)||0)*Math.PI/180,co=Math.cos(angle),si=Math.sin(angle);
+      [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].forEach(([px,py])=>{
+        const rx=x+px*co-py*si,ry=y+px*si+py*co;
+        minX=Math.min(minX,rx);maxX=Math.max(maxX,rx);minY=Math.min(minY,ry);maxY=Math.max(maxY,ry);
+      });
+    });
+    if(!isFinite(minX))return{x:-1,y:-1,w:2,h:2};
+    const width=Math.max(1,maxX-minX),height=Math.max(1,maxY-minY),pad=Math.max(width,height)*.065;
+    return{x:minX-pad,y:minY-pad,w:width+pad*2,h:height+pad*2};
+  }
+  function buildPhysicsPrefabPreview(prefab){
+    const bounds=physicsPrefabPreviewBounds(prefab.objects);
+    const safeId=String(prefab.id||'prefab').replace(/[^a-z0-9_-]/gi,'_');
+    const svg=previewSvgEl('svg',{
+      viewBox:[bounds.x,bounds.y,bounds.w,bounds.h].join(' '),
+      preserveAspectRatio:'xMidYMid meet',
+      role:'img',
+      'aria-label':(prefab.name||'Prefab')+' live preview'
+    });
+    svg.classList.add('physics-prefab-preview');
+    const defs=previewSvgEl('defs');
+    const gridId='grid_'+safeId;
+    const step=Math.max(bounds.w,bounds.h)/8;
+    const pattern=previewSvgEl('pattern',{id:gridId,width:step,height:step,patternUnits:'userSpaceOnUse'});
+    pattern.appendChild(previewSvgEl('path',{d:'M '+step+' 0 L 0 0 0 '+step,fill:'none',stroke:'rgba(106,217,255,.08)','stroke-width':Math.max(.5,step*.018)}));
+    defs.appendChild(pattern);svg.appendChild(defs);
+    svg.appendChild(previewSvgEl('rect',{x:bounds.x,y:bounds.y,width:bounds.w,height:bounds.h,fill:'#070913'}));
+    svg.appendChild(previewSvgEl('rect',{x:bounds.x,y:bounds.y,width:bounds.w,height:bounds.h,fill:'url(#'+gridId+')'}));
+    (prefab.objects||[]).forEach((o,index)=>{
+      const x=parseFloat(o.x)||0,y=parseFloat(o.y)||0;
+      const w=Math.max(1,parseFloat(o.w)||parseFloat(o.baseW)||60),h=Math.max(1,parseFloat(o.h)||parseFloat(o.baseH)||60);
+      const rotation=parseFloat(o.rotation)||0;
+      const tint=normalizeHexColor(o.tint||o.color,'#ffffff');
+      const group=previewSvgEl('g',{transform:'translate('+x+' '+y+') rotate('+rotation+')'});
+      const strokeWidth=Math.max(.7,Math.min(w,h)*.022),stroke='rgba(255,255,255,.28)';
+      if(o.imageSrc){
+        const maskId='mask_'+safeId+'_'+index;
+        const mask=previewSvgEl('mask',{id:maskId,x:-w/2,y:-h/2,width:w,height:h,maskUnits:'userSpaceOnUse'});
+        mask.style.maskType='alpha';
+        mask.appendChild(previewSvgEl('image',{href:o.imageSrc,x:-w/2,y:-h/2,width:w,height:h,preserveAspectRatio:'none'}));
+        defs.appendChild(mask);
+        group.appendChild(previewSvgEl('rect',{x:-w/2,y:-h/2,width:w,height:h,fill:tint,mask:'url(#'+maskId+')'}));
+        if(o.shape==='custom'&&Array.isArray(o.points)&&o.points.length>=3){
+          group.appendChild(previewSvgEl('polygon',{points:o.points.map(pt=>(parseFloat(pt.x)||0)*w+','+(parseFloat(pt.y)||0)*h).join(' '),fill:'none',stroke,'stroke-width':strokeWidth}));
+        }
+      }else if(o.shape==='circle'){
+        group.appendChild(previewSvgEl('ellipse',{cx:0,cy:0,rx:w/2,ry:h/2,fill:tint,stroke,'stroke-width':strokeWidth}));
+      }else if(o.shape==='triangle'){
+        group.appendChild(previewSvgEl('polygon',{points:'0,'+(-h/2)+' '+(w/2)+','+(h/2)+' '+(-w/2)+','+(h/2),fill:tint,stroke,'stroke-width':strokeWidth}));
+      }else if(o.shape==='custom'&&Array.isArray(o.points)&&o.points.length>=3){
+        group.appendChild(previewSvgEl('polygon',{points:o.points.map(pt=>(parseFloat(pt.x)||0)*w+','+(parseFloat(pt.y)||0)*h).join(' '),fill:tint,stroke,'stroke-width':strokeWidth}));
+      }else{
+        group.appendChild(previewSvgEl('rect',{x:-w/2,y:-h/2,width:w,height:h,fill:tint,stroke,'stroke-width':strokeWidth}));
+      }
+      svg.appendChild(group);
+    });
+    svg.appendChild(previewSvgEl('rect',{x:bounds.x,y:bounds.y,width:bounds.w,height:bounds.h,fill:'none',stroke:'rgba(170,160,255,.18)','stroke-width':Math.max(.7,Math.max(bounds.w,bounds.h)*.006)}));
+    return svg;
+  }
   function selectionIndices(){return Array.from(selSet).filter(i=>lvls[cur]&&lvls[cur][i]).sort((a,b)=>a-b);}
   function hasMultiSelection(){return selectionIndices().length>1;}
   function isSelected(si,i){return si===cur && selSet.has(i);}
@@ -1174,9 +1243,10 @@ bindHexColorInputs(document);
     const box=$('physics-prefab-list');if(!box)return;box.innerHTML='';
     PHYSICS_PREFABS.forEach(p=>{
       const card=document.createElement('button');card.type='button';card.className='tpl-card physics-prefab-card'+(p.id===selectedPhysicsPrefabId?' on':'');
-      const thumbSrc=(p.objects.find(o=>o.imageSrc)||{}).imageSrc||('data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="12" fill="#2b274c"/><text x="32" y="42" text-anchor="middle" font-size="34" fill="#b9adff">'+p.icon+'</text></svg>'));
-      card.innerHTML='<div class="thumb"><img src="'+thumbSrc+'"></div><div><div class="tpl-name"></div><div class="tpl-meta"></div></div><span class="tpl-badge">PHYSICS</span>';
-      card.querySelector('.tpl-name').textContent=p.name;card.querySelector('.tpl-meta').textContent=p.description;
+      const thumb=document.createElement('div');thumb.className='thumb';thumb.appendChild(buildPhysicsPrefabPreview(p));
+      const copy=document.createElement('div'),name=document.createElement('div'),meta=document.createElement('div'),badge=document.createElement('span');
+      name.className='tpl-name';name.textContent=p.name;meta.className='tpl-meta';meta.textContent=p.description;badge.className='tpl-badge';badge.textContent='PHYSICS';
+      copy.append(name,meta);card.append(thumb,copy,badge);
       card.addEventListener('click',()=>selectPhysicsPrefab(p.id));box.appendChild(card);
     });
   }

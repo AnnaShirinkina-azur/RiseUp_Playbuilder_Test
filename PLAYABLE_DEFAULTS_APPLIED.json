@@ -104,7 +104,8 @@
       "Level 1 — Squeeze Walls",
       "Level 2 — Grid Corridor",
       "Level 3 — Basket & Balls"
-    ]
+    ],
+    "preview": "live SVG rendered from prefab object code; no generated thumbnail images"
   },
   "prefabsPanel": "separate sidebar item under Obstacles",
   "levelNumberFormat": "0, 01, 02, 03, 04",
