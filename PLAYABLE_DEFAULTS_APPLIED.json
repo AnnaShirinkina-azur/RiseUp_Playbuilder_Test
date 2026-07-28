@@ -91,10 +91,8 @@
     "perLayoutOverlayFontAndCtaVisibility": true,
     "perLayoutBackgroundArtworkAndCtaSprites": true,
     "ctaPositionUsesSavedXInBothOrientations": true,
-    "winCardTriggersOnLevel04Arrival": false,
-    "level04StoreTriggerOnlyWhenWinCardDisabled": true,
-    "winCardTriggersOnAuthoredLine": true,
-    "winTriggerEditableInLevelEditor": true
+    "winCardTriggersOnLevel04Arrival": true,
+    "level04StoreTriggerOnlyWhenWinCardDisabled": true
   },
   "editorRuntimeSync": {
     "endCardLogicalViewport": true,
@@ -136,13 +134,5 @@
       "level3BallGravity"
     ],
     "level2UsesCommonPhysics": true
-  },
-  "winTrigger": {
-    "stage": "Mini-level 04",
-    "editorObject": "horizontal draggable line",
-    "defaultPlacement": "above the final interactive obstacle",
-    "runtimeBehavior": "Win fly-away starts when the falling trigger line reaches the player",
-    "visibleInPlayable": false,
-    "protectedFromDeleteAndClear": true
   }
 }
