@@ -20,7 +20,11 @@ header{padding:12px 20px;border-bottom:1px solid var(--brd);display:flex;align-i
 .badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(124,108,245,.15);color:var(--acc);border:1px solid rgba(124,108,245,.25);}
 .ws{flex:1;display:grid;grid-template-columns:250px 1fr 340px;overflow:hidden;}
 /* Luna-like left navigation */
-.sb{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;padding:16px 12px;gap:14px;}
+.sb{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;min-height:0;overflow-x:hidden;overflow-y:auto;padding:16px 12px;gap:14px;overscroll-behavior:contain;scrollbar-gutter:stable;}
+.sb::-webkit-scrollbar{width:5px;}
+.sb::-webkit-scrollbar-track{background:transparent;}
+.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px;}
+.sb::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24);}
 .tabs{display:flex;flex-direction:column;gap:8px;border-bottom:none;padding:0;flex-shrink:0;}
 .param-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:4px 4px 2px;}
 .param-group{display:flex;flex-direction:column;gap:5px;}
