@@ -82,6 +82,10 @@ function readConfig(){
       shield:(g('cfg-vol-shield')!=null?g('cfg-vol-shield'):0.9),
     },
     levelData,
+    storeUrls:{
+      android:(function(){var e=document.getElementById('cfg-storeAndroid');return (e&&e.value||'').trim();})(),
+      ios:(function(){var e=document.getElementById('cfg-storeIos');return (e&&e.value||'').trim();})()
+    },
     endCard:{
       enabled:true,
       winEnabled:(function(){var e=document.getElementById('cfg-winEndCardEnabled');return e?e.checked:true;})(),
@@ -352,8 +356,16 @@ var a=__U(__P.a),sp=__U(__P.sp),cfg=__U(__P.cfg);__R=null;__P=null;
     if(loader)loader.style.display='none';
     var go=function(){
       onOrient();
+      function storeTarget(){
+        var urls=cfg.storeUrls||{};
+        var ua=String(navigator.userAgent||'');
+        var ios=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+        var primary=ios?urls.ios:urls.android;
+        var fallback=ios?urls.android:urls.ios;
+        return primary||fallback||'https://play.google.com/store/apps/details?id=com.riseup.game&hl=en';
+      }
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{if(typeof mraid!=='undefined')mraid.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en');else window.open('https://play.google.com/store/apps/details?id=com.riseup.game&hl=en','_blank');}catch(e){}},
+        onCTA:function(){try{var url=storeTarget();if(typeof mraid!=='undefined')mraid.open(url);else window.open(url,'_blank');}catch(e){}},
         // Level 4 already has its own one-shot conversion trigger. Keep the
         // completion callback passive so an enabled Win Card remains visible
         // until the player presses its CTA.

@@ -158,5 +158,11 @@
     "dynamicBundle": "only assets used by the current configuration are embedded",
     "sizeIndicator": "shows final MB against 5 MB after export",
     "validatedDefaultExportMB": 0.91
+  },
+  "serviceMenu": {
+    "title": "Служебное",
+    "androidStoreField": "cfg-storeAndroid",
+    "iosStoreField": "cfg-storeIos",
+    "runtimeRouting": "iOS devices use iOS URL; other devices use Android URL; missing URL falls back to the other platform"
   }
 }
