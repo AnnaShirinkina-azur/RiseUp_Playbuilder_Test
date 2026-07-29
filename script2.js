@@ -357,6 +357,16 @@ function googleFontCssUrl(url,family){
   }catch(e){}
   return url;
 }
+const FONT_CSS={
+  'Baloo2':"'Baloo2',sans-serif",
+  'RobotoMono':"'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",
+  'Kameron':"'Kameron',serif",
+  'LiberationSans':"'LiberationSans',Arial,sans-serif",
+  'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
+  'serif':'Georgia,"Times New Roman",serif',
+  'mono':'ui-monospace,Menlo,Consolas,monospace'
+};
+
 function fontCssFamily(name){name=String(name||'').trim();return name.indexOf(' ')>=0?'"'+name.replace(/"/g,'')+'",sans-serif':name+',sans-serif';}
 function syncGoogleFontOption(){
   const urlEl=$('cfg-googleFontUrl'), famEl=$('cfg-googleFontFamily'), st=$('cfg-googleFontStatus'), sel=$('tx-font');
@@ -446,8 +456,24 @@ try{
   function settings(){return cur().settings||(cur().settings={showCta:true,overlay:.68,overlayColor:'#000000',fontFamily:'Baloo2'});}
   function item(){return cur()[selected];}
   function num(id,def){const e=$(id),v=e?parseFloat(e.value):NaN;return isNaN(v)?def:v;}
-  function anchorPoint(a,W,H){a=a||'cc';const v=a[0],h=a[1];return{x:h==='l'?0:(h==='r'?W:W/2),y:v==='t'?0:(v==='b'?H:H/2)};}
-  function pos(o,W,H){const b=anchorPoint(o.anchor,W,H);return{x:b.x+(o.x||0)*W/100,y:b.y+(o.y||0)*H/100};}
+  function endCardActiveRect(W,H){
+    // End-card objects use a stable central safe area. Landscape can reveal
+    // extra width, but that passive width must not move the authored layout.
+    const w=W>H?Math.min(844,W):W;
+    return{x:(W-w)/2,y:0,w,h:H};
+  }
+  function anchorPoint(a,W,H){
+    a=a||'cc';const v=a[0],h=a[1],r=endCardActiveRect(W,H);
+    return{x:h==='l'?r.x:(h==='r'?r.x+r.w:r.x+r.w/2),y:v==='t'?r.y:(v==='b'?r.y+r.h:r.y+r.h/2)};
+  }
+  function pos(o,W,H){const r=endCardActiveRect(W,H),b=anchorPoint(o.anchor,W,H);return{x:b.x+(o.x||0)*r.w/100,y:b.y+(o.y||0)*r.h/100};}
+  function drawEndCardZoneShade(ctx,W,H){
+    const r=endCardActiveRect(W,H);if(r.x<=.5)return;
+    ctx.save();ctx.fillStyle='rgba(4,4,12,.24)';ctx.fillRect(0,0,r.x,H);ctx.fillRect(r.x+r.w,0,W-r.x-r.w,H);ctx.restore();
+  }
+  function drawEndCardZoneOutline(ctx,W,H){
+    const r=endCardActiveRect(W,H);ctx.save();ctx.strokeStyle='rgba(82,224,138,.9)';ctx.lineWidth=2;ctx.setLineDash([10,7]);ctx.strokeRect(r.x+1,r.y+1,Math.max(0,r.w-2),Math.max(0,r.h-2));ctx.setLineDash([]);ctx.fillStyle='rgba(82,224,138,.95)';ctx.font='700 18px system-ui,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('ACTIVE ZONE',r.x+14,r.y+12);ctx.restore();
+  }
   function drawContain(ctx,im,cx,cy,w,h){if(!im||!im.complete||!im.naturalWidth)return;const sc=Math.min(w/im.naturalWidth,h/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;ctx.drawImage(im,cx-dw/2,cy-dh/2,dw,dh);return {x:cx-dw/2,y:cy-dh/2,w:dw,h:dh};}
   function drawContainTinted(ctx,im,cx,cy,w,h,color){if(!im||!im.complete||!im.naturalWidth)return;const sc=Math.min(w/im.naturalWidth,h/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc,x=cx-dw/2,y=cy-dh/2;drawEndCardTinted(ctx,im,x,y,dw,dh,color||'#ffffff');return {x,y,w:dw,h:dh};}
   function drawCover(ctx,im,x,y,w,h){if(!im||!im.complete||!im.naturalWidth)return;const sc=Math.max(w/im.naturalWidth,h/im.naturalHeight),dw=im.naturalWidth*sc,dh=im.naturalHeight*sc;ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);}
@@ -541,12 +567,19 @@ try{
     return{land,viewportW,viewportH,logicalW,logicalH};
   }
   function resize(){
-    const c=cv(),w=wrap();if(!c||!w)return;
-    const zoom=num('end-zoom',.75),v=endCardRuntimeViewport();
+    const c=cv(),w=wrap(),phone=$('end-phone');if(!c||!w||!phone)return;
+    const zoom=num('end-zoom',.75),v=endCardRuntimeViewport(),stage=phone.parentElement;
     $('end-zoom-v')&&($('end-zoom-v').textContent=Math.round(zoom*100)+'%');
     c.width=v.logicalW;c.height=v.logicalH;
-    c.style.width=Math.round(v.viewportW*zoom)+'px';
-    c.style.height=Math.round(v.viewportH*zoom)+'px';
+    // Fit the actual device viewport into the available editor area. The
+    // canvas and phone frame now have exactly the same aspect and dimensions,
+    // so no empty area can appear inside the phone.
+    const availW=Math.max(160,(stage&&stage.clientWidth||v.viewportW)-48),availH=Math.max(120,(stage&&stage.clientHeight||v.viewportH)-48);
+    const fit=Math.min(availW/v.viewportW,availH/v.viewportH),displayScale=Math.max(.1,fit*zoom);
+    const dw=Math.max(1,Math.round(v.viewportW*displayScale)),dh=Math.max(1,Math.round(v.viewportH*displayScale));
+    phone.classList.toggle('landscape',v.land);phone.style.width=(dw+24)+'px';phone.style.height=(dh+24)+'px';
+    w.style.width=dw+'px';w.style.height=dh+'px';w.style.flex='0 0 auto';w.style.overflow='hidden';
+    c.style.width=dw+'px';c.style.height=dh+'px';
     draw();
   }
   function selectionRect(ctx,r,z){if(!r)return;ctx.save();ctx.strokeStyle='#52e08a';ctx.lineWidth=Math.max(1,2*z);ctx.setLineDash([7*z,5*z]);ctx.strokeRect(r.x-4*z,r.y-4*z,r.w+8*z,r.h+8*z);ctx.restore();}
@@ -558,8 +591,9 @@ try{
     ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);if(gameplayBg)drawCover(ctx,gameplayBg,0,0,W,H);
     const ov=Math.max(0,Math.min(1,isFinite(parseFloat(ls.overlay))?parseFloat(ls.overlay):.68)),oc=normalizeHexColor(ls.overlayColor||'#000000','#000000');
     ctx.fillStyle='rgba('+parseInt(oc.slice(1,3),16)+','+parseInt(oc.slice(3,5),16)+','+parseInt(oc.slice(5,7),16)+','+ov+')';ctx.fillRect(0,0,W,H);
+    drawEndCardZoneShade(ctx,W,H);
 
-    const baseCx=W/2,baseCy=portrait?H*.39:H*.43;
+    const active=endCardActiveRect(W,H),baseCx=active.x+active.w/2,baseCy=portrait?H*.39:H*.43;
     const io=layout.image||{},ioRef=refs.image||{anchor:'cc',x:0,y:-13,scale:1},id=deltaFromRef(io,ioRef),imageScale=io.scale==null?1:Math.max(.05,io.scale);
     const baseBadgeSize=Math.min(portrait?W*.64:W*.28,portrait?H*.30:H*.56,303*scale),badgeSize=baseBadgeSize*imageScale,badgeCx=baseCx+id.x,badgeCy=baseCy+id.y;
     const badgeSrc=PLAYABLE_DEFAULT_SPRITES.endcard_countdown_badge||END_CARD_DEFAULTS.lose_logo,badge=dynamicImg(badgeSrc),imageTint=normalizeHexColor(io.tint,'#ffffff');
@@ -584,6 +618,7 @@ try{
       const ctaFontScale=Math.max(.05,(co&&co.fontSize||36)/36)*coScale;ctx.fillStyle=(co&&co.baseColor)||'#ffffff';ctx.font='800 '+Math.round(Math.max(18,22*scale)*ctaFontScale)+'px '+objFamily(co||{});ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String((co&&co.text)||'TRY AGAIN').toUpperCase(),cr.x+cr.w/2,cr.y+cr.h/2+1*scale);
     }
     lastRects={image:ir,text:tr,cta:showCta?cr:null};
+    drawEndCardZoneOutline(ctx,W,H);
     if(selected==='image')selectionRect(ctx,ir,z);else if(selected==='text')selectionRect(ctx,tr,z);else if(selected==='cta')selectionRect(ctx,lastRects.cta,z);else if(selected==='background')selectionRect(ctx,{x:2,y:2,w:W-4,h:H-4},z);
   }
   function draw(){
@@ -591,7 +626,7 @@ try{
     const ctx=c.getContext('2d'),W=c.width,H=c.height,z=1,famName=($('cfg-endCardFont')&&$('cfg-endCardFont').value)||($('tx-font')&&$('tx-font').value)||'system-ui',family=fontCssFamily(famName);
     ctx.clearRect(0,0,W,H);
     if(state==='lose'){drawLoseRuntimePreview(ctx,W,H,z);return;}
-    const ls=settings();ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);const bg=cur().background,bgFill=bg.fillMode||'image';if(!bg.hidden){if(bgFill==='gradient'){var _gr=ctx.createLinearGradient(0,0,0,H);_gr.addColorStop(0,bg.colorA||'#69c5ec');_gr.addColorStop(1,bg.colorB||'#39a2d8');ctx.fillStyle=_gr;ctx.fillRect(0,0,W,H);}else if(bgFill==='solid'){ctx.fillStyle=bg.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else drawCover(ctx,imageForBackground(),0,0,W,H);}(function(){var _ov=isFinite(parseFloat(ls.overlay))?Math.max(0,Math.min(1,parseFloat(ls.overlay))):.55,_oc=normalizeHexColor(ls.overlayColor||'#000000','#000000');ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+_ov+')';ctx.fillRect(0,0,W,H);})();
+    const ls=settings();ctx.fillStyle='#090912';ctx.fillRect(0,0,W,H);const bg=cur().background,bgFill=bg.fillMode||'image';if(!bg.hidden){if(bgFill==='gradient'){var _gr=ctx.createLinearGradient(0,0,0,H);_gr.addColorStop(0,bg.colorA||'#69c5ec');_gr.addColorStop(1,bg.colorB||'#39a2d8');ctx.fillStyle=_gr;ctx.fillRect(0,0,W,H);}else if(bgFill==='solid'){ctx.fillStyle=bg.colorA||'#69c5ec';ctx.fillRect(0,0,W,H);}else drawCover(ctx,imageForBackground(),0,0,W,H);}(function(){var _ov=isFinite(parseFloat(ls.overlay))?Math.max(0,Math.min(1,parseFloat(ls.overlay))):.55,_oc=normalizeHexColor(ls.overlayColor||'#000000','#000000');ctx.fillStyle='rgba('+parseInt(_oc.slice(1,3),16)+','+parseInt(_oc.slice(3,5),16)+','+parseInt(_oc.slice(5,7),16)+','+_ov+')';ctx.fillRect(0,0,W,H);})();drawEndCardZoneShade(ctx,W,H);
     const io=cur().image,ip=pos(io,W,H),art=imageForArtwork(),iw=(orientation==='landscape'?W*.48:W*.84)*(io.scale||1),ih=(orientation==='landscape'?H*.58:H*.34)*(io.scale||1),ir=io.hidden?null:drawContainTinted(ctx,art,ip.x,ip.y,iw,ih,io.tint||'#ffffff');
     const to=ensureTextPixelSize(ensureTextItem(cur().text,'text')),tp=pos(to,W,H),ts=to.scale==null?1:to.scale,fs=to.fontSize*z*ts,tw=Math.max(1,to.width)*z*ts,th=Math.max(1,to.height)*z*ts,tr=to.hidden?null:drawRichCentered(ctx,to,tp.x,tp.y,fs,objFamily(to),z*ts,defaultText('text'),tw,th);
     let cr=null;
@@ -603,6 +638,7 @@ try{
       cr={x:bx,y:by,w:bw,h:bh};
     }
     lastRects={image:ir,text:tr,cta:cr};
+    drawEndCardZoneOutline(ctx,W,H);
     if(selected==='image')selectionRect(ctx,ir,z);else if(selected==='text')selectionRect(ctx,tr,z);else if(selected==='cta')selectionRect(ctx,cr,z);else if(selected==='background'&&!bg.hidden)selectionRect(ctx,{x:2,y:2,w:W-4,h:H-4},z);
   }
   function syncFields(){
@@ -690,7 +726,7 @@ try{
   function hitRect(r,x,y){return !!(r&&x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);}
   function pickAt(x,y){const o=cur(),canHit=k=>{if(k==='cta')return !(o.cta&&o.cta.hidden)&&$('cfg-endCardCta')&&$('cfg-endCardCta').checked&&hitRect(lastRects.cta,x,y);if(k==='text')return !(o.text&&o.text.hidden)&&hitRect(lastRects.text,x,y);if(k==='image')return !(o.image&&o.image.hidden)&&hitRect(lastRects.image,x,y);return false;};if(canHit(selected))return selected;for(const k of ['cta','text','image'])if(k!==selected&&canHit(k))return k;return null;}
   document.addEventListener('keydown',e=>{if(e.key!=='Delete'&&e.key!=='Backspace')return;var c=cv();if(!c||c.offsetParent===null)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;e.preventDefault();toggleSelectedObject();});
-  let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{const rc=ecv.getBoundingClientRect(),hx=(e.clientX-rc.left)*(ecv.width/rc.width),hy=(e.clientY-rc.top)*(ecv.height/rc.height),pk=pickAt(hx,hy);if(!pk)return;setSelected(pk);if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();o.x=Math.max(-200,Math.min(200,(o.x||0)+dx/r.width*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+dy/r.height*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
+  let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{const rc=ecv.getBoundingClientRect(),hx=(e.clientX-rc.left)*(ecv.width/rc.width),hy=(e.clientY-rc.top)*(ecv.height/rc.height),pk=pickAt(hx,hy);if(!pk)return;setSelected(pk);if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();const ar=endCardActiveRect(ecv.width,ecv.height),logicalDx=dx/r.width*ecv.width,logicalDy=dy/r.height*ecv.height;o.x=Math.max(-200,Math.min(200,(o.x||0)+logicalDx/ar.w*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+logicalDy/ar.h*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
   Object.values(imgs).forEach(im=>im.onload=draw);
   window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts)),resetToDefaults:()=>{Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,normalizeEndCardLayoutTree(JSON.parse(JSON.stringify(defaults))));setState('lose');syncFields();resize();}};
   setTimeout(()=>{setOrientation("landscape");syncFields();},50);
@@ -2582,15 +2618,6 @@ bindHexColorInputs(document);
 window.RiseLevelEditor=LE;
 
 // ── Text labels — level text with per-segment colors (must match playable-template.js) ──
-const FONT_CSS={
-  'Baloo2':"'Baloo2',sans-serif",
-  'RobotoMono':"'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",
-  'Kameron':"'Kameron',serif",
-  'LiberationSans':"'LiberationSans',Arial,sans-serif",
-  'sans':'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',
-  'serif':'Georgia,"Times New Roman",serif',
-  'mono':'ui-monospace,Menlo,Consolas,monospace'
-};
 
 // Global text sizing helper for editor/playable label renderer.
 // drawTextLabel/drawTextLabelScaled live in the global scope, while the editor

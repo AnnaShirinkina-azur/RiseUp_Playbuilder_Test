@@ -21,6 +21,7 @@ function setView(orientation){
     CW=390;
   }
 }
+function endCardActiveRect(){const w=CW>CH?Math.min(844,CW):CW;return{x:(CW-w)/2,y:0,w,h:CH};}
 function lerp(a,b,t){return a+(b-a)*Math.max(0,Math.min(1,t));}
 function clamp(v,l,h){return Math.max(l,Math.min(h,v));}
 // Default per-mini-level background gradients (bottom,top), cycled by stage
@@ -2078,13 +2079,17 @@ class Game{
     // ball below shield, both above seam overlays and level numeral
     this.ball.draw(ctx);
     this.shield.draw(ctx);
-    // Level progress dots removed: progress indicators should be placed manually in the editor.
-    this._drawProgressBars(ctx);
-    this._drawHealthBars(ctx);
-    this._drawCtas(ctx);
-    this._drawHeightIndicator(ctx);
-    if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
-    if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
+    // Gameplay UI must not bleed through the End Card. The stage remains as
+    // the darkened background, while HUD, gameplay CTA and tutorial are hidden.
+    if(this.state!=='endcard'){
+      // Level progress dots removed: progress indicators should be placed manually in the editor.
+      this._drawProgressBars(ctx);
+      this._drawHealthBars(ctx);
+      this._drawCtas(ctx);
+      this._drawHeightIndicator(ctx);
+      if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
+      if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
+    }
     if(this.fadeA>0){ctx.fillStyle=`rgba(0,0,0,${this.fadeA})`;ctx.fillRect(0,0,CW,CH);}
     if(this.state==='start')this._drawStart(ctx);
     if(this.state==='endcard')this._drawEnd(ctx);
@@ -2473,7 +2478,8 @@ class Game{
   }
 
   _loseLayoutDelta(o,ref){
-    const point=(v)=>{v=Object.assign({},ref,v||{});const a=v.anchor||'cc',bx=a[1]==='l'?0:(a[1]==='r'?CW:CW/2),by=a[0]==='t'?0:(a[0]==='b'?CH:CH/2);return{x:bx+(parseFloat(v.x)||0)*CW/100,y:by+(parseFloat(v.y)||0)*CH/100};};
+    const r=endCardActiveRect();
+    const point=(v)=>{v=Object.assign({},ref,v||{});const a=v.anchor||'cc',bx=a[1]==='l'?r.x:(a[1]==='r'?r.x+r.w:r.x+r.w/2),by=a[0]==='t'?r.y:(a[0]==='b'?r.y+r.h:r.y+r.h/2);return{x:bx+(parseFloat(v.x)||0)*r.w/100,y:by+(parseFloat(v.y)||0)*r.h/100};};
     const a=point(o||ref),b=point(ref);return{x:a.x-b.x,y:a.y-b.y};
   }
 
@@ -2504,9 +2510,9 @@ class Game{
 
   _drawWinEnd(ctx){
     const ec=this.cfg.endCard||{},W=CW,H=CH,orientation=W>H?'landscape':'portrait';
-    const layout=ec.layouts&&ec.layouts.win&&ec.layouts.win[orientation],ls=this._endLayoutSettings(layout);
-    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?0:(a[1]==='r'?W:W/2),y:a[0]==='t'?0:(a[0]==='b'?H:H/2)};};
-    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*W/100,y:b.y+((o&&o.y)||0)*H/100};};
+    const layout=ec.layouts&&ec.layouts.win&&ec.layouts.win[orientation],ls=this._endLayoutSettings(layout),active=endCardActiveRect();
+    const anchorPoint=(a)=>{a=a||'cc';return{x:a[1]==='l'?active.x:(a[1]==='r'?active.x+active.w:active.x+active.w/2),y:a[0]==='t'?active.y:(a[0]==='b'?active.y+active.h:active.y+active.h/2)};};
+    const point=(o)=>{const b=anchorPoint(o&&o.anchor);return{x:b.x+((o&&o.x)||0)*active.w/100,y:b.y+((o&&o.y)||0)*active.h/100};};
     const joined=(o)=>Array.isArray(o&&o.segments)?o.segments.map(v=>String(v&&v.t!=null?v.t:'')).join(''):'';
     const richLines=(o,fallback)=>{const text=typeof(o&&o.text)==='string'?o.text:fallback,base=(o&&o.baseColor)||(o&&o.color)||'#ffffff',segs=Array.isArray(o&&o.segments)&&joined(o)===text?o.segments:[{t:text,color:base}],lines=[[]];segs.forEach(seg=>{const color=seg.color||base,parts=String(seg.t==null?'':seg.t).split('\n');parts.forEach((part,i)=>{if(i>0)lines.push([]);if(part!=='')lines[lines.length-1].push({t:part,color});});});return lines;};
     const drawRich=(o,cx,cy,size,family,scale,fallback,boxW,boxH)=>{const lines=richLines(o,fallback),lineH=size*1.16,totalH=Math.max(lineH,lines.length*lineH);ctx.save();ctx.font='800 '+size+'px '+family;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineJoin='round';let maxW=1;const info=lines.map(runs=>{const lineText=runs.map(r=>r.t).join(''),m=ctx.measureText(lineText||' '),w=runs.reduce((sum,r)=>sum+ctx.measureText(r.t).width,0),asc=m.actualBoundingBoxAscent||size*.75,desc=m.actualBoundingBoxDescent||size*.2;maxW=Math.max(maxW,w);return{runs,w,asc,desc};});const targetW=parseFloat(boxW)>0?parseFloat(boxW):maxW,targetH=parseFloat(boxH)>0?parseFloat(boxH):totalH,sx=targetW/maxW,sy=targetH/totalH;ctx.translate(cx,cy);ctx.scale(sx,sy);info.forEach((line,i)=>{const centerY=-totalH/2+lineH*(i+.5),baseline=centerY+(line.asc-line.desc)/2,start=-line.w/2;let xx=start;if(((o&&o.strokeW)||0)>0){ctx.lineWidth=((o&&o.strokeW)||0)*scale;ctx.strokeStyle=(o&&o.stroke)||'#000000';line.runs.forEach(r=>{ctx.strokeText(r.t,xx,baseline);xx+=ctx.measureText(r.t).width;});}xx=start;line.runs.forEach(r=>{ctx.fillStyle=r.color||((o&&o.baseColor)||(o&&o.color)||'#ffffff');ctx.fillText(r.t,xx,baseline);xx+=ctx.measureText(r.t).width;});});ctx.restore();};
@@ -2534,7 +2540,7 @@ class Game{
 
   _drawEnd(ctx){
     if(this.isWin){this._drawWinEnd(ctx);return;}
-    const ec=this.cfg.endCard||{},a=this.endA,portrait=CW<CH,scale=hudCounterScale(),baseCx=CW/2,baseCy=portrait?CH*.39:CH*.43,layout=this._loseEndLayout()||{},ls=this._endLayoutSettings(layout),overlay=ls.overlay,overlayColor=ls.overlayColor;
+    const ec=this.cfg.endCard||{},a=this.endA,portrait=CW<CH,scale=hudCounterScale(),active=endCardActiveRect(),baseCx=active.x+active.w/2,baseCy=portrait?CH*.39:CH*.43,layout=this._loseEndLayout()||{},ls=this._endLayoutSettings(layout),overlay=ls.overlay,overlayColor=ls.overlayColor;
     const io=layout.image||{},to=layout.text||{},co=layout.cta||{};
     const imageRef={anchor:'cc',x:0,y:-13,scale:1},textRef={anchor:'cc',x:0,y:-13,scale:1,fontSize:72,width:95,height:86};
     const famOf=(o)=>{const n=(o&&o.font)||ls.fontFamily||'Baloo2';return(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[n])?RiseFontCSS[n]:(n==='Baloo2'?'Baloo2, Arial, sans-serif':n||'sans-serif');};
