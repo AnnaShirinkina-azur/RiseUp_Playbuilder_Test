@@ -77,6 +77,16 @@ document.querySelectorAll('.acc-head[data-acc]').forEach(b=>{
     const body=$('acc-'+b.dataset.acc); if(body) body.classList.toggle('on');
   });
 });
+// Keep the service panel compact: opening one service card closes the other.
+document.querySelectorAll('#panel-service details.service-card').forEach(card=>{
+  card.addEventListener('toggle',()=>{
+    if(!card.open)return;
+    document.querySelectorAll('#panel-service details.service-card').forEach(other=>{
+      if(other!==card)other.open=false;
+    });
+  });
+});
+
 document.querySelectorAll('.tab[data-panel]').forEach(b=>{
   b.addEventListener('click',()=>{
     document.querySelectorAll('.tab[data-panel]').forEach(x=>x.classList.remove('on'));
@@ -734,18 +744,7 @@ try{
   setTimeout(()=>{setOrientation("landscape");syncFields();},50);
 })();
 
-// download
-$('btn-dl').addEventListener('click',async()=>{
-  const b=$('btn-dl');b.disabled=true;
-  $('sz').classList.remove('on');$('err').classList.remove('on');
-  await RiseBuilder.buildAndDownload({
-    assetsBase:'Assets',onProgress:setP,
-    onDone:(kb,stats)=>{hideP();const s=$('sz'),mb=stats&&stats.mb!=null?stats.mb:kb/1024,ok=stats?stats.withinLimit:kb<=5120;s.textContent=(ok?'✅ ':'⚠ ')+mb.toFixed(2)+' MB / 5 MB'+(ok?'':' — reduce custom assets');s.classList.add('on');b.disabled=false;},
-    onError:msg=>{hideP();showErr(msg);b.disabled=false;}
-  });
-});
-
-
+// Standalone playable download removed. Use per-network downloads or the network pack.
 // network exports
 const NETWORK_IDS=['applovin','moloco','mintegral','unity','googleads','generic'];
 let networkVariant='x',networkPrepared=null,networkBusy=false,networkLimitToken=0;
