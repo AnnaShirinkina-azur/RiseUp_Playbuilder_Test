@@ -2538,7 +2538,7 @@ class Game{
     if(this.isWin){this._drawWinEnd(ctx);return;}
     const ec=this.cfg.endCard||{},a=this.endA,portrait=CW<CH,scale=hudCounterScale(),active=endCardActiveRect(),baseCx=active.x+active.w/2,baseCy=portrait?CH*.39:CH*.43,layout=this._loseEndLayout()||{},ls=this._endLayoutSettings(layout),overlay=ls.overlay,overlayColor=ls.overlayColor;
     const io=layout.image||{},to=layout.text||{},co=layout.cta||{};
-    const imageRef={anchor:'cc',x:0,y:-13,scale:1},textRef={anchor:'cc',x:0,y:-13,scale:1,fontSize:72,width:95,height:86};
+    const imageRef={anchor:'cc',x:0,y:0,scale:1},textRef={anchor:'cc',x:0,y:0,scale:1,fontSize:72,width:95,height:86};
     const famOf=(o)=>{const n=(o&&o.font)||ls.fontFamily||'Baloo2';return(typeof RiseFontCSS!=='undefined'&&RiseFontCSS[n])?RiseFontCSS[n]:(n==='Baloo2'?'Baloo2, Arial, sans-serif':n||'sans-serif');};
 
     ctx.save();ctx.globalAlpha=a;ctx.fillStyle=rgba(overlayColor,overlay);ctx.fillRect(0,0,CW,CH);

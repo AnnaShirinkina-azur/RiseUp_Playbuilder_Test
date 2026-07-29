@@ -98,21 +98,7 @@
     "winLineIsInvisibleInPlayable": true,
     "winLineCanBePlacedOnAnyMiniLevel": true
   },
-  "editorRuntimeSync": {
-    "endCardLogicalViewport": true,
-    "landscapeLogicalHeight": 844,
-    "landscapeLogicalWidthFromAspect": true,
-    "loseCountdownPreviewMatchesRuntime": true,
-    "loseLayoutPositionScaleSize": true,
-    "endCardOrientationSwitchDoesNotChangePlayableOrientation": true,
-    "winCtaUsesSameAnchorPositionInEditorAndRuntime": true,
-    "endCardCanvasFillsPhoneFrame": true,
-    "endCardActiveZoneVisible": true,
-    "endCardActiveZoneWidthLandscape": 844,
-    "endCardObjectsUseStableActiveZone": true,
-    "gameplayHudHiddenBehindEndCard": true,
-    "gameplayCtaHiddenBehindEndCard": true
-  },
+  "editorRuntimeSync": "Level Editor wrapper restored; Lose End Card image/text use Y=0 reference in editor and runtime",
   "obstaclePrefabs": {
     "folder": "Obstacles / Prefabs",
     "level1Squeeze": true,
@@ -147,5 +133,11 @@
   },
   "level4Physics": "continuous shield support; repeated contact without per-touch kick; all non-interactable obstacles are solid colliders",
   "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for protector, player balloon, Level 4 ball, and all flying obstacles; swept collision prevents tunneling through thin walls",
-  "endCardRepair": "full-device editor viewport; stable central active zone; gameplay HUD and CTA suppressed while End Card is visible"
+  "endCardRepair": "full-device editor viewport; stable central active zone; gameplay HUD and CTA suppressed while End Card is visible",
+  "endCardLayoutFix": {
+    "levelEditorContainer": "scrollable full-size wrapper restored",
+    "loseImageReferenceY": 0,
+    "loseTextReferenceY": 0,
+    "activeZone": "editor-only visual guide; does not affect Level Editor layout"
+  }
 }

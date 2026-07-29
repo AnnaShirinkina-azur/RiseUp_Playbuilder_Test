@@ -594,13 +594,13 @@ try{
     drawEndCardZoneShade(ctx,W,H);
 
     const active=endCardActiveRect(W,H),baseCx=active.x+active.w/2,baseCy=portrait?H*.39:H*.43;
-    const io=layout.image||{},ioRef=refs.image||{anchor:'cc',x:0,y:-13,scale:1},id=deltaFromRef(io,ioRef),imageScale=io.scale==null?1:Math.max(.05,io.scale);
+    const io=layout.image||{},ioRef=refs.image||{anchor:'cc',x:0,y:0,scale:1},id=deltaFromRef(io,ioRef),imageScale=io.scale==null?1:Math.max(.05,io.scale);
     const baseBadgeSize=Math.min(portrait?W*.64:W*.28,portrait?H*.30:H*.56,303*scale),badgeSize=baseBadgeSize*imageScale,badgeCx=baseCx+id.x,badgeCy=baseCy+id.y;
     const badgeSrc=PLAYABLE_DEFAULT_SPRITES.endcard_countdown_badge||END_CARD_DEFAULTS.lose_logo,badge=dynamicImg(badgeSrc),imageTint=normalizeHexColor(io.tint,'#ffffff');
     const ir=io.hidden?null:{x:badgeCx-badgeSize/2,y:badgeCy-badgeSize/2,w:badgeSize,h:badgeSize};
     if(ir&&!drawEndCardTinted(ctx,badge,ir.x,ir.y,ir.w,ir.h,imageTint)){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(badgeCx,badgeCy,badgeSize*.5,0,Math.PI*2);ctx.fill();}
 
-    const value=String(Math.max(1,Math.round(num('cfg-endCardCountdown',10)))),to=ensureTextItem(layout.text,'text'),toRef=refs.text||{anchor:'cc',x:0,y:-13,scale:1,fontSize:72,width:95,height:86},td=deltaFromRef(to,toRef);
+    const value=String(Math.max(1,Math.round(num('cfg-endCardCountdown',10)))),to=ensureTextItem(layout.text,'text'),toRef=refs.text||{anchor:'cc',x:0,y:0,scale:1,fontSize:72,width:95,height:86},td=deltaFromRef(to,toRef);
     const textScale=to&&to.scale!=null?Math.max(.05,to.scale):1,fontScale=Math.max(.05,(to&&to.fontSize||72)/72)*textScale,numberSize=baseBadgeSize*.38*fontScale,numberCx=baseCx+td.x,numberCy=baseCy+td.y+baseBadgeSize*.015;
     const textColor=(to&&to.baseColor)||'#ffffff',outline=(to&&to.stroke)||'#7d33ce',strokeW=Math.max(0,(to&&to.strokeW==null?6:to.strokeW)*fontScale),numberFamily=objFamily(to||{}),widthScale=Math.max(.05,(to&&to.width||95)/95),heightScale=Math.max(.05,(to&&to.height||86)/86);
     let tr=null;
