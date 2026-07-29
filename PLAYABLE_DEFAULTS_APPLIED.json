@@ -131,13 +131,32 @@
     ],
     "level2UsesCommonPhysics": true
   },
-  "level4Physics": "continuous shield support; repeated contact without per-touch kick; all non-interactable obstacles are solid colliders",
-  "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for protector, player balloon, Level 4 ball, and all flying obstacles; swept collision prevents tunneling through thin walls",
+  "level4Physics": "continuous shield support; repeated contact without per-touch kick; Level 4 obstacle ball remains solid against non-interactable walls",
+  "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for obstacle bodies; protector/shield passes through them; swept collision prevents dynamic obstacles tunneling through thin walls",
   "endCardRepair": "full-device editor viewport; stable central active zone; gameplay HUD and CTA suppressed while End Card is visible",
   "endCardLayoutFix": {
     "levelEditorContainer": "scrollable full-size wrapper restored",
     "loseImageReferenceY": 0,
     "loseTextReferenceY": 0,
     "activeZone": "editor-only visual guide; does not affect Level Editor layout"
+  },
+  "exportOptimization": {
+    "targetMaxMB": 5,
+    "dataUrlRegistry": true,
+    "deduplicatesAcross": [
+      "sprites",
+      "level data",
+      "End Card layouts",
+      "CTA sprites",
+      "fallback assets"
+    ],
+    "duplicateCtaStoredOnce": true,
+    "rasterCompression": "WebP with max dimension 1280 and original fallback when conversion is not smaller",
+    "customAudioCompression": "large uncompressed uploads are downmixed/resampled when the result is smaller",
+    "defaultAudio": "mono MP3 fallbacks",
+    "fontCompression": "subset WOFF2 fallbacks",
+    "dynamicBundle": "only assets used by the current configuration are embedded",
+    "sizeIndicator": "shows final MB against 5 MB after export",
+    "validatedDefaultExportMB": 0.91
   }
 }
