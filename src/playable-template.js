@@ -350,8 +350,8 @@ class Obs{
 
 //── Stage ─────────────────────────────────────────────────────────────────────
 class Stage{
-  constructor(idx,obs,color,labels,bgs){
-    this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];
+  constructor(idx,obs,color,labels,bgs,winLines){
+    this.idx=idx;this.obs=obs;this.color=color;this.labels=labels||[];this.bgs=bgs||[];this.winLines=winLines||[];
     this.H=CH+6;this.worldY=idx*this.H;this.done=false;
     // Level 1 is a pair of horizontal side assemblies. Every item on one side
     // receives exactly the same X translation, so the large rectangle keeps
@@ -363,7 +363,7 @@ class Stage{
     if(this._hasLevel3Physics())this._buildLevel3Physics();
   }
   reset(){
-    this.done=false;this.obs.forEach(o=>o.reset());
+    this.done=false;this.obs.forEach(o=>o.reset());this.winLines.forEach(l=>{l.triggered=false;l.prevScreenY=null;});
     this.level1Systems=[];
     if(this._hasLevel1Physics())this._buildLevel1Groups();
     if(this._hasLevel3Physics())this._buildLevel3Physics();
@@ -929,7 +929,7 @@ class Game{
     const hasLD=Array.isArray(ld);
     const stageCount=Array.isArray(ld)&&ld.length>=requestedCount+2?ld.length:requestedCount+2;
     for(let si=0;si<stageCount;si++){
-      let obs=[],labels=[],bgs=[];
+      let obs=[],labels=[],bgs=[],winLines=[];
       if(hasLD&&Array.isArray(ld[si])&&ld[si].length>0){
         ld[si].forEach(o=>{
           if(o&&o.kind==='text'){labels.push(o);return;}
@@ -937,6 +937,7 @@ class Game{
           if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.count=Math.max(1,parseInt(this.cfg.lives,10)||ho.count||3);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
+          if(o&&o.kind==='winTrigger'){winLines.push({y:layoutY(o),triggered:false,prevScreenY:null});return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
           const ob=new Obs({...o,cfg:c,tint:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt),color:o.tint||o.color||(si%2===0?c.obstacleColor:c.obstacleColorAlt)});
           ob.spr=this._spr('obstacle_stage'+si)||this._spr('obstacle');
@@ -956,7 +957,7 @@ class Game{
           obs.push(ob);
         }
       }
-      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs));
+      this.stages.push(new Stage(si,obs,c.stageAccents===false?null:sc[si%sc.length],labels,bgs,winLines));
     }
   }
 
@@ -986,10 +987,9 @@ class Game{
     this._levelNumberIndex=0;
     this._levelNumberT=0;
     this._levelNumberDuration=1100;
-    // Level 4 is the final interaction beat. With Win Card enabled, reaching
-    // the authored Level 04 gameplay line starts the win fly-away and opens
-    // the Win Card. With Win Card disabled, the legacy one-shot store trigger
-    // on tap / first obstacle contact remains available.
+    // Win Card is controlled by an authored, invisible win line placed in
+    // Level Editor. The legacy Level 04 store trigger remains available when
+    // Win Card is disabled.
     this._level4StoreTriggered=false;
     this._level4WinTriggered=false;
     this._respawnStageIndex=1;
@@ -1255,21 +1255,28 @@ class Game{
     const playerY=this.ball?this.ball.y:CH*.8;
     return s.worldY+s.H>=playerY;
   }
-  _triggerLevel4WinIfReady(){
-    if(this._level4WinTriggered||!this._endCardsEnabled('win')||!this._isLevel4Reached())return false;
-    this._level4WinTriggered=true;
-    // Block the Level 04 store-conversion gesture while the Win Card path is
-    // active, otherwise the same arrival could open the store before the card.
-    this._level4StoreTriggered=true;
-    this.shield.up();
-    this.si=this._level4Index();
-    this.cb.onStageChange&&this.cb.onStageChange(this.si);
-    this._win();
-    return true;
+  _triggerWinLineIfReady(){
+    if(this._level4WinTriggered||!this._endCardsEnabled('win')||this.state!=='playing'||!this.tutDone)return false;
+    const playerY=this.ball?this.ball.y:CH*.8;
+    for(let i=0;i<this.stages.length;i++){
+      const stage=this.stages[i];if(!stage||stage.done||!stage.winLines||!stage.winLines.length)continue;
+      for(const line of stage.winLines){
+        if(line.triggered)continue;
+        const screenY=stage.worldY+line.y,prev=line.prevScreenY;line.prevScreenY=screenY;
+        // Level bands move downward. Trigger exactly when the authored line
+        // crosses the player's gameplay height; an already-lower line also
+        // triggers on its first active frame.
+        if((prev==null&&screenY>=playerY)||(prev!=null&&prev<playerY&&screenY>=playerY)){
+          line.triggered=true;this._level4WinTriggered=true;this._level4StoreTriggered=true;
+          this.shield.up();this.si=i;this.cb.onStageChange&&this.cb.onStageChange(i);this._win();return true;
+        }
+      }
+    }
+    return false;
   }
   _isLevel4TapActive(){
-    // When Win Card is enabled, merely reaching Level 04 owns the completion
-    // flow; tap/collision must not bypass it with a store redirect.
+    // When Win Card is enabled, the authored Win line owns the completion
+    // flow; Level 04 tap/collision must not bypass it with a store redirect.
     if(this._endCardsEnabled('win'))return false;
     return !this._level4StoreTriggered&&this._isLevel4Reached();
   }
@@ -1408,9 +1415,9 @@ class Game{
       }
     }
     this._updateLevelNumber(dt);
-    // Level 04 is the Win Card checkpoint. Trigger it as soon as the fourth
-    // authored stage reaches the gameplay line, before collision/store logic.
-    if(st==='playing'&&this.tutDone&&this._triggerLevel4WinIfReady())return;
+    // The invisible Win line is authored in Level Editor. It owns the exact
+    // completion point and is checked before collision/store logic.
+    if(st==='playing'&&this.tutDone&&this._triggerWinLineIfReady())return;
     // hp bar
     if(this.hpA>0){this.hpT+=dt;if(this.hpT>this.cfg.hpBarShowTime)this.hpA=Math.max(0,this.hpA-dt/400);}
 

@@ -567,6 +567,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <button class="et" id="et-progress">⚗ Progress</button>
           <button class="et" id="et-health">♥ Health</button>
           <button class="et" id="et-cta">CTA</button>
+          <button class="et" id="et-win-trigger" title="Добавить невидимую линию, после пересечения которой запускается Win Card">🏁 Win line</button>
         </div>
         <div class="etgroup">
           <span class="etg-label">Изменения</span>
@@ -682,6 +683,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="lp">Offset X% <input type="number" id="hb-offx" value="0" min="-200" max="200" step="1"></div>
         <div class="lp">Y% <input type="number" id="hb-offy" value="-44" min="-200" max="200" step="1"></div>
+      </div>
+      <div class="lblbar" id="winbar" style="display:none">
+        <div class="lp" style="font-weight:800;color:#ff73d1;">🏁 Win line</div>
+        <div class="lp">Level <span id="win-level-label">Mini-level</span></div>
+        <div class="lp">Y <input type="number" id="win-y" value="0" min="-422" max="422" step="1"></div>
+        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Когда линия пересечёт позицию игрока, запускается Win Card. В playable линия невидима.</small>
       </div>
       <div class="lblbar" id="ctabar" style="display:none">
         <div class="lp">CTA images</div>
@@ -894,9 +901,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=100-prefab-physics-panel"></script>
-<script src="src/builder.js?v=69-prefab-physics-panel"></script>
-<script src="script2.js?v=prefab-square-preview-no-badge"></script>
+<script src="src/playable-template.js?v=101-editable-win-line"></script>
+<script src="src/builder.js?v=70-editable-win-line"></script>
+<script src="script2.js?v=editable-win-line"></script>
 
 </body>
 </html>

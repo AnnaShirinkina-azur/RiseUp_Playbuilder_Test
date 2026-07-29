@@ -79,7 +79,8 @@
     "deathPause": true,
     "level3BasketContactRelease": true,
     "portraitCtaScaleFix": true,
-    "level4WinCardToggleGate": true
+    "level4WinCardToggleGate": false,
+    "editableWinLine": true
   },
   "endCardFeatures": {
     "independentWinLoseToggles": true,
@@ -91,8 +92,11 @@
     "perLayoutOverlayFontAndCtaVisibility": true,
     "perLayoutBackgroundArtworkAndCtaSprites": true,
     "ctaPositionUsesSavedXInBothOrientations": true,
-    "winCardTriggersOnLevel04Arrival": true,
-    "level04StoreTriggerOnlyWhenWinCardDisabled": true
+    "winCardTriggersOnLevel04Arrival": false,
+    "level04StoreTriggerOnlyWhenWinCardDisabled": true,
+    "winCardTriggersOnAuthoredWinLine": true,
+    "winLineIsInvisibleInPlayable": true,
+    "winLineCanBePlacedOnAnyMiniLevel": true
   },
   "editorRuntimeSync": {
     "endCardLogicalViewport": true,
