@@ -139,5 +139,6 @@
     ],
     "level2UsesCommonPhysics": true
   },
-  "level4Physics": "primary ball supports unlimited shield re-hits; impulse rearms after contact separation"
+  "level4Physics": "continuous shield support; repeated contact without per-touch kick; alpha-solid non-interactable walls",
+  "nonInteractableCollision": "non-interactable obstacles remain static but solid for gameplay and dynamic obstacle contacts"
 }

@@ -82,6 +82,44 @@ function seamCompositedOnPreviousColor(img,color){
 function pointInPoly(px,py,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;if(((yi>py)!=(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi+1e-9)+xi))inside=!inside;}return inside;}
 function distToSegSq(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);const x=ax+t*dx,y=ay+t*dy;return(px-x)**2+(py-y)**2;}
 function circlePolyHit(cx,cy,cr,pts){if(pointInPoly(cx,cy,pts))return true;const r2=cr*cr;for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(distToSegSq(cx,cy,a.x,a.y,b.x,b.y)<=r2)return true;}return false;}
+function _alphaChamfer(source,w,h){
+  const inf=1e6,d=new Float32Array(w*h),rt=Math.SQRT2;
+  for(let i=0;i<d.length;i++)d[i]=source[i]?0:inf;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=y*w+x;let v=d[i];
+    if(x>0)v=Math.min(v,d[i-1]+1);
+    if(y>0){v=Math.min(v,d[i-w]+1);if(x>0)v=Math.min(v,d[i-w-1]+rt);if(x+1<w)v=Math.min(v,d[i-w+1]+rt);}
+    d[i]=v;
+  }
+  for(let y=h-1;y>=0;y--)for(let x=w-1;x>=0;x--){
+    const i=y*w+x;let v=d[i];
+    if(x+1<w)v=Math.min(v,d[i+1]+1);
+    if(y+1<h){v=Math.min(v,d[i+w]+1);if(x>0)v=Math.min(v,d[i+w-1]+rt);if(x+1<w)v=Math.min(v,d[i+w+1]+rt);}
+    d[i]=v;
+  }
+  return d;
+}
+function buildAlphaCollider(img){
+  if(!imgOk(img))return null;
+  const iw=Math.max(1,img.naturalWidth||img.width||1),ih=Math.max(1,img.naturalHeight||img.height||1);
+  const scale=Math.min(1,180/Math.max(iw,ih)),w=Math.max(24,Math.round(iw*scale)),h=Math.max(24,Math.round(ih*scale));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const x=c.getContext('2d',{willReadFrequently:true});x.clearRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+  let data;try{data=x.getImageData(0,0,w,h).data;}catch(e){return null;}
+  const solid=new Uint8Array(w*h),free=new Uint8Array(w*h);
+  for(let i=0,j=0;i<data.length;i+=4,j++){solid[j]=data[i+3]>96?1:0;free[j]=solid[j]?0:1;}
+  const ds=_alphaChamfer(solid,w,h),df=_alphaChamfer(free,w,h),sdf=new Float32Array(w*h);
+  for(let i=0;i<sdf.length;i++)sdf[i]=solid[i]?-df[i]:ds[i];
+  return {w,h,sdf};
+}
+function sampleAlphaSdf(c,x,y){
+  if(!c)return 1e6;
+  const ox=x<0?-x:(x>c.w-1?x-(c.w-1):0),oy=y<0?-y:(y>c.h-1?y-(c.h-1):0);
+  const cx=clamp(x,0,c.w-1),cy=clamp(y,0,c.h-1),x0=Math.floor(cx),y0=Math.floor(cy),x1=Math.min(c.w-1,x0+1),y1=Math.min(c.h-1,y0+1),tx=cx-x0,ty=cy-y0;
+  const a=c.sdf[y0*c.w+x0],b=c.sdf[y0*c.w+x1],d=c.sdf[y1*c.w+x0],e=c.sdf[y1*c.w+x1];
+  const v=lerp(lerp(a,b,tx),lerp(d,e,tx),ty);
+  return v+Math.hypot(ox,oy);
+}
 function layoutX(o){return o&&o.coordMode==='center'?CW/2+(o.x||0):(o&&o.x!=null?o.x:195);}
 function layoutY(o){return o&&o.coordMode==='center'?CH/2+(o.y||0):(o&&o.y!=null?o.y:200);}
 function obstacleDesignSize(){return 844;}
@@ -275,6 +313,9 @@ class Obs{
     // `rot`, which is the physics spin accumulated after the protector push.
     this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
     this.interactable=o.interactable!==false;
+    // `interactable` controls whether the protector may move the object.
+    // Non-interactable artwork still remains a solid collider.
+    this.solid=o.solid!==false;this._alphaCollider=null;this._alphaColliderTried=false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
     // Contact latch for repeatable shield collisions (used by the Level 4 ball).
     // It rearms only after the protector and obstacle separate, so a single
@@ -282,7 +323,7 @@ class Obs{
     this.shieldTouching=false;
     // Runtime-only role used by the Level 3 basket simulation.
     this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
-    this.level3Role=null;this.level3Follow=null;this.level3Safe=false;
+    this.level3Role=null;this.level3Follow=null;this.level3Safe=false;this.level4Role=null;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
@@ -319,11 +360,31 @@ class Obs{
       if(this.y>3000||this.y<-4000||this.x<-1200||this.x>CW+1200)this.live=false;
     }
   }
-  hits(cx,cy,cr,includeDynamic=false){
+  _ensureAlphaCollider(){
+    if(this._alphaCollider||this._alphaColliderTried)return this._alphaCollider;
+    if(!imgOk(this.customImg))return null;
+    this._alphaColliderTried=true;this._alphaCollider=buildAlphaCollider(this.customImg);return this._alphaCollider;
+  }
+  alphaCircleContact(cx,cy,cr){
+    const c=this._ensureAlphaCollider();if(!c)return null;
+    const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang),rx=cx-this.x,ry=cy-this.y;
+    const lx=rx*co+ry*si,ly=-rx*si+ry*co,sx=(c.w-1)/Math.max(1,this.w),sy=(c.h-1)/Math.max(1,this.h);
+    const gx=(lx/this.w+.5)*(c.w-1),gy=(ly/this.h+.5)*(c.h-1),sp=(sx+sy)*.5;
+    const sd=sampleAlphaSdf(c,gx,gy)/Math.max(.0001,sp);if(sd>=cr)return null;
+    const ex=sampleAlphaSdf(c,gx+1,gy)-sampleAlphaSdf(c,gx-1,gy),ey=sampleAlphaSdf(c,gx,gy+1)-sampleAlphaSdf(c,gx,gy-1);
+    let nlx=ex*sx,nly=ey*sy,nl=Math.hypot(nlx,nly);
+    if(nl<1e-5){nlx=lx||1;nly=ly;nl=Math.hypot(nlx,nly)||1;}
+    nlx/=nl;nly/=nl;
+    return {nx:nlx*co-nly*si,ny:nlx*si+nly*co,pen:Math.max(.01,cr-sd),distance:sd};
+  }
+  hits(cx,cy,cr,includeDynamic=false,includeStatic=false){
+    // `interactable` means movable by the protector, not non-solid. Static
+    // image obstacles still collide with gameplay bodies when requested.
+    if(!this.live||!this.solid||(!this.interactable&&!includeStatic))return false;
+    if(!this.interactable&&includeStatic&&this.customImg){const ac=this._ensureAlphaCollider();if(ac)return !!this.alphaCircleContact(cx,cy,cr);}
     // Protector contact turns a kinematic obstacle into a flying body.
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
-    if(!this.live||!this.interactable)return false;
     // The Level 3 basket is a tool, not a damaging full-box obstacle. Its
     // actual U-shaped walls are handled by the dedicated basket simulation.
     if(this.level3Role==='basket'||this.level3Role==='ballVisual')return false;
@@ -372,20 +433,32 @@ class Stage{
     // its authored gap to the triangles instead of overtaking them.
     this.level1Systems=[];
     this.cfg=(obs&&obs.length&&obs[0].cfg)||{};
-    this.level3=null;
+    this.level3=null;this.level4=null;
     if(this._hasLevel1Physics())this._buildLevel1Groups();
     if(this._hasLevel3Physics())this._buildLevel3Physics();
+    if(this._hasLevel4Physics())this._buildLevel4Physics();
   }
   reset(){
     this.done=false;this.obs.forEach(o=>o.reset());this.winLines.forEach(l=>{l.triggered=false;l.prevScreenY=null;});
     this.level1Systems=[];
     if(this._hasLevel1Physics())this._buildLevel1Groups();
     if(this._hasLevel3Physics())this._buildLevel3Physics();
+    if(this._hasLevel4Physics())this._buildLevel4Physics();
   }
   resetAt(worldY){this.done=false;this.worldY=worldY;this.reset();}
   complete(){this.done=true;this.worldY=CH+this.H*4;}
   _hasLevel1Physics(){return this.idx===1||this.obs.some(o=>o.physicsPrefab==='level1_squeeze');}
   _hasLevel3Physics(){return this.idx===3||this.obs.some(o=>o.physicsPrefab==='level3_basket');}
+  _hasLevel4Physics(){return this.idx===4;}
+  _buildLevel4Physics(){
+    if(!this._hasLevel4Physics())return;
+    const movers=this.obs.filter(o=>o&&o.interactable!==false&&o.solid!==false);
+    const ball=movers.find(o=>Math.max(o.w,o.h)/Math.max(1,Math.min(o.w,o.h))<1.35)||movers[0]||null;
+    const walls=this.obs.filter(o=>o&&o!==ball&&o.interactable===false&&o.solid!==false);
+    if(ball){ball.level4Role='ball';ball.shieldTouching=false;}
+    for(const wall of walls)wall.level4Role='wall';
+    this.level4={ball,walls,contactCooldown:0};
+  }
   _buildLevel1Groups(){
     if(!this._hasLevel1Physics())return;
     const tagged=this.obs.filter(o=>o.physicsPrefab==='level1_squeeze');
@@ -629,6 +702,49 @@ class Stage{
     }
     this._syncLevel3Visuals();
   }
+  _resolveLevel4Walls(dt){
+    const l=this.level4,b=l&&l.ball;if(!b||!b.live||b.kin||!l.walls.length)return false;
+    const r=Math.max(6,Math.min(b.w,b.h)*.43);let touched=false;
+    // Several lightweight solver passes keep the large ball outside thin,
+    // alpha-shaped static walls even during a fast protector movement.
+    for(let pass=0;pass<4;pass++){
+      let passHit=false;
+      for(const wall of l.walls){
+        if(!wall.live)continue;
+        const hit=wall.alphaCircleContact(b.x,b.y,r);if(!hit)continue;
+        passHit=true;touched=true;b.x+=hit.nx*hit.pen;b.y+=hit.ny*hit.pen;
+        const vn=b.vx*hit.nx+b.vy*hit.ny;
+        if(vn<0){const bounce=.08;b.vx-=hit.nx*vn*(1+bounce);b.vy-=hit.ny*vn*(1+bounce);}
+        const tx=-hit.ny,ty=hit.nx,vt=b.vx*tx+b.vy*ty;b.vx-=tx*vt*.025;b.vy-=ty*vt*.025;
+      }
+      if(!passHit)break;
+    }
+    return touched;
+  }
+  level4ShieldContact(shield,worldTop,dt){
+    const l=this.level4,b=l&&l.ball;if(!b||!b.live)return false;
+    if(l.contactCooldown>0)l.contactCooldown-=dt;
+    const bx=b.x,by=b.y+worldTop,dx=bx-shield.x,dy=by-shield.y;
+    const br=Math.max(6,Math.min(b.w,b.h)*.43),rr=br+shield.r,d=Math.hypot(dx,dy);
+    if(d>=rr){b.shieldTouching=false;l.justTouched=false;return false;}
+    const wasTouching=!!b.shieldTouching;
+    let nx,ny;if(d<1e-5){nx=0;ny=-1;}else{nx=dx/d;ny=dy/d;}
+    const pen=rr-d;
+    if(b.kin){b.kin=false;b.vx=0;b.vy=0;b.av=0;}
+    // Continuous support instead of repeated kicks: remove penetration and
+    // cancel only the closing normal velocity relative to the protector.
+    b.x+=nx*pen;b.y+=ny*pen;
+    const svx=shield.vx||0,svy=shield.vy||0,rvx=b.vx-svx,rvy=b.vy-svy,vn=rvx*nx+rvy*ny;
+    if(vn<0){const restitution=.06,imp=-(1+restitution)*vn;b.vx+=nx*imp;b.vy+=ny*imp;}
+    const tx=-ny,ty=nx,vt=(b.vx-svx)*tx+(b.vy-svy)*ty;
+    b.vx-=tx*vt*.11;b.vy-=ty*vt*.11;
+    // Match the moving support gradually; no velocity is added every frame,
+    // so the protector can hold the ball indefinitely without launching it.
+    b.vx=lerp(b.vx,svx,.10);b.vy=lerp(b.vy,svy,.10);
+    b.av*=.9;b.shieldTouching=true;l.justTouched=!wasTouching;
+    this._resolveLevel4Walls(dt);
+    return true;
+  }
   level3ShieldContact(shield,worldTop){
     const l=this.level3;if(!l||!l.active||!l.basket||!l.basket.live)return false;
     const b=l.basket,walls=this._level3Walls();let touched=false;
@@ -662,6 +778,7 @@ class Stage{
     // whole level band moves downward relative to the player.
     this.worldY+=fallSpeed*dt;
     this.obs.forEach(o=>o.update(dt,gravityModifier));
+    this._resolveLevel4Walls(dt);
     this._updateLevel1Squeeze(dt,level1CenterSpeed,level1ActivationY);
     this._updateLevel3(dt,gravityModifier);
   }
@@ -676,11 +793,11 @@ class Stage{
     this.obs.forEach(o=>o.draw(ctx,top));
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
   }
-  hit(px,py,pr,top,includeDynamic=false){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic))return o;}return null;}
-  hits(px,py,pr,top,includeDynamic=false){
+  hit(px,py,pr,top,includeDynamic=false,includeStatic=false){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic,includeStatic))return o;}return null;}
+  hits(px,py,pr,top,includeDynamic=false,includeStatic=false){
     if(this.done)return [];
     const out=[];
-    for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic))out.push(o);}
+    for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic,includeStatic))out.push(o);}
     return out;
   }
 }
@@ -1449,19 +1566,15 @@ class Game{
         }
       }
       for(let i=0;i<this.stages.length;i++){
-        const stage=this.stages[i],top=this._sst(i);
-        const repeatBall=i===this._level4Index()?this._level4FirstObstacle():null;
-        // The authored Level 4 ball is a reusable dynamic body. Test it even
-        // after the first launch and apply a new impulse on every NEW contact.
-        // `shieldTouching` prevents continuous overlap from firing every frame
-        // and resets as soon as the two circles/shapes separate.
-        if(repeatBall&&repeatBall.live&&repeatBall.interactable!==false){
-          const touching=repeatBall.hits(this.shield.x,this.shield.y-top,this.shield.r,true);
-          if(touching&&!repeatBall.shieldTouching)this._hit(repeatBall,top,'shield',i);
-          repeatBall.shieldTouching=touching;
+        const stage=this.stages[i],top=this._sst(i),level4Ball=stage.level4&&stage.level4.ball;
+        // Level 4 uses a persistent support contact, like the Level 3 basket:
+        // the protector carries the ball instead of applying a fresh kick.
+        if(stage.level4ShieldContact&&stage.level4ShieldContact(this.shield,top,dt)){
+          this.shield.flash=180;
+          if(stage.level4&&stage.level4.justTouched&&stage.level4.contactCooldown<=0){this.snd.play('shield');stage.level4.contactCooldown=120;}
         }
-        const hits=stage.hits?stage.hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
-        for(const sh of hits){if(sh!==repeatBall)this._hit(sh,top,'shield',i);}
+        const hits=stage.hits?stage.hits(this.shield.x,this.shield.y,this.shield.r,top,false,false):[];
+        for(const sh of hits){if(sh!==level4Ball)this._hit(sh,top,'shield',i);}
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
@@ -1469,7 +1582,7 @@ class Game{
         // Every balloon in the pyramid can be popped by an unblocked obstacle.
         const bpts=this.ball.points();
         for(let bi=0;bi<bpts.length;bi++){
-          const bh=this.stages[i].hit(bpts[bi].x,bpts[bi].y,this.ball.r,top,true);
+          const bh=this.stages[i].hit(bpts[bi].x,bpts[bi].y,this.ball.r,top,true,true);
           if(bh){this._hit(bh,top,'ball',i);break outer;}
         }
       }
@@ -1553,16 +1666,30 @@ class Game{
   // each other with a bit of restitution. One good swipe scatters a cluster.
   _scatterPhysics(){
     if(this.cfg.chainReaction===false)return;
-    const list=[];
+    const list=[],statics=[];
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
-      for(const o of st.obs){if(o.live&&o.interactable&&!o.level3Role)list.push({o,top});}
+      for(const o of st.obs){
+        if(!o.live||o.level3Role)continue;
+        if(o.interactable)list.push({o,top});
+        else if(o.solid!==false)statics.push({o,top});
+      }
     }
     const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
     for(let a=0;a<list.length;a++){
       const A=list[a];if(A.o.kin)continue;      // only flying pieces initiate
-      const ar=A.o.cr,ax=A.o.x,ay=A.o.y+A.top;
+      const ar=A.o.level4Role==='ball'?Math.max(6,Math.min(A.o.w,A.o.h)*.43):A.o.cr;let ax=A.o.x,ay=A.o.y+A.top;
+      // Static/non-interactable objects do not receive momentum, but they are
+      // still real colliders. Resolve the moving body against their alpha
+      // silhouette before dynamic-vs-dynamic chain reactions.
+      if(A.o.level4Role!=='ball')for(const B of statics){
+        const hit=B.o.alphaCircleContact(ax,ay-B.top,ar);if(!hit)continue;
+        A.o.x+=hit.nx*hit.pen;A.o.y+=hit.ny*hit.pen;
+        const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
+        if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
+        ax=A.o.x;ay=A.o.y+A.top;
+      }
       for(let b=0;b<list.length;b++){
         if(b===a)continue;
         const B=list[b],br=B.o.cr;
