@@ -139,6 +139,6 @@
     ],
     "level2UsesCommonPhysics": true
   },
-  "level4Physics": "continuous shield support; repeated contact without per-touch kick; alpha-solid non-interactable walls",
-  "nonInteractableCollision": "non-interactable obstacles remain static but solid for gameplay and dynamic obstacle contacts"
+  "level4Physics": "continuous shield support; repeated contact without per-touch kick; all non-interactable obstacles are solid colliders",
+  "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for protector, player balloon, Level 4 ball, and all flying obstacles; swept collision prevents tunneling through thin walls"
 }

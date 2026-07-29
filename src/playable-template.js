@@ -316,7 +316,7 @@ class Obs{
     // `interactable` controls whether the protector may move the object.
     // Non-interactable artwork still remains a solid collider.
     this.solid=o.solid!==false;this._alphaCollider=null;this._alphaColliderTried=false;
-    this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
+    this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.prevX=this.x;this.prevY=this.y;
     // Contact latch for repeatable shield collisions (used by the Level 4 ball).
     // It rearms only after the protector and obstacle separate, so a single
     // sustained overlap cannot apply an impulse every frame.
@@ -325,7 +325,7 @@ class Obs{
     this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
     this.level3Role=null;this.level3Follow=null;this.level3Safe=false;this.level4Role=null;
   }
-  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;}
+  reset(){this.x=this.ix;this.y=this.iy;this.prevX=this.x;this.prevY=this.y;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0,allowDynamic=false){
@@ -340,6 +340,7 @@ class Obs{
     }
   }
   update(dt,gravityModifier=1){
+    this.prevX=this.x;this.prevY=this.y;
     // Level 3 basket/balls are integrated together by Stage so the U-shaped
     // basket can contain, scoop and throw the balls. Decorative inner ball
     // pieces follow their physical circle body there as well.
@@ -377,11 +378,55 @@ class Obs{
     nlx/=nl;nly/=nl;
     return {nx:nlx*co-nly*si,ny:nlx*si+nly*co,pen:Math.max(.01,cr-sd),distance:sd};
   }
+  circleContact(cx,cy,cr){
+    if(!this.live||!this.solid)return null;
+    // Sprite obstacles use their alpha silhouette when it is available. Until
+    // the image has loaded, fall back to the authored primitive collider so a
+    // wall never temporarily becomes pass-through.
+    if(this.customImg){const alpha=this._ensureAlphaCollider();if(alpha)return this.alphaCircleContact(cx,cy,cr);}
+    const ang=this.baseRot+(this.kin?0:this.rot),co=Math.cos(ang),si=Math.sin(ang),rx=cx-this.x,ry=cy-this.y;
+    const lx=rx*co+ry*si,ly=-rx*si+ry*co;
+    if(this.shape==='circle'){
+      const rr=Math.max(5,Math.min(this.w,this.h)*.5)+cr,d=Math.hypot(lx,ly);if(d>=rr)return null;
+      const nx=d>1e-5?lx/d:1,ny=d>1e-5?ly/d:0;
+      return {nx:nx*co-ny*si,ny:nx*si+ny*co,pen:Math.max(.01,rr-d),distance:d};
+    }
+    let pts=null;
+    if(this.shape==='custom'&&this.points&&this.points.length>=3)pts=this.points.map(p=>({x:p.x*this.w,y:p.y*this.h}));
+    else if(this.shape==='triangle')pts=[{x:0,y:-this.h/2},{x:this.w/2,y:this.h/2},{x:-this.w/2,y:this.h/2}];
+    if(pts){
+      let bestD2=Infinity,bx=0,by=0;
+      for(let i=0;i<pts.length;i++){
+        const a=pts[i],b=pts[(i+1)%pts.length],dx=b.x-a.x,dy=b.y-a.y;
+        let t=((lx-a.x)*dx+(ly-a.y)*dy)/(dx*dx+dy*dy||1);t=clamp(t,0,1);
+        const qx=a.x+t*dx,qy=a.y+t*dy,d2=(lx-qx)**2+(ly-qy)**2;
+        if(d2<bestD2){bestD2=d2;bx=qx;by=qy;}
+      }
+      const inside=pointInPoly(lx,ly,pts),d=Math.sqrt(bestD2);
+      if(!inside&&d>=cr)return null;
+      let nx,ny;
+      if(d>1e-5){nx=inside?(bx-lx)/d:(lx-bx)/d;ny=inside?(by-ly)/d:(ly-by)/d;}
+      else{nx=lx||1;ny=ly;const nl=Math.hypot(nx,ny)||1;nx/=nl;ny/=nl;}
+      return {nx:nx*co-ny*si,ny:nx*si+ny*co,pen:Math.max(.01,inside?cr+d:cr-d),distance:inside?-d:d};
+    }
+    const hw=this.w/2,hh=this.h/2;
+    const qx=clamp(lx,-hw,hw),qy=clamp(ly,-hh,hh),dx=lx-qx,dy=ly-qy,d=Math.hypot(dx,dy);
+    const inside=Math.abs(lx)<hw&&Math.abs(ly)<hh;
+    if(!inside&&d>=cr)return null;
+    let nx,ny,pen;
+    if(inside){
+      const dl=lx+hw,dr=hw-lx,dtp=ly+hh,db=hh-ly,m=Math.min(dl,dr,dtp,db);
+      if(m===dl){nx=-1;ny=0;}else if(m===dr){nx=1;ny=0;}else if(m===dtp){nx=0;ny=-1;}else{nx=0;ny=1;}
+      pen=cr+m;
+    }else if(d>1e-5){nx=dx/d;ny=dy/d;pen=cr-d;}
+    else{nx=1;ny=0;pen=cr;}
+    return {nx:nx*co-ny*si,ny:nx*si+ny*co,pen:Math.max(.01,pen),distance:inside?-pen:d};
+  }
   hits(cx,cy,cr,includeDynamic=false,includeStatic=false){
     // `interactable` means movable by the protector, not non-solid. Static
     // image obstacles still collide with gameplay bodies when requested.
     if(!this.live||!this.solid||(!this.interactable&&!includeStatic))return false;
-    if(!this.interactable&&includeStatic&&this.customImg){const ac=this._ensureAlphaCollider();if(ac)return !!this.alphaCircleContact(cx,cy,cr);}
+    if(!this.interactable&&includeStatic)return !!this.circleContact(cx,cy,cr);
     // Protector contact turns a kinematic obstacle into a flying body.
     // The protector should not keep re-hitting that same body every frame,
     // but the player ball must still be able to collide with it and lose a life.
@@ -711,7 +756,7 @@ class Stage{
       let passHit=false;
       for(const wall of l.walls){
         if(!wall.live)continue;
-        const hit=wall.alphaCircleContact(b.x,b.y,r);if(!hit)continue;
+        const hit=wall.circleContact(b.x,b.y,r);if(!hit)continue;
         passHit=true;touched=true;b.x+=hit.nx*hit.pen;b.y+=hit.ny*hit.pen;
         const vn=b.vx*hit.nx+b.vy*hit.ny;
         if(vn<0){const bounce=.08;b.vx-=hit.nx*vn*(1+bounce);b.vy-=hit.ny*vn*(1+bounce);}
@@ -792,6 +837,23 @@ class Stage{
     this.bgs.forEach(b=>b.draw(ctx,top));
     this.obs.forEach(o=>o.draw(ctx,top));
     for(let i=0;i<this.labels.length;i++){const L=this.labels[i],p=textLocal(L);drawTextLabel(ctx,L,CW/2+p.x,top+CH/2+p.y);}
+  }
+  resolveShieldStatics(shield,top){
+    if(this.done||!shield||shield.dead)return false;
+    let touched=false;
+    for(let pass=0;pass<4;pass++){
+      let passHit=false;
+      for(const o of this.obs){
+        if(!o||!o.live||o.solid===false||o.interactable!==false||o.level3Role==='ballVisual')continue;
+        const hit=o.circleContact(shield.x,shield.y-top,shield.r);if(!hit)continue;
+        passHit=true;touched=true;
+        shield.x+=hit.nx*hit.pen;shield.y+=hit.ny*hit.pen;
+        const vn=shield.vx*hit.nx+shield.vy*hit.ny;
+        if(vn<0){shield.vx-=hit.nx*vn;shield.vy-=hit.ny*vn;}
+      }
+      if(!passHit)break;
+    }
+    return touched;
   }
   hit(px,py,pr,top,includeDynamic=false,includeStatic=false){if(this.done)return null;for(const o of this.obs){if(o.hits(px,py-top,pr,includeDynamic,includeStatic))return o;}return null;}
   hits(px,py,pr,top,includeDynamic=false,includeStatic=false){
@@ -1555,6 +1617,13 @@ class Game{
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
+      // Non-interactable means immovable, not intangible. The protector is
+      // resolved against every authored static collider before it can push
+      // dynamic obstacles, so it cannot be dragged through walls either.
+      for(let i=0;i<this.stages.length;i++){
+        const stage=this.stages[i],top=this._sst(i);
+        if(stage.resolveShieldStatics)stage.resolveShieldStatics(this.shield,top);
+      }
       // Level 3 uses continuous shield-vs-U-wall contact. Unlike a normal
       // obstacle hit, the basket can be pushed repeatedly, caught again and
       // sharply reversed to throw the balls out.
@@ -1665,7 +1734,7 @@ class Game{
   // get knocked free (momentum transfer), already-flying pieces bounce off
   // each other with a bit of restitution. One good swipe scatters a cluster.
   _scatterPhysics(){
-    if(this.cfg.chainReaction===false)return;
+    const chainEnabled=this.cfg.chainReaction!==false;
     const list=[],statics=[];
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
@@ -1683,13 +1752,41 @@ class Game{
       // Static/non-interactable objects do not receive momentum, but they are
       // still real colliders. Resolve the moving body against their alpha
       // silhouette before dynamic-vs-dynamic chain reactions.
-      if(A.o.level4Role!=='ball')for(const B of statics){
-        const hit=B.o.alphaCircleContact(ax,ay-B.top,ar);if(!hit)continue;
-        A.o.x+=hit.nx*hit.pen;A.o.y+=hit.ny*hit.pen;
-        const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
-        if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
-        ax=A.o.x;ay=A.o.y+A.top;
+      // Every non-interactable object is an immovable physical collider.
+      // Sweep from the previous body position to the new one first, so even a
+      // fast body cannot tunnel completely through a thin wall between frames.
+      const sx=Number.isFinite(A.o.prevX)?A.o.prevX:A.o.x;
+      const sy=(Number.isFinite(A.o.prevY)?A.o.prevY:A.o.y)+A.top;
+      const ex=A.o.x,ey=A.o.y+A.top,travel=Math.hypot(ex-sx,ey-sy);
+      const sweepSteps=Math.min(32,Math.max(1,Math.ceil(travel/Math.max(3,ar*.3))));
+      let swept=false;
+      for(let step=1;step<=sweepSteps&&!swept;step++){
+        const q=step/sweepSteps,qx=lerp(sx,ex,q),qy=lerp(sy,ey,q);
+        for(const B of statics){
+          const hit=B.o.circleContact(qx,qy-B.top,ar);if(!hit)continue;
+          A.o.x=qx+hit.nx*hit.pen;A.o.y=qy-A.top+hit.ny*hit.pen;
+          const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
+          if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
+          ax=A.o.x;ay=A.o.y+A.top;swept=true;break;
+        }
       }
+      // Multiple penetration passes keep bodies outside corners and stacked
+      // static colliders after the swept first contact.
+      for(let pass=0;pass<4;pass++){
+        let passHit=false;
+        for(const B of statics){
+          const hit=B.o.circleContact(ax,ay-B.top,ar);if(!hit)continue;
+          passHit=true;
+          A.o.x+=hit.nx*hit.pen;A.o.y+=hit.ny*hit.pen;
+          const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
+          if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
+          const tx=-hit.ny,ty=hit.nx,vt=A.o.vx*tx+A.o.vy*ty;
+          A.o.vx-=tx*vt*.02;A.o.vy-=ty*vt*.02;
+          ax=A.o.x;ay=A.o.y+A.top;
+        }
+        if(!passHit)break;
+      }
+      if(!chainEnabled)continue;
       for(let b=0;b<list.length;b++){
         if(b===a)continue;
         const B=list[b],br=B.o.cr;
