@@ -743,6 +743,76 @@ $('btn-dl').addEventListener('click',async()=>{
   });
 });
 
+
+// network exports
+const NETWORK_IDS=['applovin','moloco','mintegral','unity','googleads','generic'];
+let networkVariant='x',networkPrepared=null,networkBusy=false,networkLimitToken=0;
+function networkNaming(){
+  const value=(id,fallback)=>{const e=$(id),v=e&&String(e.value||'').trim();return v||fallback;};
+  return {prefix:value('net-name-prefix','RISE'),number:value('net-name-number','001'),variant:value('net-name-variant','01'),locale:value('net-name-locale','en')};
+}
+function networkXclClicks(){const e=$('net-xcl-clicks'),v=e?parseInt(e.value,10):1;return isFinite(v)?Math.max(0,v):1;}
+function updateNetworkNamePreview(){
+  const e=$('network-name-preview');if(!e||!RiseBuilder.networkFileName)return;
+  e.textContent=RiseBuilder.networkFileName('mintegral',networkVariant,networkNaming(),'zip');
+}
+function setNetworkInfo(message,state){const e=$('network-info');if(!e)return;e.textContent=message||'';e.className='network-info'+(state?' '+state:'');}
+function setNetworkBusy(on){networkBusy=!!on;document.querySelectorAll('#network-export-card button,#network-export-card input').forEach(e=>{e.disabled=!!on;});}
+function clearNetworkSizes(){NETWORK_IDS.forEach(net=>{const row=$('network-row-'+net),size=$('network-size-'+net);if(row)row.className='network-row';if(size)size.textContent='—';});}
+function invalidateNetworkExports(){networkPrepared=null;networkLimitToken++;clearNetworkSizes();setNetworkInfo('Настройки изменены — обновите лимиты.');}
+async function ensureNetworkPrepared(){
+  if(networkPrepared)return networkPrepared;
+  networkPrepared=await RiseBuilder.prepareNetworkBase({assetsBase:'Assets',onProgress:setP});
+  return networkPrepared;
+}
+function renderNetworkSize(out){
+  const row=$('network-row-'+out.net),size=$('network-size-'+out.net);if(!row||!size)return;
+  if(out.maxBytes==null){row.className='network-row';size.textContent=(out.bytes/1048576).toFixed(2)+' MB';return;}
+  row.className='network-row '+(out.withinLimit?'ok':'over');
+  size.textContent=(out.bytes/1048576).toFixed(2)+' / '+Math.round(out.maxBytes/1048576)+' MB';
+}
+async function refreshNetworkLimits(){
+  if(networkBusy)return;const token=++networkLimitToken;setNetworkBusy(true);setNetworkInfo('Подготовка оптимизированной сборки…');
+  NETWORK_IDS.forEach(net=>{const row=$('network-row-'+net),size=$('network-size-'+net);if(row)row.className='network-row checking';if(size)size.textContent='…';});
+  try{
+    const prepared=await ensureNetworkPrepared();
+    for(const net of NETWORK_IDS){
+      if(token!==networkLimitToken)return;
+      const out=await RiseBuilder.buildNetworkOutput(prepared,net,networkVariant,networkNaming(),networkXclClicks());renderNetworkSize(out);
+    }
+    hideP();setNetworkInfo('Размеры рассчитаны для '+(networkVariant==='x'?'xcl':networkVariant+'cl')+'.','ok');
+  }catch(e){hideP();setNetworkInfo(e.message||String(e),'error');showErr(e.message||String(e));}
+  finally{setNetworkBusy(false);}
+}
+async function downloadNetwork(net){
+  if(networkBusy)return;setNetworkBusy(true);setNetworkInfo('Сборка '+net+'…');
+  try{
+    const prepared=await ensureNetworkPrepared(),out=await RiseBuilder.buildNetworkOutput(prepared,net,networkVariant,networkNaming(),networkXclClicks());
+    RiseBuilder.downloadBlob(out.blob,out.filename);renderNetworkSize(out);hideP();
+    setNetworkInfo((out.withinLimit?'Скачан ':'⚠ Скачан с превышением лимита: ')+out.filename+' — '+(out.bytes/1048576).toFixed(2)+' MB',out.withinLimit?'ok':'error');
+  }catch(e){hideP();setNetworkInfo(e.message||String(e),'error');showErr(e.message||String(e));}
+  finally{setNetworkBusy(false);}
+}
+async function downloadNetworkPack(){
+  if(networkBusy)return;setNetworkBusy(true);setNetworkInfo('Сборка пака 0/15…');
+  try{
+    const prepared=await ensureNetworkPrepared();
+    const pack=await RiseBuilder.buildNetworkPack(prepared,networkNaming(),networkXclClicks(),(p,msg)=>{setP(.1+p*.9,msg);setNetworkInfo(msg);});
+    RiseBuilder.downloadBlob(pack.blob,pack.filename);hideP();setNetworkInfo('Пак скачан: '+pack.filename+' — '+(pack.blob.size/1048576).toFixed(2)+' MB, 15 файлов.','ok');
+  }catch(e){hideP();setNetworkInfo(e.message||String(e),'error');showErr(e.message||String(e));}
+  finally{setNetworkBusy(false);}
+}
+function resetNetworkExportUI(){
+  networkVariant='x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b.dataset.networkVariant==='x'));
+  updateNetworkNamePreview();invalidateNetworkExports();
+}
+document.querySelectorAll('[data-network-variant]').forEach(btn=>btn.addEventListener('click',()=>{networkVariant=btn.dataset.networkVariant||'x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b===btn));updateNetworkNamePreview();clearNetworkSizes();setNetworkInfo('Выбран вариант '+(networkVariant==='x'?'xcl':networkVariant+'cl')+'. Нажмите «Лимиты».');}));
+['net-name-prefix','net-name-number','net-name-variant','net-name-locale','net-xcl-clicks'].forEach(id=>{$(id)&&$(''+id).addEventListener('input',()=>{updateNetworkNamePreview();clearNetworkSizes();});});
+document.querySelectorAll('[data-network-download]').forEach(btn=>btn.addEventListener('click',()=>downloadNetwork(btn.dataset.networkDownload)));
+$('network-check-limits')&&$('network-check-limits').addEventListener('click',refreshNetworkLimits);
+$('network-download-pack')&&$('network-download-pack').addEventListener('click',downloadNetworkPack);
+updateNetworkNamePreview();
+
 // preview controls
 let previewBuilt=false;
 let previewDirty=true;
@@ -750,9 +820,9 @@ let previewBuilding=false;
 function previewApi(){
   try{return $('pif').contentWindow&&$('pif').contentWindow.RisePreviewControl;}catch(e){return null;}
 }
-function markPreviewDirty(){previewDirty=true;}
-document.addEventListener('input',e=>{if(!e.target.closest('.pact'))markPreviewDirty();},true);
-document.addEventListener('change',e=>{if(!e.target.closest('.pact'))markPreviewDirty();},true);
+function markPreviewDirty(){previewDirty=true;if(typeof invalidateNetworkExports==='function')invalidateNetworkExports();}
+document.addEventListener('input',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
+document.addEventListener('change',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
 document.addEventListener('pointerup',e=>{if(e.target&&e.target.id==='ec')markPreviewDirty();},true);
 document.addEventListener('keyup',e=>{if(['Delete','Backspace'].includes(e.key))markPreviewDirty();},true);
 async function buildPreviewNow(){
@@ -807,7 +877,7 @@ $('btn-stop').addEventListener('click',()=>{
 });
 
 // reset
-const DEFS={"cfg-lives":3,"cfg-stageCount":4,"le-stage-count":4,"cfg-heightIndicatorEnabled":true,"cfg-heightStart":66,"cfg-heightFeetPerStage":100,"cfg-playerSize":2,"cfg-ballSizeUI":2,"cfg-balloonCount":1,"cfg-balloonSpacing":30,"cfg-playerDeathAnimSpeed":1,"cfg-deathPause":2.5,"cfg-shieldSize":1,"cfg-gameSpeed":3.2,"cfg-acceleration":0.4,"cfg-pushForce":7,"cfg-gravityModifier":1,"cfg-level1CenterSpeed":18,"cfg-level3BasketPower":0.6,"cfg-level3BallGravity":0.34,"cfg-scatterBounciness":0.1,"cfg-hpBarShowTime":2.0,"cfg-tutorialTime":4.8,"cfg-tutorialEnabled":true,"cfg-tutorialText":"PROTECT YOUR BALLOON!","cfg-tutorialTextSize":30,"cfg-tutorialX":50,"cfg-tutorialY":35,"cfg-tutorialCaptionGap":-0.5,"cfg-tutorialFont":"Baloo2","cfg-tutorialFailEnabled":true,"cfg-tutorialObstacleShape":"triangle","cfg-tutorialObstacleTint":"#c800ff","cfg-playerSpriteColor":"#00eeff","cfg-playerRopeColor":"#84ebfc","cfg-shieldSpriteColor":"#00eeff","cfg-bgSpriteColor":"#ffffff","cfg-stageAccents":false,"cfg-orientation":"landscape","cfg-backgroundMode":"common","cfg-seamScale":0.5,"cfg-seamMulti":true,"cfg-seamOverlayMode":"perStage","cfg-seamTint":"#ffffff","cfg-googleFontUrl":"","cfg-googleFontFamily":"","cfg-localFontFamily":"CustomFont","cfg-soundEnabled":true,"cfg-soundVolume":0.8,"cfg-vol-bgm":0.7,"cfg-vol-win":1,"cfg-vol-lose":1,"cfg-vol-hit":1,"cfg-vol-shield":0.9,"cfg-winEndCardEnabled":true,"cfg-loseEndCardEnabled":true,"cfg-tryAgainEnabled":true,"cfg-tryAgainDelay":0,"cfg-tryAgainDuration":0,"cfg-endCardScale":1,"cfg-endCardX":0,"cfg-endCardY":0,"cfg-endCardOverlay":0.68,"cfg-endCardOverlayColor":"#000000","cfg-endCardCta":true,"cfg-endCardCtaText":"TRY AGAIN","cfg-endCardFont":"Baloo2","cfg-endCardCtaY":"74","cfg-endCardCountdown":10,"cfg-storeAndroid":"https://play.google.com/store/apps/details?id=com.riseup.game&hl=en","cfg-storeIos":"","cfg-stage0":"#e05252","cfg-stage1":"#52a0e0","cfg-stage2":"#52e08a","cfg-stage3":"#e07d52","cfg-stage4":"#c052e0","cfg-bgg0a":"#5bc0de","cfg-bgg0b":"#69c5ec","cfg-bgg1a":"#ef5350","cfg-bgg1b":"#f97f6f","cfg-bgg2a":"#b03c02","cfg-bgg2b":"#cc4a05","cfg-bgg3a":"#f0a44c","cfg-bgg3b":"#f9c178","cfg-bgg4a":"#ee4630","cfg-bgg4b":"#fa6a4b","cfg-bgg5a":"#5bc0de","cfg-bgg5b":"#69c5ec","cfg-bgt0":"#ffffff","cfg-bgt1":"#ffffff","cfg-bgt2":"#ffffff","cfg-bgt3":"#ffffff","cfg-bgt4":"#ffffff","cfg-bgt5":"#ffffff","cfg-seamt0":"#ffffff","cfg-seamt1":"#ffffff","cfg-seamt2":"#ffffff","cfg-seamt3":"#ffffff","cfg-seamt4":"#ffffff","cfg-seamt5":"#ffffff"};
+const DEFS={"cfg-lives":3,"cfg-stageCount":4,"le-stage-count":4,"cfg-heightIndicatorEnabled":true,"cfg-heightStart":66,"cfg-heightFeetPerStage":100,"cfg-playerSize":2,"cfg-ballSizeUI":2,"cfg-balloonCount":1,"cfg-balloonSpacing":30,"cfg-playerDeathAnimSpeed":1,"cfg-deathPause":2.5,"cfg-shieldSize":1,"cfg-gameSpeed":3.2,"cfg-acceleration":0.4,"cfg-pushForce":7,"cfg-gravityModifier":1,"cfg-level1CenterSpeed":18,"cfg-level3BasketPower":0.6,"cfg-level3BallGravity":0.34,"cfg-scatterBounciness":0.1,"cfg-hpBarShowTime":2.0,"cfg-tutorialTime":4.8,"cfg-tutorialEnabled":true,"cfg-tutorialText":"PROTECT YOUR BALLOON!","cfg-tutorialTextSize":30,"cfg-tutorialX":50,"cfg-tutorialY":35,"cfg-tutorialCaptionGap":-0.5,"cfg-tutorialFont":"Baloo2","cfg-tutorialFailEnabled":true,"cfg-tutorialObstacleShape":"triangle","cfg-tutorialObstacleTint":"#c800ff","cfg-playerSpriteColor":"#00eeff","cfg-playerRopeColor":"#84ebfc","cfg-shieldSpriteColor":"#00eeff","cfg-bgSpriteColor":"#ffffff","cfg-stageAccents":false,"cfg-orientation":"landscape","cfg-backgroundMode":"common","cfg-seamScale":0.5,"cfg-seamMulti":true,"cfg-seamOverlayMode":"perStage","cfg-seamTint":"#ffffff","cfg-googleFontUrl":"","cfg-googleFontFamily":"","cfg-localFontFamily":"CustomFont","cfg-soundEnabled":true,"cfg-soundVolume":0.8,"cfg-vol-bgm":0.7,"cfg-vol-win":1,"cfg-vol-lose":1,"cfg-vol-hit":1,"cfg-vol-shield":0.9,"cfg-winEndCardEnabled":true,"cfg-loseEndCardEnabled":true,"cfg-tryAgainEnabled":true,"cfg-tryAgainDelay":0,"cfg-tryAgainDuration":0,"cfg-endCardScale":1,"cfg-endCardX":0,"cfg-endCardY":0,"cfg-endCardOverlay":0.68,"cfg-endCardOverlayColor":"#000000","cfg-endCardCta":true,"cfg-endCardCtaText":"TRY AGAIN","cfg-endCardFont":"Baloo2","cfg-endCardCtaY":"74","cfg-endCardCountdown":10,"cfg-storeAndroid":"https://play.google.com/store/apps/details?id=com.riseup.game&hl=en","cfg-storeIos":"","net-name-prefix":"RISE","net-name-number":"001","net-name-variant":"01","net-name-locale":"en","net-xcl-clicks":1,"cfg-stage0":"#e05252","cfg-stage1":"#52a0e0","cfg-stage2":"#52e08a","cfg-stage3":"#e07d52","cfg-stage4":"#c052e0","cfg-bgg0a":"#5bc0de","cfg-bgg0b":"#69c5ec","cfg-bgg1a":"#ef5350","cfg-bgg1b":"#f97f6f","cfg-bgg2a":"#b03c02","cfg-bgg2b":"#cc4a05","cfg-bgg3a":"#f0a44c","cfg-bgg3b":"#f9c178","cfg-bgg4a":"#ee4630","cfg-bgg4b":"#fa6a4b","cfg-bgg5a":"#5bc0de","cfg-bgg5b":"#69c5ec","cfg-bgt0":"#ffffff","cfg-bgt1":"#ffffff","cfg-bgt2":"#ffffff","cfg-bgt3":"#ffffff","cfg-bgt4":"#ffffff","cfg-bgt5":"#ffffff","cfg-seamt0":"#ffffff","cfg-seamt1":"#ffffff","cfg-seamt2":"#ffffff","cfg-seamt3":"#ffffff","cfg-seamt4":"#ffffff","cfg-seamt5":"#ffffff"};
 function applyPlayableDefaultFields(){
   Object.entries(DEFS).forEach(([id,v])=>{
     const e=$(id);if(!e)return;
@@ -833,6 +903,7 @@ $('btn-reset').addEventListener('click',()=>{
   if(window.RiseEndCardEditor){if(RiseEndCardEditor.resetToDefaults)RiseEndCardEditor.resetToDefaults();else RiseEndCardEditor.resize();}
   ['bgm','win','lose','hit','shield'].forEach(clearSnd);
   const l=document.getElementById('google-font-link'); if(l)l.remove();
+  if(typeof resetNetworkExportUI==='function')resetNetworkExportUI();
 });
 
 setOrientation("landscape");

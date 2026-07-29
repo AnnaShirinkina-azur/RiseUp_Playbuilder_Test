@@ -364,8 +364,22 @@ var a=__U(__P.a),sp=__U(__P.sp),cfg=__U(__P.cfg);__R=null;__P=null;
         var fallback=ios?urls.android:urls.ios;
         return primary||fallback||'https://play.google.com/store/apps/details?id=com.riseup.game&hl=en';
       }
+      var redirectNeed=Math.max(1,parseInt(cfg.exportClicksToRedirect,10)||1);
+      var redirectSeen=0,redirectDone=false;
+      function openStore(url){
+        if(typeof window.__RISE_NETWORK_OPEN__==='function'){window.__RISE_NETWORK_OPEN__(url);return;}
+        if(typeof mraid!=='undefined'&&mraid&&typeof mraid.open==='function')mraid.open(url);
+        else window.open(url,'_blank');
+      }
+      function gatedStore(){
+        if(redirectDone)return;
+        redirectSeen++;
+        if(redirectSeen<redirectNeed)return;
+        redirectDone=true;
+        openStore(storeTarget());
+      }
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{var url=storeTarget();if(typeof mraid!=='undefined')mraid.open(url);else window.open(url,'_blank');}catch(e){}},
+        onCTA:function(){try{gatedStore();}catch(e){}},
         // Level 4 already has its own one-shot conversion trigger. Keep the
         // completion callback passive so an enabled Win Card remains visible
         // until the player presses its CTA.
@@ -412,6 +426,163 @@ function dlHTML(html,name){
   setTimeout(()=>URL.revokeObjectURL(u),3000);
 }
 
+
+function downloadBlob(blob,name){
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download=name||'rise_export.bin';a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),3000);
+}
+
+const NETWORK_INFO={
+  applovin:{label:'AppLovin',format:'html',maxBytes:5*1048576},
+  moloco:{label:'Moloco',format:'html',maxBytes:5*1048576},
+  mintegral:{label:'Mintegral',format:'zip',entry:'matchZip',maxBytes:5*1048576},
+  unity:{label:'UnityAds',format:'html',maxBytes:5*1048576},
+  googleads:{label:'GoogleAds',format:'zip',entry:'index.html',maxBytes:5*1048576},
+  generic:{label:'Generic',format:'html',maxBytes:null}
+};
+const NETWORK_LABEL={applovin:'applovin',moloco:'moloco',mintegral:'mintegral',unity:'unity',googleads:'google',generic:'generic'};
+const NETWORK_ORDER=['applovin','moloco','mintegral','unity','googleads','generic'];
+const NETWORK_PACK_ORDER=['applovin','moloco','mintegral','unity','googleads'];
+
+function safeToken(value,fallback){
+  const s=String(value==null?'':value).trim().replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'');
+  return s||fallback;
+}
+function networkClicks(variant,xclClicks){
+  if(String(variant)==='1')return 1;
+  if(String(variant)==='2')return 2;
+  const n=parseInt(xclClicks,10);return Number.isFinite(n)?Math.max(0,n):1;
+}
+function networkFileName(net,variant,naming,ext){
+  const n=naming||{};
+  const prefix=safeToken(n.prefix,'RISE'),num=safeToken(n.number,'001'),ver=safeToken(n.variant,'01'),locale=safeToken(n.locale,'en');
+  const clickToken=String(variant)==='x'?'x':safeToken(variant,'1');
+  return prefix+'_play'+num+'_'+ver+'_st_'+clickToken+'cl_'+locale+'_'+(NETWORK_LABEL[net]||safeToken(net,'generic'))+'.'+ext;
+}
+function insertAfter(html,needle,addition){
+  const i=html.indexOf(needle);if(i<0)return html;
+  return html.slice(0,i+needle.length)+addition+html.slice(i+needle.length);
+}
+function adaptForNetwork(html,net,orientation){
+  const info=NETWORK_INFO[net]||NETWORK_INFO.generic;
+  let out=html.replace('<!DOCTYPE html>','<!DOCTYPE html>\n<!-- Rise network build: '+info.label+' -->');
+  const orient=orientation==='portrait'?'portrait':'landscape';
+  if(out.indexOf('name="ad.orientation"')<0){
+    out=insertAfter(out,'<meta charset="UTF-8">','\n<meta name="ad.orientation" content="'+orient+'">');
+  }
+  const scriptEnd='<'+'/script>';
+  if(net==='googleads'){
+    const w=orient==='portrait'?540:960,h=orient==='portrait'?960:540;
+    out=insertAfter(out,'<meta charset="UTF-8">','\n<meta name="ad.size" content="width='+w+',height='+h+'">');
+    out=out.replace('<body>','<body>\n<script src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js">'+scriptEnd+'\n<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.ExitApi&&typeof ExitApi.exit==="function")ExitApi.exit(url);else window.open(url,"_blank");}catch(e){window.open(url,"_blank");}};'+scriptEnd);
+  }else if(net!=='generic'){
+    let extra='<script src="mraid.js">'+scriptEnd+'\n<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.mraid&&typeof mraid.open==="function")mraid.open(url);else window.open(url,"_blank");}catch(e){window.open(url,"_blank");}};'+scriptEnd;
+    if(net==='mintegral')extra+='\n<script>(function(){window.gameReady=window.gameReady||function(){};window.gameStart=window.gameStart||function(){};window.gameClose=window.gameClose||function(){};window.gameRetry=window.gameRetry||function(){try{location.reload();}catch(e){}};})();'+scriptEnd;
+    out=out.replace('<body>','<body>\n'+extra);
+  }
+  return out;
+}
+
+let CRC_TABLE=null;
+function crcTable(){
+  if(CRC_TABLE)return CRC_TABLE;
+  CRC_TABLE=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);CRC_TABLE[n]=c>>>0;}
+  return CRC_TABLE;
+}
+function crc32(bytes){
+  const t=crcTable();let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++)c=t[(c^bytes[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function concatBytes(parts){
+  let total=0;parts.forEach(p=>total+=p.length);const out=new Uint8Array(total);let at=0;
+  parts.forEach(p=>{out.set(p,at);at+=p.length;});return out;
+}
+function dosDateTime(date){
+  const d=date||new Date();
+  return {time:((d.getHours()&31)<<11)|((d.getMinutes()&63)<<5)|((Math.floor(d.getSeconds()/2))&31),date:(((Math.max(1980,d.getFullYear())-1980)&127)<<9)|(((d.getMonth()+1)&15)<<5)|(d.getDate()&31)};
+}
+async function bytesOf(value){
+  if(value instanceof Uint8Array)return value;
+  if(value instanceof ArrayBuffer)return new Uint8Array(value);
+  if(value instanceof Blob)return new Uint8Array(await value.arrayBuffer());
+  return new TextEncoder().encode(String(value));
+}
+async function deflateEntry(bytes){
+  if(typeof CompressionStream==='function'){
+    try{
+      const stream=new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+      const packed=new Uint8Array(await new Response(stream).arrayBuffer());
+      if(packed.length<bytes.length)return {method:8,data:packed};
+    }catch(e){}
+  }
+  return {method:0,data:bytes};
+}
+async function makeZip(files){
+  const locals=[],centrals=[];let offset=0;
+  const stamp=dosDateTime(new Date());
+  for(const file of files){
+    const nameBytes=new TextEncoder().encode(String(file.name).replace(/\\/g,'/'));
+    const raw=await bytesOf(file.data),packed=await deflateEntry(raw),crc=crc32(raw),flag=0x0800;
+    const local=new Uint8Array(30+nameBytes.length),lv=new DataView(local.buffer);
+    lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,flag,true);lv.setUint16(8,packed.method,true);lv.setUint16(10,stamp.time,true);lv.setUint16(12,stamp.date,true);lv.setUint32(14,crc,true);lv.setUint32(18,packed.data.length,true);lv.setUint32(22,raw.length,true);lv.setUint16(26,nameBytes.length,true);lv.setUint16(28,0,true);local.set(nameBytes,30);
+    const central=new Uint8Array(46+nameBytes.length),cv=new DataView(central.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,flag,true);cv.setUint16(10,packed.method,true);cv.setUint16(12,stamp.time,true);cv.setUint16(14,stamp.date,true);cv.setUint32(16,crc,true);cv.setUint32(20,packed.data.length,true);cv.setUint32(24,raw.length,true);cv.setUint16(28,nameBytes.length,true);cv.setUint16(30,0,true);cv.setUint16(32,0,true);cv.setUint16(34,0,true);cv.setUint16(36,0,true);cv.setUint32(38,0,true);cv.setUint32(42,offset,true);central.set(nameBytes,46);
+    locals.push(local,packed.data);centrals.push(central);offset+=local.length+packed.data.length;
+  }
+  const centralBytes=concatBytes(centrals),end=new Uint8Array(22),ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(4,0,true);ev.setUint16(6,0,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,centralBytes.length,true);ev.setUint32(16,offset,true);ev.setUint16(20,0,true);
+  return new Blob([...locals,centralBytes,end],{type:'application/zip'});
+}
+
+async function prepareNetworkBase(opts){
+  const o=opts||{},assetsBase=o.assetsBase||'Assets',onProgress=o.onProgress;
+  onProgress&&onProgress(0,'Reading config…');
+  const cfg=readConfig(),sprites=getSprites();
+  onProgress&&onProgress(.04,'Loading engine…');
+  const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>{if(!r.ok)throw new Error('Engine '+r.status);return r.text();});
+  const bundle=bundleForConfig(cfg,sprites);
+  onProgress&&onProgress(.08,'Loading required assets…');
+  const map=await loadBundle(assetsBase,bundle,p=>onProgress&&onProgress(.08+p*.32,'Assets '+Math.round(p*100)+'%…'));
+  onProgress&&onProgress(.42,'Compressing textures and audio…');
+  const optimised=await optimiseExportPayload(cfg,map,sprites,p=>onProgress&&onProgress(.42+p*.48,'Optimising '+Math.round(p*100)+'%…'));
+  onProgress&&onProgress(.94,'Preparing network base…');
+  return {cfg:optimised.cfg,assetMap:optimised.assetMap,sprMap:optimised.sprMap,src};
+}
+async function buildNetworkOutput(prepared,net,variant,naming,xclClicks){
+  if(!prepared)throw new Error('Network base is not prepared.');
+  if(!NETWORK_INFO[net])throw new Error('Unknown network: '+net);
+  const cfg=JSON.parse(JSON.stringify(prepared.cfg));
+  cfg.exportClicksToRedirect=networkClicks(variant,xclClicks);
+  const html=adaptForNetwork(buildHTML(cfg,prepared.assetMap,prepared.sprMap,prepared.src),net,cfg.orientation);
+  const info=NETWORK_INFO[net];let blob,filename;
+  if(info.format==='html'){
+    filename=networkFileName(net,variant,naming,'html');blob=new Blob([html],{type:'text/html'});
+  }else{
+    filename=networkFileName(net,variant,naming,'zip');
+    const innerName=net==='mintegral'?'rise_mintegral.html':'index.html';
+    const files=[{name:innerName,data:html}];
+    if(net==='mintegral')files.push({name:'mraid.js',data:'/* Replaced by the ad SDK at runtime. */\nif(typeof mraid==="undefined")window.mraid=null;\n'});
+    blob=await makeZip(files);
+  }
+  const bytes=blob.size,maxBytes=info.maxBytes;
+  return {net,variant,blob,filename,bytes,maxBytes,withinLimit:maxBytes==null||bytes<=maxBytes,format:info.format,label:info.label};
+}
+async function buildNetworkPack(prepared,naming,xclClicks,onProgress){
+  const variants=['x','1','2'],outputs=[],total=NETWORK_PACK_ORDER.length*variants.length;let done=0;
+  for(const variant of variants){
+    for(const net of NETWORK_PACK_ORDER){
+      const out=await buildNetworkOutput(prepared,net,variant,naming,xclClicks);outputs.push(out);done++;
+      onProgress&&onProgress(done/total,'Network pack '+done+'/'+total+' — '+out.label+' '+(variant==='x'?'xcl':variant+'cl'));
+    }
+  }
+  const n=naming||{},folder=safeToken(n.prefix,'RISE')+'_play_'+safeToken(n.number,'001')+'_'+safeToken(n.variant,'01');
+  const blob=await makeZip(outputs.map(o=>({name:folder+'/'+o.filename,data:o.blob})));
+  return {blob,filename:folder+'.zip',outputs};
+}
+
 async function buildAndDownload(opts){
   const{assetsBase='Assets',onProgress,onDone,onError}=opts||{};
   try{
@@ -448,5 +619,5 @@ async function buildPreview(iframe,opts){
   }catch(e){console.error(e);onError&&onError(e.message);}
 }
 
-W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites,_buildHTML:buildHTML,_packPayload:packPayload,_bundleForConfig:bundleForConfig};
+W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites,prepareNetworkBase,buildNetworkOutput,buildNetworkPack,downloadBlob,networkFileName,NETWORK_INFO,NETWORK_ORDER,_makeZip:makeZip,_buildHTML:buildHTML,_packPayload:packPayload,_bundleForConfig:bundleForConfig};
 })(window);

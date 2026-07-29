@@ -164,5 +164,31 @@
     "androidStoreField": "cfg-storeAndroid",
     "iosStoreField": "cfg-storeIos",
     "runtimeRouting": "iOS devices use iOS URL; other devices use Android URL; missing URL falls back to the other platform"
+  },
+  "networkExport": {
+    "networks": [
+      "AppLovin",
+      "Moloco",
+      "Mintegral",
+      "UnityAds",
+      "GoogleAds",
+      "Generic"
+    ],
+    "variants": [
+      "xcl",
+      "1cl",
+      "2cl"
+    ],
+    "pack": "5 paid networks x 3 click variants",
+    "formats": {
+      "AppLovin": "HTML",
+      "Moloco": "HTML",
+      "Mintegral": "ZIP",
+      "UnityAds": "HTML",
+      "GoogleAds": "ZIP",
+      "Generic": "HTML"
+    },
+    "sizeLimitMB": 5,
+    "assetOptimization": "shared prepared base reused across all network builds"
   }
 }

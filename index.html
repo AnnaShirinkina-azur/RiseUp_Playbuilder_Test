@@ -246,6 +246,39 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 .service-field input{width:100%;min-width:0;height:46px;padding:0 14px;border-radius:9px;border:1px solid var(--brd);background:#090b12;color:var(--txt);font:14px system-ui,sans-serif}
 .service-field input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,108,245,.15)}
 
+/* Network export */
+.network-export-card{margin-top:12px}
+.network-export-note{font-size:11px;line-height:1.45;color:var(--dim);margin:-2px 0 2px}
+.network-name-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.network-field{display:flex;flex-direction:column;gap:6px;color:var(--dim);font-size:12px;min-width:0}
+.network-field input{width:100%;min-width:0;height:38px;padding:0 11px;border-radius:8px;border:1px solid var(--brd);background:#090b12;color:var(--txt);font:13px system-ui,sans-serif}
+.network-field input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,108,245,.15)}
+.network-segment{display:flex;border:1px solid var(--brd);border-radius:9px;overflow:hidden;background:#090b12}
+.network-segment button{flex:1;border:0;border-right:1px solid var(--brd);border-radius:0;background:transparent;color:var(--dim);padding:9px 4px;font:700 12px system-ui;cursor:pointer}
+.network-segment button:last-child{border-right:0}
+.network-segment button.on{background:var(--acc);color:#fff}
+.network-name-preview{padding:10px 11px;border:1px solid var(--brd);border-radius:8px;background:#090b12;color:#8fa9ff;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.4;word-break:break-all}
+.network-list{display:flex;flex-direction:column;gap:7px}
+.network-row{display:grid;grid-template-columns:minmax(82px,1fr) auto minmax(88px,auto) auto;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--brd);border-left:4px solid var(--brd);border-radius:10px;background:#090b12;min-width:0}
+.network-row.ok{border-left-color:#67d76d}
+.network-row.over{border-left-color:#ff6577}
+.network-row.checking{border-left-color:#d6a84d}
+.network-row-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.network-row-format{padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.07);color:var(--dim);font-size:10px}
+.network-row-size{text-align:right;color:var(--dim);font:11px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+.network-row.ok .network-row-size{color:#67d76d}
+.network-row.over .network-row-size{color:#ff6577}
+.network-row.checking .network-row-size{color:#d6a84d}
+.network-download{width:auto!important;min-width:82px;padding:7px 10px!important;border:1px solid var(--brd)!important;border-radius:8px!important;background:var(--surf3)!important;color:var(--txt)!important;font-size:11px!important;white-space:nowrap}
+.network-download:hover{border-color:var(--acc)!important}
+.network-pack-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.network-pack{display:flex!important;flex-direction:column;align-items:center;gap:2px;padding:10px 12px!important}
+.network-pack small{font-size:10px;font-weight:500;opacity:.7}
+.network-limits{width:auto!important;padding:10px 12px!important;background:var(--surf3)!important;border:1px solid var(--brd)!important;color:var(--txt)!important}
+.network-info{min-height:16px;color:var(--dim);font-size:11px;line-height:1.4;word-break:break-word}
+.network-info.ok{color:#67d76d}.network-info.error{color:#ff6577}
+@media(max-width:1180px){.network-row{grid-template-columns:1fr auto}.network-row-size{grid-column:1/2;text-align:left}.network-download{grid-column:2/3;grid-row:1/3}.network-row-format{justify-self:end}}
+
 </style>
 </head>
 <body>
@@ -282,7 +315,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <button class="acc-head on" data-acc="service">Служебное</button>
       <div class="acc-body on" id="acc-service">
-        <button class="tab" data-panel="service">Ссылки на сторы</button>
+        <button class="tab" data-panel="service">Ссылки и экспорт</button>
       </div>
     </div>
 
@@ -542,6 +575,41 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <label class="service-field">iOS
             <input type="url" id="cfg-storeIos" value="" placeholder="https://apps.apple.com/app/id..." spellcheck="false">
           </label>
+        </div>
+      </details>
+
+      <details class="service-card network-export-card" id="network-export-card" open>
+        <summary>Экспорт под сети</summary>
+        <div class="service-card-body">
+          <div class="network-export-note">Оптимизация ассетов применяется автоматически. Индивидуальная кнопка скачивает выбранный click-вариант; пак содержит 5 рекламных сетей × 3 варианта.</div>
+          <div class="network-name-grid">
+            <label class="network-field">Префикс<input type="text" id="net-name-prefix" value="RISE" spellcheck="false"></label>
+            <label class="network-field">Номер плеебла<input type="text" id="net-name-number" value="001" spellcheck="false"></label>
+            <label class="network-field">Вариант<input type="text" id="net-name-variant" value="01" spellcheck="false"></label>
+            <label class="network-field">Локаль<input type="text" id="net-name-locale" value="en" spellcheck="false"></label>
+          </div>
+          <label class="network-field">Количество кликов
+            <span class="network-segment" id="network-variant-segment">
+              <button type="button" class="on" data-network-variant="x">xcl</button>
+              <button type="button" data-network-variant="1">1cl</button>
+              <button type="button" data-network-variant="2">2cl</button>
+            </span>
+          </label>
+          <label class="network-field">Кликов при экспорте (xcl)<input type="number" id="net-xcl-clicks" value="1" min="0" max="99" step="1"></label>
+          <div class="network-name-preview" id="network-name-preview">RISE_play001_01_st_xcl_en_mintegral.zip</div>
+          <div class="network-list" id="network-list">
+            <div class="network-row" id="network-row-applovin"><span class="network-row-name">AppLovin</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-applovin">—</span><button type="button" class="network-download" data-network-download="applovin">↓ скачать</button></div>
+            <div class="network-row" id="network-row-moloco"><span class="network-row-name">Moloco</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-moloco">—</span><button type="button" class="network-download" data-network-download="moloco">↓ скачать</button></div>
+            <div class="network-row" id="network-row-mintegral"><span class="network-row-name">Mintegral</span><span class="network-row-format">ZIP</span><span class="network-row-size" id="network-size-mintegral">—</span><button type="button" class="network-download" data-network-download="mintegral">↓ скачать</button></div>
+            <div class="network-row" id="network-row-unity"><span class="network-row-name">UnityAds</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-unity">—</span><button type="button" class="network-download" data-network-download="unity">↓ скачать</button></div>
+            <div class="network-row" id="network-row-googleads"><span class="network-row-name">GoogleAds</span><span class="network-row-format">ZIP</span><span class="network-row-size" id="network-size-googleads">—</span><button type="button" class="network-download" data-network-download="googleads">↓ скачать</button></div>
+            <div class="network-row" id="network-row-generic"><span class="network-row-name">Generic</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-generic">—</span><button type="button" class="network-download" data-network-download="generic">↓ скачать</button></div>
+          </div>
+          <div class="network-pack-row">
+            <button type="button" class="btn network-pack" id="network-download-pack">Скачать пак<small>5 сетей × 3 варианта</small></button>
+            <button type="button" class="btn network-limits" id="network-check-limits">↻ Лимиты</button>
+          </div>
+          <div class="network-info" id="network-info"></div>
         </div>
       </details>
     </div>
@@ -941,9 +1009,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=service-store-links-v1"></script>
-<script src="src/builder.js?v=service-store-links-v1"></script>
-<script src="script2.js?v=service-store-links-v1"></script>
+<script src="src/playable-template.js?v=network-export-v1"></script>
+<script src="src/builder.js?v=network-export-v1"></script>
+<script src="script2.js?v=network-export-v1"></script>
 
 </body>
 </html>
