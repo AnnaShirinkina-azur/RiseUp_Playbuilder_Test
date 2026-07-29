@@ -63,8 +63,9 @@ document.addEventListener('click',e=>{
   if(!ws||!sb)return;
   const inspector=document.createElement('aside');
   inspector.className='inspector';
-  inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div>';
-  ['panel-player','panel-speed','panel-obstacles-physics','panel-prefab-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-prefabs','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds','panel-service'].forEach(id=>{const el=$(id); if(el) inspector.appendChild(el);});
+  inspector.innerHTML='<div class="inspector-head" id="inspector-title">Player</div><div class="inspector-scroll" id="inspector-scroll"></div>';
+  const inspectorScroll=inspector.querySelector('.inspector-scroll');
+  ['panel-player','panel-speed','panel-obstacles-physics','panel-prefab-physics','panel-timing','panel-endcard-gameplay','panel-main-ball','panel-shield','panel-obstacles-visual','panel-prefabs','panel-environment','panel-stage-accents','panel-text-fonts','panel-sounds','panel-service'].forEach(id=>{const el=$(id); if(el&&inspectorScroll) inspectorScroll.appendChild(el);});
   const bbar=document.querySelector('.bbar'); if(bbar) inspector.appendChild(bbar);
   ws.appendChild(inspector);
 })();
@@ -83,6 +84,7 @@ document.querySelectorAll('.tab[data-panel]').forEach(b=>{
     b.classList.add('on');
     const panel=$('panel-'+b.dataset.panel);
     if(panel) panel.classList.add('on');
+    const scroll=$('inspector-scroll'); if(scroll) scroll.scrollTop=0;
     const t=$('inspector-title'); if(t)t.textContent=(panel&&panel.dataset.title)||b.textContent.trim();
   });
 });
