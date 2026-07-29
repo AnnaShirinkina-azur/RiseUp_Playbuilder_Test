@@ -1618,13 +1618,9 @@ class Game{
     // collisions: the protector pushes every obstacle it touches; the ball
     // only loses a life when an unblocked obstacle reaches it.
     if(st==='playing'&&!this.shield.dead&&this.tutDone){
-      // Non-interactable means immovable, not intangible. The protector is
-      // resolved against every authored static collider before it can push
-      // dynamic obstacles, so it cannot be dragged through walls either.
-      for(let i=0;i<this.stages.length;i++){
-        const stage=this.stages[i],top=this._sst(i);
-        if(stage.resolveShieldStatics)stage.resolveShieldStatics(this.shield,top);
-      }
+      // Non-interactable objects are solid only for obstacle physics. The
+      // protector intentionally passes through them and may still push any
+      // interactable obstacle that overlaps on the other side of a wall.
       // Level 3 uses continuous shield-vs-U-wall contact. Unlike a normal
       // obstacle hit, the basket can be pushed repeatedly, caught again and
       // sharply reversed to throw the balls out.
