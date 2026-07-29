@@ -808,6 +808,7 @@ function resetNetworkExportUI(){
 }
 document.querySelectorAll('[data-network-variant]').forEach(btn=>btn.addEventListener('click',()=>{networkVariant=btn.dataset.networkVariant||'x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b===btn));updateNetworkNamePreview();clearNetworkSizes();setNetworkInfo('Выбран вариант '+(networkVariant==='x'?'xcl':networkVariant+'cl')+'. Нажмите «Лимиты».');}));
 ['net-name-prefix','net-name-number','net-name-variant','net-name-locale','net-xcl-clicks'].forEach(id=>{$(id)&&$(''+id).addEventListener('input',()=>{updateNetworkNamePreview();clearNetworkSizes();});});
+['cfg-storeAndroid','cfg-storeIos'].forEach(id=>{const el=$(id);if(!el)return;const refresh=()=>{invalidateNetworkExports();};el.addEventListener('input',refresh);el.addEventListener('change',refresh);});
 document.querySelectorAll('[data-network-download]').forEach(btn=>btn.addEventListener('click',()=>downloadNetwork(btn.dataset.networkDownload)));
 $('network-check-limits')&&$('network-check-limits').addEventListener('click',refreshNetworkLimits);
 $('network-download-pack')&&$('network-download-pack').addEventListener('click',downloadNetworkPack);
