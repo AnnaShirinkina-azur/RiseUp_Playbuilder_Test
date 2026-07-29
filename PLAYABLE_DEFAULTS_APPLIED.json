@@ -138,5 +138,6 @@
       "level3BallGravity"
     ],
     "level2UsesCommonPhysics": true
-  }
+  },
+  "level4Physics": "primary ball supports unlimited shield re-hits; impulse rearms after contact separation"
 }

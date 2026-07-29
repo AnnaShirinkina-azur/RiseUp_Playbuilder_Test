@@ -276,14 +276,28 @@ class Obs{
     this.baseRot=(parseFloat(o.rotation)||0)*Math.PI/180;
     this.interactable=o.interactable!==false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;
+    // Contact latch for repeatable shield collisions (used by the Level 4 ball).
+    // It rearms only after the protector and obstacle separate, so a single
+    // sustained overlap cannot apply an impulse every frame.
+    this.shieldTouching=false;
     // Runtime-only role used by the Level 3 basket simulation.
     this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
     this.level3Role=null;this.level3Follow=null;this.level3Safe=false;
   }
-  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;}
+  reset(){this.x=this.ix;this.y=this.iy;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
-  push(fx,fy,spin=0){if(!this.interactable||!this.kin||!this.live)return;this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;}
+  push(fx,fy,spin=0,allowDynamic=false){
+    if(!this.interactable||!this.live||(!allowDynamic&&!this.kin))return;
+    if(this.kin){
+      this.kin=false;this.vx=fx;this.vy=fy;this.av=spin;
+    }else{
+      // A repeat hit changes the current trajectory instead of being ignored.
+      // Keep a little existing momentum so glancing contacts still feel round,
+      // while the new protector impulse remains clearly visible.
+      this.vx=this.vx*.28+fx;this.vy=this.vy*.28+fy;this.av=this.av*.35+spin;
+    }
+  }
   update(dt,gravityModifier=1){
     // Level 3 basket/balls are integrated together by Stage so the U-shaped
     // basket can contain, scoop and throw the balls. Decorative inner ball
@@ -1435,9 +1449,19 @@ class Game{
         }
       }
       for(let i=0;i<this.stages.length;i++){
-        const top=this._sst(i);
-        const hits=this.stages[i].hits?this.stages[i].hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
-        for(const sh of hits)this._hit(sh,top,'shield',i);
+        const stage=this.stages[i],top=this._sst(i);
+        const repeatBall=i===this._level4Index()?this._level4FirstObstacle():null;
+        // The authored Level 4 ball is a reusable dynamic body. Test it even
+        // after the first launch and apply a new impulse on every NEW contact.
+        // `shieldTouching` prevents continuous overlap from firing every frame
+        // and resets as soon as the two circles/shapes separate.
+        if(repeatBall&&repeatBall.live&&repeatBall.interactable!==false){
+          const touching=repeatBall.hits(this.shield.x,this.shield.y-top,this.shield.r,true);
+          if(touching&&!repeatBall.shieldTouching)this._hit(repeatBall,top,'shield',i);
+          repeatBall.shieldTouching=touching;
+        }
+        const hits=stage.hits?stage.hits(this.shield.x,this.shield.y,this.shield.r,top,false):[];
+        for(const sh of hits){if(sh!==repeatBall)this._hit(sh,top,'shield',i);}
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
@@ -1488,9 +1512,14 @@ class Game{
       // No forced downward velocity: hit from below sends the piece UP,
       // then gravity pulls it back in an arc.
       const svx=this.shield.vx||0,svy=this.shield.vy||0;
+      const repeatable=stageIndex===this._level4Index()&&obs===this._level4FirstObstacle();
       let nx=dx/len,ny=dy/len;
-      const base=f*.55;                       // softer minimum kick, closer to Luna preview
-      const drive=Math.max(0,svx*nx+svy*ny);  // swipe speed towards the obstacle
+      const base=f*.55; // softer minimum kick, closer to Luna preview
+      // For repeatable Level 4 contacts use relative velocity. A moving ball
+      // can therefore be caught and redirected by the protector indefinitely.
+      const rvx=repeatable?svx-(obs.vx||0):svx;
+      const rvy=repeatable?svy-(obs.vy||0):svy;
+      const drive=Math.max(0,rvx*nx+rvy*ny);
       const vx=nx*(base+drive*.35)+svx*.35;
       const vy=ny*(base+drive*.35)+svy*.35;
       // Torque from an off-centre contact point (r x J / inertia):
@@ -1500,7 +1529,7 @@ class Game{
       const rx=cxp-obs.x,ry=cyp-(obs.y+top);
       const inertia=Math.max(300,(obs.w*obs.w+obs.h*obs.h)/12);
       const spin=clamp((rx*vy-ry*vx)/(inertia*3.8),-.16,.16);
-      obs.push(vx,vy,spin);
+      obs.push(vx,vy,spin,repeatable);
       this.shield.flash=400;
       this.snd.play('shield');
     } else {
