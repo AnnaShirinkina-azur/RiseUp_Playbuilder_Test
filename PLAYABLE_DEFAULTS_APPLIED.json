@@ -189,6 +189,10 @@
       "Generic": "HTML"
     },
     "sizeLimitMB": 5,
-    "assetOptimization": "shared prepared base reused across all network builds"
-  }
+    "assetOptimization": "shared prepared base reused across all network builds",
+    "storeLinks": "Android/iOS URLs are embedded into every network build with platform fallback and URL normalization",
+    "clickGate": "1cl exits and locks gameplay on the first user click; 2cl on the second; xcl uses configured count",
+    "singleFileMraid": "AppLovin, Moloco and UnityAds HTML do not depend on a local mraid.js file; injected SDK is used when available"
+  },
+  "rightInspectorScroll": "independent vertical scroll with fixed download bar, matching the left navigation behavior"
 }

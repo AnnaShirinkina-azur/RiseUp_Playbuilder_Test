@@ -356,30 +356,80 @@ var a=__U(__P.a),sp=__U(__P.sp),cfg=__U(__P.cfg);__R=null;__P=null;
     if(loader)loader.style.display='none';
     var go=function(){
       onOrient();
+      function normalizeStoreUrl(value){
+        var url=String(value||'').trim();
+        if(!url)return '';
+        if(!/^[a-z][a-z0-9+.-]*:/i.test(url))url='https://'+url.replace(/^\\/+/, '');
+        return url;
+      }
       function storeTarget(){
         var urls=cfg.storeUrls||{};
         var ua=String(navigator.userAgent||'');
         var ios=/iPad|iPhone|iPod/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-        var primary=ios?urls.ios:urls.android;
-        var fallback=ios?urls.android:urls.ios;
+        var primary=normalizeStoreUrl(ios?urls.ios:urls.android);
+        var fallback=normalizeStoreUrl(ios?urls.android:urls.ios);
         return primary||fallback||'https://play.google.com/store/apps/details?id=com.riseup.game&hl=en';
       }
+      var clickGateEnabled=cfg.exportClicksToRedirect!==undefined&&cfg.exportClicksToRedirect!==null;
       var redirectNeed=Math.max(1,parseInt(cfg.exportClicksToRedirect,10)||1);
-      var redirectSeen=0,redirectDone=false;
-      function openStore(url){
-        if(typeof window.__RISE_NETWORK_OPEN__==='function'){window.__RISE_NETWORK_OPEN__(url);return;}
-        if(typeof mraid!=='undefined'&&mraid&&typeof mraid.open==='function')mraid.open(url);
-        else window.open(url,'_blank');
+      var redirectSeen=0,redirectDone=false,lastGateAt=-1e9,lastPointerGateAt=-1e9;
+      function lockAfterRedirect(){
+        try{if(game&&game.pause)game.pause();}catch(e){}
+        try{
+          root.style.pointerEvents='none';
+          var lock=document.getElementById('rise-click-lock');
+          if(!lock){
+            lock=document.createElement('div');lock.id='rise-click-lock';
+            lock.setAttribute('aria-hidden','true');
+            lock.style.cssText='position:fixed;inset:0;z-index:2147483647;pointer-events:auto;background:transparent;touch-action:none;';
+            document.body.appendChild(lock);
+          }
+        }catch(e){}
       }
-      function gatedStore(){
-        if(redirectDone)return;
-        redirectSeen++;
-        if(redirectSeen<redirectNeed)return;
-        redirectDone=true;
-        openStore(storeTarget());
+      function fallbackOpen(url){
+        try{
+          var a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+          a.style.display='none';document.body.appendChild(a);a.click();a.remove();return true;
+        }catch(e){}
+        try{window.location.href=url;return true;}catch(e){}
+        return false;
+      }
+      function openStore(url){
+        url=normalizeStoreUrl(url);if(!url)return false;
+        try{
+          if(typeof window.__RISE_NETWORK_OPEN__==='function'){
+            var handled=window.__RISE_NETWORK_OPEN__(url);
+            if(handled!==false)return true;
+          }
+        }catch(e){}
+        try{if(typeof mraid!=='undefined'&&mraid&&typeof mraid.open==='function'){mraid.open(url);return true;}}catch(e){}
+        return fallbackOpen(url);
+      }
+      function gatedStore(eventLike){
+        if(redirectDone)return true;
+        var now=(eventLike&&Number.isFinite(eventLike.timeStamp))?eventLike.timeStamp:(window.performance&&performance.now?performance.now():Date.now());
+        if(now-lastGateAt<280)return false;
+        lastGateAt=now;redirectSeen++;
+        if(redirectSeen<redirectNeed)return false;
+        redirectDone=true;lockAfterRedirect();openStore(storeTarget());return true;
+      }
+      function gatePointer(e){
+        if(!clickGateEnabled||redirectDone)return;
+        lastPointerGateAt=(window.performance&&performance.now?performance.now():Date.now());
+        if(gatedStore(e)){try{e.preventDefault();e.stopImmediatePropagation();}catch(err){}}
+      }
+      function gateClick(e){
+        if(!clickGateEnabled||redirectDone)return;
+        var now=(window.performance&&performance.now?performance.now():Date.now());
+        if(now-lastPointerGateAt<500)return;
+        if(gatedStore(e)){try{e.preventDefault();e.stopImmediatePropagation();}catch(err){}}
+      }
+      if(clickGateEnabled){
+        document.addEventListener('pointerup',gatePointer,true);
+        document.addEventListener('click',gateClick,true);
       }
       game=RisePlayable.init(root,cfg,imgs,{
-        onCTA:function(){try{gatedStore();}catch(e){}},
+        onCTA:function(){try{if(clickGateEnabled)gatedStore();else openStore(storeTarget());}catch(e){}},
         // Level 4 already has its own one-shot conversion trigger. Keep the
         // completion callback passive so an enabled Win Card remains visible
         // until the player presses its CTA.
@@ -475,9 +525,9 @@ function adaptForNetwork(html,net,orientation){
   if(net==='googleads'){
     const w=orient==='portrait'?540:960,h=orient==='portrait'?960:540;
     out=insertAfter(out,'<meta charset="UTF-8">','\n<meta name="ad.size" content="width='+w+',height='+h+'">');
-    out=out.replace('<body>','<body>\n<script src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js">'+scriptEnd+'\n<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.ExitApi&&typeof ExitApi.exit==="function")ExitApi.exit(url);else window.open(url,"_blank");}catch(e){window.open(url,"_blank");}};'+scriptEnd);
+    out=out.replace('<body>','<body>\n<script src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js">'+scriptEnd+'\n<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.ExitApi&&typeof ExitApi.exit==="function"){ExitApi.exit(url);return true;}}catch(e){}try{var a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.style.display="none";document.body.appendChild(a);a.click();a.remove();return true;}catch(e){}try{window.location.href=url;return true;}catch(e){}return false;};'+scriptEnd);
   }else if(net!=='generic'){
-    let extra='<script src="mraid.js">'+scriptEnd+'\n<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.mraid&&typeof mraid.open==="function")mraid.open(url);else window.open(url,"_blank");}catch(e){window.open(url,"_blank");}};'+scriptEnd;
+    let extra=(net==='mintegral'?'<script src="mraid.js">'+scriptEnd+'\n':'')+'<script>window.__RISE_NETWORK_OPEN__=function(url){try{if(window.mraid&&typeof mraid.open==="function"){window.mraid.open(url);return true;}}catch(e){}try{var a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.style.display="none";document.body.appendChild(a);a.click();a.remove();return true;}catch(e){}try{window.location.href=url;return true;}catch(e){}return false;};'+scriptEnd;
     if(net==='mintegral')extra+='\n<script>(function(){window.gameReady=window.gameReady||function(){};window.gameStart=window.gameStart||function(){};window.gameClose=window.gameClose||function(){};window.gameRetry=window.gameRetry||function(){try{location.reload();}catch(e){}};})();'+scriptEnd;
     out=out.replace('<body>','<body>\n'+extra);
   }
@@ -556,6 +606,7 @@ async function buildNetworkOutput(prepared,net,variant,naming,xclClicks){
   if(!NETWORK_INFO[net])throw new Error('Unknown network: '+net);
   const cfg=JSON.parse(JSON.stringify(prepared.cfg));
   cfg.exportClicksToRedirect=networkClicks(variant,xclClicks);
+  cfg.exportClickGateEnabled=true;
   const html=adaptForNetwork(buildHTML(cfg,prepared.assetMap,prepared.sprMap,prepared.src),net,cfg.orientation);
   const info=NETWORK_INFO[net];let blob,filename;
   if(info.format==='html'){
