@@ -324,7 +324,7 @@ class Obs{
     this.shieldTouching=false;
     this.protectorTouching=false;
     // Runtime-only role used by the Level 3 basket simulation.
-    this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
+    this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;this.physicsCollisionMode=o.physicsCollisionMode||null;
     this.level3Role=null;this.level3Follow=null;this.level3Safe=false;this.level4Role=null;
   }
   reset(){this.x=this.ix;this.y=this.iy;this.prevX=this.x;this.prevY=this.y;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;this.protectorTouching=false;}
@@ -1756,6 +1756,11 @@ class Game{
       const top=this._sst(i);
       for(const o of st.obs){
         if(!o.live||o.level3Role||o.solid===false)continue;
+        // Level 2 keeps the original pre-chain-reaction behaviour: shield hits
+        // can launch and redirect each obstacle, but obstacles never collide
+        // with one another. The Level 2 prefab carries the same opt-out when
+        // it is placed on another stage.
+        if(st.idx===2||o.physicsCollisionMode==='none'||o.physicsPrefab==='level2_grid')continue;
         const ref={o,top};
         if(o.interactable)bodies.push(ref);else statics.push(ref);
       }

@@ -106,6 +106,7 @@
     "physicsMetadataExported": true,
     "editableAsWholeOrIndividual": true,
     "level2GridCorridor": true,
+    "level2GridCorridorCollisionMode": "none",
     "availablePrefabs": [
       "Level 1 — Squeeze Walls",
       "Level 2 — Grid Corridor",
@@ -131,7 +132,8 @@
       "level3BasketPower",
       "level3BallGravity"
     ],
-    "level2UsesCommonPhysics": true
+    "level2UsesCommonPhysics": false,
+    "level2OldPhysicsNoObjectCollisions": true
   },
   "level4Physics": "continuous shield support; repeated contact without per-touch kick; Level 4 obstacle ball remains solid against non-interactable walls",
   "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for obstacle bodies; protector/shield passes through them; swept collision prevents dynamic obstacles tunneling through thin walls",

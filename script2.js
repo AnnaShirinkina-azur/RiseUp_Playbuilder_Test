@@ -995,7 +995,7 @@ const LE=(function(){
   }
   const PHYSICS_PREFABS=[
     {id:'level1_squeeze',name:'Level 1 — Squeeze Walls',description:'26 objects · side squeeze physics',sourceStage:1,icon:'↔'},
-    {id:'level2_grid',name:'Level 2 — Grid Corridor',description:'98 objects · authored obstacle grid',sourceStage:2,icon:'≡'},
+    {id:'level2_grid',name:'Level 2 — Grid Corridor',description:'98 objects · old physics · no object collisions',sourceStage:2,icon:'≡',collisionMode:'none'},
     {id:'level3_basket',name:'Level 3 — Basket & Balls',description:'11 objects · basket contact physics',sourceStage:3,icon:'∪'}
   ].map(def=>{const objects=obstacleOnly(PLAYABLE_DEFAULT_LEVEL_DATA[def.sourceStage]),bounds=prefabBounds(objects);return {...def,objects,bounds};});
   const PLAYABLE_DEFAULT_PLAYER_START={"coordMode":"center","x":0,"y":169};
@@ -1010,6 +1010,7 @@ const LE=(function(){
           if(prefab&&!o.kind){
             o.templateGroupId=gid;o.templateMode='whole';o.templateUnlocked=false;o.templateGroupRotation=0;o.templateItemRotation=parseFloat(o.rotation)||0;o.prefabName=prefab.name;o.prefabIndex=index;
             o.physicsPrefab=prefab.id;o.physicsGroupId=gid;o.physicsRole=physicsRoleFor(prefab.id,source,index,prefab.bounds);
+            if(prefab.collisionMode)o.physicsCollisionMode=prefab.collisionMode;
           }
           lvls[i].push(o);
         });
@@ -1540,6 +1541,7 @@ bindHexColorInputs(document);
       o.anchor='cc';delete o.anchorOffsetX;delete o.anchorOffsetY;writeObstacleAnchorOffsetFromPoint(o,o.x,o.y);
       o.templateGroupId=gid;o.templateMode='whole';o.templateUnlocked=false;o.templateGroupRotation=0;o.templateItemRotation=parseFloat(o.rotation)||0;o.prefabName=prefab.name;o.prefabIndex=index;
       o.physicsPrefab=prefab.id;o.physicsGroupId=gid;o.physicsRole=physicsRoleFor(prefab.id,src,index,prefab.bounds);
+      if(prefab.collisionMode)o.physicsCollisionMode=prefab.collisionMode;
       return o;
     });
     lvls[stageIndex].push(...children);selSet=new Set(children.map((_,k)=>start+k));sel=start;
