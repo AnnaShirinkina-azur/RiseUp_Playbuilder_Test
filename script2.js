@@ -1684,7 +1684,37 @@ bindHexColorInputs(document);
     wrap.scrollTop=Math.max(0,cy*zoom-wrap.clientHeight/2);
   });
 
-  ['os','osx','osy','oc','om'].forEach(id=>{$(id)?.addEventListener('input',()=>{const ids=selectionIndices();if(!ids.length)return;ids.forEach(i=>{const o=lvls[cur][i];if(!o||o.kind==='text'||o.kind==='progress'||o.kind==='health'||o.kind==='cta'||o.kind==='tutorial'||o.kind==='winTrigger')return;if(o.kind==='bg'){o.tint=$('oc').value;return;}ensureObstacleAnchor(o);o.scale=clampScale($('os').value);o.scaleX=clampScale($('osx').value);o.scaleY=clampScale($('osy').value);applyObstacleScale(o);const tint=normalizeHexColor($('oc').value,o.tint||o.color||'#ffffff');o.tint=tint;o.color=tint;o.moveX=parseInt($('om').value)||0;});draw();});});
+  // Keep obstacle controls independent. Previously every input (including Color)
+  // rewrote scale, scaleX, scaleY and moveX for the whole selected prefab. Since
+  // prefab children intentionally use different base scales, changing tint could
+  // enlarge small bars to the scale of a large frame and cover the entire level.
+  function updateSelectedObstacleScale(prop,inputId){
+    const ids=selectedObstacleIndices();if(!ids.length)return;
+    const target=clampScale($(inputId).value);
+    if(ids.length===1){
+      const o=lvls[cur][ids[0]];ensureObstacleAnchor(o);o[prop]=target;applyObstacleScale(o);
+    }else{
+      const reference=isObstacleItem(selItem())?selItem():lvls[cur][ids[0]];ensureObstacleScale(reference);
+      const current=clampScale(reference[prop]==null?1:reference[prop]);
+      const ratio=current>0?target/current:1;
+      ids.forEach(i=>{const o=lvls[cur][i];if(!o)return;ensureObstacleAnchor(o);o[prop]=clampScale((parseFloat(o[prop])||1)*ratio);applyObstacleScale(o);});
+    }
+    draw();markPreviewDirty();
+  }
+  $('os')?.addEventListener('input',()=>updateSelectedObstacleScale('scale','os'));
+  $('osx')?.addEventListener('input',()=>updateSelectedObstacleScale('scaleX','osx'));
+  $('osy')?.addEventListener('input',()=>updateSelectedObstacleScale('scaleY','osy'));
+  $('oc')?.addEventListener('input',()=>{
+    const ids=selectionIndices();if(!ids.length)return;
+    const tint=normalizeHexColor($('oc').value,'#ffffff');
+    ids.forEach(i=>{const o=lvls[cur][i];if(!o)return;if(o.kind==='bg'){o.tint=tint;return;}if(!isObstacleItem(o))return;o.tint=tint;o.color=tint;});
+    draw();markPreviewDirty();
+  });
+  $('om')?.addEventListener('input',()=>{
+    const moveX=parseInt($('om').value,10)||0;
+    selectedObstacleIndices().forEach(i=>{const o=lvls[cur][i];if(o)o.moveX=moveX;});
+    draw();markPreviewDirty();
+  });
   $('orot')?.addEventListener('input',()=>{
     const ids=selectedObstacleIndices();if(!ids.length)return;
     const target=parseFloat($('orot').value)||0;
