@@ -97,7 +97,7 @@ function readConfig(){
       tryAgainDuration:(function(){var v=g('cfg-tryAgainDuration');return isNaN(v)?0:Math.max(0,v*1000);})(),
       scale:(function(){var v=g('cfg-endCardScale');return isNaN(v)?1:v;})(),
       x:(function(){var v=g('cfg-endCardX');return isNaN(v)?0:v;})(),
-      y:(function(){var v=g('cfg-endCardY');return isNaN(v)?0:v;})(),
+      y:(function(){var v=g('cfg-endCardY');return isNaN(v)?10:v;})(),
       overlay:(function(){var v=g('cfg-endCardOverlay');return isNaN(v)?0.55:v;})(),
       overlayColor:(function(){var e=document.getElementById('cfg-endCardOverlayColor');return (e&&e.value)||'#000000';})(),
       showCta:(function(){var e=document.getElementById('cfg-endCardCta');return e?e.checked:true;})(),

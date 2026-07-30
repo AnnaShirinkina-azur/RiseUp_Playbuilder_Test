@@ -1,5 +1,5 @@
 {
-  "source": "rise_playable_1785155594291.html",
+  "source": "RISE_play001_01_st_xcl_en_applovin.html",
   "applied": true,
   "levelCounts": [
     2,
@@ -42,6 +42,7 @@
     "endcard_win",
     "endcard_win_frame",
     "endcard_win_landscape_cta_bg",
+    "endcard_win_landscape_image",
     "endcard_win_portrait_cta_bg",
     "height_arrow",
     "player",
@@ -49,7 +50,7 @@
     "shield",
     "tutorial_triangle"
   ],
-  "spriteCount": 38,
+  "spriteCount": 39,
   "defaultsSummary": {
     "lives": 3,
     "orientation": "landscape",
@@ -62,7 +63,7 @@
     "tutorialFailEnabled": true,
     "winEndCardEnabled": true,
     "loseEndCardEnabled": true,
-    "endCardYPercent": 0,
+    "endCardYPercent": 10,
     "endCardCountdown": 10,
     "winCtaText": "PLAY NOW",
     "winCtaHeight": 110,
@@ -70,7 +71,10 @@
     "winCtaBgTint": "#c800ff",
     "winCtaCustomSprite": true,
     "loseImageYPercent": 0,
-    "loseCountdownYPercent": 0
+    "loseCountdownYPercent": 0,
+    "winLandscapeArtworkScale": 0.85,
+    "winLandscapeCustomArtwork": true,
+    "endCardLayouts": "Imported exactly from AppLovin playable: Win/Lose x Portrait/Landscape"
   },
   "gameplayPreserved": {
     "level0Corridor": false,
@@ -120,7 +124,7 @@
   "prefabsPanel": "separate sidebar item under Obstacles",
   "levelNumberFormat": "0, 01, 02, 03, 04",
   "levelNumberFont": "Roboto Mono",
-  "defaultImport": "Exact configuration from uploaded playable; current builder/editor features preserved",
+  "defaultImport": "Exact End Card configuration and artwork from uploaded AppLovin playable; current builder/gameplay features preserved",
   "prefabPhysicsPanel": {
     "separateSidebarSubitem": true,
     "commonPhysicsPanel": [
