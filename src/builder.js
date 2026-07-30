@@ -253,6 +253,11 @@ function packPayload(cfg,assetMap,sprMap){
 const SPRS={};
 function setSprite(key,b64){if(b64==null)delete SPRS[key];else SPRS[key]=b64;}
 function getSprites(){return Object.assign({},SPRS);}
+function replaceSprites(next){
+  Object.keys(SPRS).forEach(key=>delete SPRS[key]);
+  if(next&&typeof next==='object')Object.keys(next).forEach(key=>{if(next[key]!=null)SPRS[key]=next[key];});
+  return getSprites();
+}
 
 // ── Собираем итоговый HTML ────────────────────────────────────────────────
 function buildHTML(cfg,assetMap,sprMap,gameSrc){
@@ -700,5 +705,5 @@ async function buildPreview(iframe,opts){
   }catch(e){console.error(e);onError&&onError(e.message);}
 }
 
-W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites,prepareNetworkBase,buildNetworkOutput,buildNetworkPack,downloadBlob,networkFileName,NETWORK_INFO,NETWORK_ORDER,_makeZip:makeZip,_buildHTML:buildHTML,_packPayload:packPayload,_bundleForConfig:bundleForConfig};
+W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites,replaceSprites,prepareNetworkBase,buildNetworkOutput,buildNetworkPack,downloadBlob,networkFileName,NETWORK_INFO,NETWORK_ORDER,_makeZip:makeZip,_buildHTML:buildHTML,_packPayload:packPayload,_bundleForConfig:bundleForConfig};
 })(window);

@@ -295,7 +295,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 <body>
 <header>
   <div class="logo"><div class="logo-icon">🎈</div>Rise Playable Builder<span class="badge">v22 Luna UI</span></div>
-  <button class="btn btn-s" id="btn-reset">↺ Reset</button>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="btn btn-s" id="btn-save-project" type="button">↓ Save JSON</button>
+    <button class="btn btn-s" id="btn-load-project" type="button">↑ Load JSON</button>
+    <input id="project-json-input" type="file" accept=".json,application/json" hidden>
+    <button class="btn btn-s" id="btn-reset" type="button">↺ Reset</button>
+  </div>
 </header>
 
 <div class="ws">

@@ -748,7 +748,23 @@ try{
   document.addEventListener('keydown',e=>{if(e.key!=='Delete'&&e.key!=='Backspace')return;var c=cv();if(!c||c.offsetParent===null)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;e.preventDefault();toggleSelectedObject();});
   let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{const rc=ecv.getBoundingClientRect(),hx=(e.clientX-rc.left)*(ecv.width/rc.width),hy=(e.clientY-rc.top)*(ecv.height/rc.height),pk=pickAt(hx,hy);if(!pk)return;setSelected(pk);if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();const ar=endCardActiveRect(ecv.width,ecv.height),logicalDx=dx/r.width*ecv.width,logicalDy=dy/r.height*ecv.height;o.x=Math.max(-200,Math.min(200,(o.x||0)+logicalDx/ar.w*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+logicalDy/ar.h*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
   Object.values(imgs).forEach(im=>im.onload=draw);
-  window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts)),resetToDefaults:()=>{Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,normalizeEndCardLayoutTree(JSON.parse(JSON.stringify(defaults))));setState('lose');syncFields();resize();}};
+  function setEndCardData(data){
+    if(!data||typeof data!=='object')throw new Error('End card layouts are missing.');
+    const next=JSON.parse(JSON.stringify(defaults));
+    ['win','lose'].forEach(st=>['portrait','landscape'].forEach(or=>{
+      const incoming=data[st]&&data[st][or];
+      if(!incoming||typeof incoming!=='object')return;
+      next[st][or]=Object.assign({},next[st][or],JSON.parse(JSON.stringify(incoming)));
+      ['background','image','text','cta','settings'].forEach(key=>{
+        if(incoming[key]&&typeof incoming[key]==='object')next[st][or][key]=Object.assign({},defaults[st][or][key]||{},JSON.parse(JSON.stringify(incoming[key])));
+      });
+    }));
+    Object.keys(layouts).forEach(k=>delete layouts[k]);
+    Object.assign(layouts,normalizeEndCardLayoutTree(next));
+    dynamicImageCache.clear();endTintCache.clear();
+    syncFields();resize();draw();
+  }
+  window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts)),setData:setEndCardData,resetToDefaults:()=>{Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,normalizeEndCardLayoutTree(JSON.parse(JSON.stringify(defaults))));setState('lose');syncFields();resize();}};
   setTimeout(()=>{setOrientation("landscape");syncFields();},50);
 })();
 
@@ -885,6 +901,59 @@ $('btn-stop').addEventListener('click',()=>{
   $('btn-play').classList.remove('on');
   $('btn-pause').classList.remove('on');
 });
+
+// Save / Load builder project (.json)
+const RISE_PROJECT_FORMAT='rise-playbuilder-project';
+const RISE_PROJECT_VERSION=1;
+function cloneProjectValue(value){return JSON.parse(JSON.stringify(value));}
+function collectProjectFormState(){
+  const out={};
+  document.querySelectorAll('input[id],select[id],textarea[id]').forEach(el=>{if(!el.id||el.type==='file')return;out[el.id]=el.type==='checkbox'?{type:'checkbox',checked:!!el.checked}:{type:el.type||el.tagName.toLowerCase(),value:el.value};});
+  return out;
+}
+function applyProjectControl(id,saved,emit=true){
+  const el=$(id);if(!el||!saved)return false;
+  if(el.type==='checkbox')el.checked=!!saved.checked;else if(saved.value!=null)el.value=String(saved.value);
+  if(emit){try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}try{el.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}}
+  return true;
+}
+function refreshProjectSpritePreviews(sprites){
+  const map=sprites||{};
+  ['bgm','win','lose','hit','shield'].forEach(key=>{const th=$('th-audio-'+key);if(!th)return;if(map['audio_'+key]){th.textContent='✔';th.title='Loaded from project';th.style.color='var(--acc)';}else{th.textContent=SND_ICON[key]||'🔊';th.title='';th.style.color='';}});
+  Object.keys(map).forEach(key=>{if(typeof map[key]!=='string'||!/^data:image\//i.test(map[key]))return;document.querySelectorAll(`[id="th-${key}"],[id="th-${key}-visuals"],[id="th-${key}-level"]`).forEach(th=>{const im=document.createElement('img');im.src=map[key];th.replaceChildren(im);});});
+}
+function projectFileName(){let base='rise_playable';try{const n=networkNaming();base=[n.prefix,'play'+n.number,n.variant].filter(Boolean).join('_');}catch(e){}return String(base||'rise_playable').replace(/[^a-z0-9._-]+/gi,'_')+'_settings.json';}
+function createProjectSnapshot(){
+  return {format:RISE_PROJECT_FORMAT,version:RISE_PROJECT_VERSION,savedAt:new Date().toISOString(),form:collectProjectFormState(),sprites:(window.RiseBuilder&&RiseBuilder.getSprites)?RiseBuilder.getSprites():{},levelEditor:(window.RiseLevelEditor&&RiseLevelEditor.getProjectData)?RiseLevelEditor.getProjectData():null,endCardLayouts:(window.RiseEndCardEditor&&RiseEndCardEditor.getData)?RiseEndCardEditor.getData():null,network:{variant:networkVariant}};
+}
+function save(){
+  try{const json=JSON.stringify(createProjectSnapshot(),null,2),blob=new Blob([json],{type:'application/json;charset=utf-8'});if(window.RiseBuilder&&RiseBuilder.downloadBlob)RiseBuilder.downloadBlob(blob,projectFileName());else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=projectFileName();document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}return true;}
+  catch(err){console.error(err);alert('Save failed: '+(err&&err.message?err.message:err));return false;}
+}
+async function readProjectSource(source){if(source&&source.target&&source.target.files)source=source.target.files[0];if(source instanceof File||source instanceof Blob)return JSON.parse(await source.text());if(typeof source==='string')return JSON.parse(source);if(source&&typeof source==='object')return cloneProjectValue(source);throw new Error('Choose a JSON project file.');}
+function validateProject(project){if(!project||typeof project!=='object')throw new Error('JSON root must be an object.');if(project.format&&project.format!==RISE_PROJECT_FORMAT)throw new Error('This JSON was not created by Rise Playable Builder.');if(project.version!=null&&Number(project.version)>RISE_PROJECT_VERSION)throw new Error('This project uses a newer format version.');if(!project.form&&!project.levelEditor)throw new Error('Builder settings were not found in this JSON.');return project;}
+async function applyProjectSnapshot(project){
+  project=validateProject(project);const form=project.form&&typeof project.form==='object'?project.form:{};
+  const stageSaved=form['cfg-stageCount']||form['le-stage-count'];if(stageSaved){applyProjectControl('cfg-stageCount',stageSaved,true);applyProjectControl('le-stage-count',stageSaved,true);}
+  if(project.levelEditor&&window.RiseLevelEditor&&RiseLevelEditor.setStageCount){const count=parseInt(project.levelEditor.stageCount,10);if(count)RiseLevelEditor.setStageCount(count);}
+  const orientationSaved=form['cfg-orientation'];if(orientationSaved&&orientationSaved.value&&typeof setOrientation==='function')setOrientation(orientationSaved.value);
+  const bgSaved=form['cfg-backgroundMode'];if(bgSaved&&bgSaved.value&&typeof setBgMode==='function')setBgMode(bgSaved.value);
+  const seamSaved=form['cfg-seamOverlayMode'];if(seamSaved&&seamSaved.value&&typeof syncSeamMode==='function')syncSeamMode(seamSaved.value);
+  Object.keys(form).forEach(id=>applyProjectControl(id,form[id],true));if(window.RiseBgUI){RiseBgUI.renderBgStageRows();RiseBgUI.renderSeamRows();}Object.keys(form).forEach(id=>applyProjectControl(id,form[id],true));
+  if(project.sprites&&window.RiseBuilder){if(RiseBuilder.replaceSprites)RiseBuilder.replaceSprites(project.sprites);else{const old=RiseBuilder.getSprites?RiseBuilder.getSprites():{};Object.keys(old).forEach(k=>RiseBuilder.setSprite(k,null));Object.keys(project.sprites).forEach(k=>RiseBuilder.setSprite(k,project.sprites[k]));}refreshProjectSpritePreviews(project.sprites);}
+  if(project.endCardLayouts&&window.RiseEndCardEditor&&RiseEndCardEditor.setData)RiseEndCardEditor.setData(project.endCardLayouts);
+  if(project.levelEditor&&window.RiseLevelEditor&&RiseLevelEditor.setProjectData)RiseLevelEditor.setProjectData(project.levelEditor);
+  if(project.network&&['x','1','2'].includes(String(project.network.variant))){networkVariant=String(project.network.variant);document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b.dataset.networkVariant===networkVariant));}
+  updateNetworkNamePreview();invalidateNetworkExports();previewBuilt=false;markPreviewDirty();if(window.RiseLevelEditor){RiseLevelEditor.resize();RiseLevelEditor.draw();}if(window.RiseEndCardEditor){RiseEndCardEditor.resize();RiseEndCardEditor.draw();}return project;
+}
+async function load(source){
+  if(source==null){const input=$('project-json-input');if(input){input.value='';input.click();return null;}throw new Error('Project file input is missing.');}
+  try{const project=await readProjectSource(source);await applyProjectSnapshot(project);alert('Project loaded. Click “Update Preview” to rebuild the playable.');return project;}catch(err){console.error(err);alert('Load failed: '+(err&&err.message?err.message:err));throw err;}
+}
+window.save=save;window.load=load;window.RiseProjectIO={save,load,createSnapshot:createProjectSnapshot,applySnapshot:applyProjectSnapshot};
+$('btn-save-project')&&$('btn-save-project').addEventListener('click',save);
+$('btn-load-project')&&$('btn-load-project').addEventListener('click',()=>load());
+$('project-json-input')&&$('project-json-input').addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)load(file).catch(()=>{});e.target.value='';});
 
 // reset
 const DEFS={"cfg-lives":3,"cfg-stageCount":4,"le-stage-count":4,"cfg-heightIndicatorEnabled":true,"cfg-heightStart":66,"cfg-heightFeetPerStage":100,"cfg-playerSize":2,"cfg-ballSizeUI":2,"cfg-balloonCount":1,"cfg-balloonSpacing":30,"cfg-playerDeathAnimSpeed":1,"cfg-deathPause":2.5,"cfg-shieldSize":1,"cfg-gameSpeed":3.2,"cfg-acceleration":0.4,"cfg-pushForce":7,"cfg-gravityModifier":1,"cfg-level1CenterSpeed":18,"cfg-level3BasketPower":0.6,"cfg-level3BallGravity":0.34,"cfg-chainReaction":true,"cfg-collisionForce":0.01,"cfg-scatterBounciness":0.1,"cfg-hpBarShowTime":2.0,"cfg-tutorialTime":4.8,"cfg-tutorialEnabled":true,"cfg-tutorialText":"PROTECT YOUR BALLOON!","cfg-tutorialTextSize":30,"cfg-tutorialX":50,"cfg-tutorialY":35,"cfg-tutorialCaptionGap":-0.5,"cfg-tutorialFont":"Baloo2","cfg-tutorialFailEnabled":true,"cfg-tutorialObstacleShape":"triangle","cfg-tutorialObstacleTint":"#c800ff","cfg-playerSpriteColor":"#00eeff","cfg-playerRopeColor":"#84ebfc","cfg-shieldSpriteColor":"#00eeff","cfg-bgSpriteColor":"#ffffff","cfg-stageAccents":false,"cfg-orientation":"landscape","cfg-backgroundMode":"common","cfg-seamScale":0.5,"cfg-seamMulti":true,"cfg-seamOverlayMode":"perStage","cfg-seamTint":"#ffffff","cfg-googleFontUrl":"","cfg-googleFontFamily":"","cfg-localFontFamily":"CustomFont","cfg-soundEnabled":true,"cfg-soundVolume":0.8,"cfg-vol-bgm":0.7,"cfg-vol-win":1,"cfg-vol-lose":1,"cfg-vol-hit":1,"cfg-vol-shield":0.9,"cfg-winEndCardEnabled":true,"cfg-loseEndCardEnabled":true,"cfg-tryAgainEnabled":true,"cfg-tryAgainDelay":0,"cfg-tryAgainDuration":0,"cfg-endCardScale":1,"cfg-endCardX":0,"cfg-endCardY":10,"cfg-endCardOverlay":0.68,"cfg-endCardOverlayColor":"#000000","cfg-endCardCta":true,"cfg-endCardCtaText":"TRY AGAIN","cfg-endCardFont":"Baloo2","cfg-endCardCtaY":"74","cfg-endCardCountdown":10,"cfg-storeAndroid":"https://play.google.com/store/apps/details?id=com.riseup.game&hl=en","cfg-storeIos":"https://apps.apple.com/us/app/rise-up-protect-the-balloon/id1354452189","net-name-prefix":"RISE","net-name-number":"001","net-name-variant":"01","net-name-locale":"en","net-xcl-clicks":1,"cfg-stage0":"#e05252","cfg-stage1":"#52a0e0","cfg-stage2":"#52e08a","cfg-stage3":"#e07d52","cfg-stage4":"#c052e0","cfg-bgg0a":"#5bc0de","cfg-bgg0b":"#69c5ec","cfg-bgg1a":"#ef5350","cfg-bgg1b":"#f97f6f","cfg-bgg2a":"#b03c02","cfg-bgg2b":"#cc4a05","cfg-bgg3a":"#f0a44c","cfg-bgg3b":"#f9c178","cfg-bgg4a":"#ee4630","cfg-bgg4b":"#fa6a4b","cfg-bgg5a":"#5bc0de","cfg-bgg5b":"#69c5ec","cfg-bgt0":"#ffffff","cfg-bgt1":"#ffffff","cfg-bgt2":"#ffffff","cfg-bgt3":"#ffffff","cfg-bgt4":"#ffffff","cfg-bgt5":"#ffffff","cfg-seamt0":"#ffffff","cfg-seamt1":"#ffffff","cfg-seamt2":"#ffffff","cfg-seamt3":"#ffffff","cfg-seamt4":"#ffffff","cfg-seamt5":"#ffffff"};
@@ -2577,6 +2646,25 @@ bindHexColorInputs(document);
   }
   function getLevelData(){ensurePlayerObject();return lvls.map(stage=>{const out=[];stage.forEach(o=>{if(!o||o.kind===PLAYER_KIND)return;if(o.kind==='svgTemplate'){flattenSvgTemplate(o).forEach(x=>out.push({...x,coordMode:'center'}));}else{if(!o.kind)ensureObstacleScale(o);if(['text','progress','health','cta'].includes(o.kind))ensureResponsiveBase(o);out.push({...o,coordMode:'center'});}});return out;});}
   function getPlayerStart(){const p=ensurePlayerObject();ensurePlayerAnchor(p);setPlayerLocalFromOffset(p);return {coordMode:'center',x:Math.round(p.x||0),y:Math.round(p.y==null?Math.round(GH*.20):p.y)};}
+  function getProjectData(){
+    ensurePlayerObject();
+    return {stageCount:NS,currentStage:cur,levels:cloneJson(lvls),templates:cloneJson(svgTemplates.filter(t=>!t.lockedDefault)),playerStart:getPlayerStart()};
+  }
+  function setProjectData(project){
+    if(!project||typeof project!=='object')throw new Error('Level editor data are missing.');
+    const incoming=Array.isArray(project.levels)?project.levels:(Array.isArray(project.levelData)?project.levelData:null);
+    if(!incoming)throw new Error('Level list is missing.');
+    const requested=Math.max(1,Math.min(20,parseInt(project.stageCount,10)||Math.max(1,incoming.length-2)));
+    lvls.length=0;cloneJson(incoming).forEach(stage=>lvls.push(Array.isArray(stage)?stage:[]));
+    while(lvls.length<requested+2)lvls.push([]);if(lvls.length>requested+2)lvls.length=requested+2;
+    if(project.playerStart&&!lvls[0].some(o=>o&&o.kind===PLAYER_KIND)){
+      const ps=project.playerStart;lvls[0].unshift({kind:PLAYER_KIND,coordMode:'center',x:parseFloat(ps.x)||0,y:Number.isFinite(parseFloat(ps.y))?parseFloat(ps.y):Math.round(GH*.20),anchor:'cc',locked:true,lockedSingleton:true});
+    }
+    for(let i=svgTemplates.length-1;i>=0;i--)if(!svgTemplates[i].lockedDefault)svgTemplates.splice(i,1);
+    if(Array.isArray(project.templates))project.templates.forEach(t=>{if(!t||typeof t!=='object')return;const copy=cloneJson(t);copy.lockedDefault=false;if(!copy.id)copy.id='loaded_template_'+Date.now()+'_'+svgTemplates.length;if(!svgTemplates.some(x=>x.id===copy.id))svgTemplates.push(copy);});
+    selectedTemplateId=null;selectedPhysicsPrefabId=null;customShape=null;clearSelection();setStageCount(requested);
+    cur=Math.max(0,Math.min(lvls.length-1,parseInt(project.currentStage,10)||0));renderTemplateList();renderPhysicsPrefabList();syncProps();resize(true);draw();
+  }
 
   // ── Level text labels ─────────────────────────────────────────────────────
   let txColors=[],txBase='#ffffff',txAccent='#52e08a';
@@ -2761,7 +2849,7 @@ bindHexColorInputs(document);
 
   setStageCount(NS);sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});
-  return{resize,getLevelData,getPlayerStart,draw,setStageCount};
+  return{resize,getLevelData,getPlayerStart,getProjectData,setProjectData,draw,setStageCount};
 })();
 
 window.RiseLevelEditor=LE;
