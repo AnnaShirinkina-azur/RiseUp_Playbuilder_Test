@@ -153,8 +153,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .level-toolbar .mini{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px;font-weight:600;}
 .level-toolbar input[type=number]{width:58px;font-size:12px;padding:4px 6px;}
 .level-toolbar input[type=range]{width:110px;}
-.le-stash-note{font-size:11px;line-height:1.3;color:var(--dim);padding:4px 8px;border:1px dashed rgba(255,255,255,.16);border-radius:var(--r2);max-width:420px;}
-.le-stash-note.has-content{color:#ffca6b;border-color:rgba(255,202,107,.4);background:rgba(255,202,107,.07);}
 .level-note{font-size:11px;color:var(--dim);opacity:.85;}
 .shape-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;align-items:center;justify-content:center;padding:24px;}
 .shape-modal.on{display:flex;}
@@ -164,13 +162,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .shape-card input{width:100%;margin:8px 0;background:#0f0f18;color:var(--txt);border:1px solid var(--brd);border-radius:10px;padding:8px;}
 .shape-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
 .plabel{font-size:12px;color:var(--dim);text-align:center;}
-.preview-stale{margin:0 auto 8px;max-width:min(520px,92%);font-size:11px;line-height:1.35;text-align:center;padding:6px 10px;border-radius:var(--r2);background:rgba(255,202,107,.1);border:1px solid rgba(255,202,107,.35);color:#ffca6b;}
-.preview-stale.error{background:rgba(224,82,82,.13);border-color:rgba(224,82,82,.4);color:#ff8f8f;}
-.phone.stale{border-color:rgba(255,202,107,.45);}
-.pact{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.pact .gate-toggle{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap;}
-.pact .gate-toggle:hover{color:var(--txt);}
-.pact .gate-info{font-size:11px;font-weight:700;color:#ffca6b;padding:2px 7px;border-radius:20px;background:rgba(255,202,107,.12);border:1px solid rgba(255,202,107,.3);white-space:nowrap;}
+.pact{display:flex;gap:8px;}
 /* level editor */
 .ed-pane{flex:1;display:none;flex-direction:column;overflow:hidden;}
 .ed-pane.on{display:flex;}
@@ -290,14 +282,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 .network-pack small{font-size:10px;font-weight:400;opacity:.65}
 .network-limits{flex:0 0 auto;width:auto!important;padding:9px 10px!important;background:var(--surf3)!important;border:1px solid var(--brd)!important;color:var(--txt)!important;border-radius:8px!important;font-size:11px!important}
 .network-info{min-height:14px;color:var(--dim);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
-.export-problems{display:flex;flex-direction:column;gap:6px;margin:8px 0 4px;}
-.export-problem{display:flex;flex-direction:column;gap:2px;padding:7px 9px;border-radius:var(--r2);font-size:11px;line-height:1.4;overflow-wrap:anywhere;}
-.export-problem b{font-size:11px;font-weight:800;}
-.export-problem span{color:var(--dim);}
-.export-problem.warn{background:rgba(255,202,107,.09);border:1px solid rgba(255,202,107,.32);}
-.export-problem.warn b{color:#ffca6b;}
-.export-problem.error{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.34);}
-.export-problem.error b{color:#ff8f8f;}
 .network-info:empty{display:none}
 .network-info.ok{color:#67d76d}.network-info.error{color:#ff6577}
 .network-build-status{display:flex;flex-direction:column;gap:7px;padding:0;border-top:0}
@@ -480,7 +464,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
-      <div class="row wide"><label>Playable orientation<small>Только превью и редактор. Выгружаемый HTML адаптивный и сам подстраивается под portrait/landscape. Ориентация, которая пишется в meta для рекламной сети, задаётся отдельно: Служебное → Экспорт под сети → «Ориентация в сборке».</small></label><div class="orbar" id="orientation-main"><button class="orbtn" data-or="portrait">Portrait</button><button class="orbtn on" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="landscape"></div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn" data-or="portrait">Portrait</button><button class="orbtn on" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="landscape"></div>
       <div class="sec">Background mode</div>
       <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
@@ -517,8 +501,13 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
       <div class="sec">Stage debug colors</div>
       <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents"></div>
-      <div class="row wide"><label><small>По одному цвету на сцену: Start, каждый mini-level и Finish. Список перестраивается вслед за Stages count.</small></label></div>
-      <div class="cgrid" id="stage-accent-grid"></div>
+      <div class="cgrid">
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage2" value="#52e08a"><label>S3</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage3" value="#e07d52"><label>S4</label></div>
+        <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage4" value="#c052e0"><label>S5</label></div>
+      </div>
     </div>
 
 
@@ -613,10 +602,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
             <label class="network-field">Вариант<input type="text" id="net-name-variant" value="01" spellcheck="false"></label>
             <label class="network-field">Локаль<input type="text" id="net-name-locale" value="en" spellcheck="false"></label>
           </div>
-          <label class="network-field">Ориентация в сборке<select id="cfg-exportOrientation" class="cfg-select" title="Пишется в meta ad.orientation и в ad.size для GoogleAds. Не связано с переключателем ориентации в превью/редакторе — сам HTML адаптивный.">
-            <option value="landscape" selected>landscape</option>
-            <option value="portrait">portrait</option>
-          </select></label>
           <label class="network-field">Количество кликов
             <span class="network-segment" id="network-variant-segment">
               <button type="button" class="on" data-network-variant="x">xcl</button>
@@ -624,7 +609,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
               <button type="button" data-network-variant="2">2cl</button>
             </span>
           </label>
-          <label class="network-field">Кликов при экспорте (xcl)<input type="number" id="net-xcl-clicks" value="1" min="1" max="99" step="1" title="Сколько тапов до перехода в стор. Минимум 1: гейт без клика невозможен."></label>
+          <label class="network-field">Кликов при экспорте (xcl)<input type="number" id="net-xcl-clicks" value="1" min="0" max="99" step="1"></label>
           <div class="network-name-preview" id="network-name-preview">RISE_play001_01_st_xcl_en_mintegral.zip</div>
           <div class="network-list" id="network-list">
             <div class="network-row" id="network-row-applovin"><span class="network-row-name">AppLovin</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-applovin">—</span><button type="button" class="network-download" data-network-download="applovin">↓ скачать</button></div>
@@ -638,7 +623,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
             <button type="button" class="btn network-pack" id="network-download-pack">Скачать пак<small>5 сетей × 3 варианта</small></button>
             <button type="button" class="btn network-limits" id="network-check-limits">↻ Лимиты</button>
           </div>
-          <div class="export-problems" id="export-problems" style="display:none" aria-live="polite"></div>
           <div class="network-info" id="network-info"></div>
           <div class="network-build-status" aria-live="polite">
             <div class="prog" id="prog"><div class="prog-bg"><div class="prog-fill" id="pf"></div></div><div class="prog-msg" id="pm"></div></div>
@@ -661,15 +645,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="preview-top">
         <div class="orbar" id="orientation-preview"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
         <div class="pact">
-          <label class="mini gate-toggle" title="Собрать превью с click-gate выбранного варианта (xcl/1cl/2cl). Переход в стор не выполняется — показывается баннер, геймплей блокируется так же, как в реальной сборке."><input type="checkbox" id="preview-click-gate"> Эмулировать click gate</label>
-          <span class="gate-info" id="preview-gate-info" style="display:none"></span>
           <button class="btn btn-s" id="btn-prev">▶ Update Preview</button>
           <button class="btn btn-s" id="btn-play">▶ Play</button>
           <button class="btn btn-s" id="btn-pause">⏸ Pause</button>
           <button class="btn btn-s" id="btn-stop">⏹ Stop</button>
         </div>
       </div>
-      <div class="preview-stale" id="preview-stale" style="display:none" aria-live="polite"></div>
       <div class="phone" id="phone"><iframe id="pif" title="preview"></iframe></div>
       <p class="plabel" id="phone-label">390×844 · нажми Update Preview после изменений</p>
     </div>
@@ -681,10 +662,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
         <div class="esep"></div>
-        <button class="et" id="le-zones" title="Показать активную зону 844×844 (design-квадрат препятствий) и заштрихованную пассивную зону — то, что видно в одной ориентации и обрезается в другой">▣ Zones</button>
+        <button class="et" id="le-zones" title="Показать активную зону 1020×1020 и пассивную зону (расширение под portrait/landscape)">▣ Zones</button>
         <label class="mini" title="Show/hide editor grid"><input type="checkbox" id="le-grid" checked> Grid</label>
         <div class="esep"></div>
-        <div class="le-stash-note" id="le-stash-note" style="display:none"></div>
       </div>
       <div class="orbar" id="orientation-editor" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="editor-phone"><div class="ec-wrap" id="ec-wrap"><canvas id="ec"></canvas></div></div></div>
@@ -1041,9 +1021,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=endcard-win-shared-v2"></script>
-<script src="src/builder.js?v=endcard-win-shared-v2"></script>
-<script src="script2.js?v=endcard-win-shared-v2"></script>
+<script src="src/playable-template.js?v=endcard-defaults-v1"></script>
+<script src="src/builder.js?v=endcard-defaults-v1"></script>
+<script src="script2.js?v=endcard-defaults-v1"></script>
 
 </body>
 </html>

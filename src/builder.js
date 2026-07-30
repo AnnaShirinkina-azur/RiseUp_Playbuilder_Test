@@ -57,27 +57,10 @@ function readConfig(){
     playerSize:g('cfg-playerSize'),balloonCount:(function(){var v=g('cfg-balloonCount');return isNaN(v)?1:Math.max(1,Math.round(v));})(),balloonSpacing:(function(){var v=g('cfg-balloonSpacing');return isNaN(v)?30:Math.max(0,v);})(),playerDeathAnimSpeed:g('cfg-playerDeathAnimSpeed'),playerDeathFrames:4,playerSpriteColor:g('cfg-playerSpriteColor'),playerRopeColor:g('cfg-playerRopeColor'),playerStart,
     shieldSize:g('cfg-shieldSize'),shieldSpriteColor:g('cfg-shieldSpriteColor'),
     backgroundSpriteColor:g('cfg-bgSpriteColor'),
-    // Read every stage swatch that exists instead of a hardcoded five. The grid
-    // is rendered from the current level count (start + minis + finish), so a
-    // 20-stage playable no longer silently reuses colours 1–5.
-    stageColors:(function(){
-      var out=[],i=0,el;
-      for(;;){el=document.getElementById('cfg-stage'+i);if(!el)break;out.push(el.value);i++;}
-      return out.length?out:['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
-    })(),
+    stageColors:['cfg-stage0','cfg-stage1','cfg-stage2','cfg-stage3','cfg-stage4'].map(g),
     stageAccents:(function(){var e=document.getElementById('cfg-stageAccents');return e?e.checked:true;})(),
     showGrid:false,
     orientation:g('cfg-orientation')||'landscape',
-    // Explicit export orientation. It drives the `ad.orientation` meta tag and
-    // the GoogleAds `ad.size`, so it must not be inherited from the preview
-    // toggle — that control is labelled "preview/editor only" and used to change
-    // the shipped build behind the user's back.
-    exportOrientation:(function(){
-      var e=document.getElementById('cfg-exportOrientation');
-      var v=e&&e.value;
-      if(v==='portrait'||v==='landscape')return v;
-      return g('cfg-orientation')||'landscape';
-    })(),
     backgroundMode:(function(){var e=document.getElementById('cfg-backgroundMode');return (e&&e.value)||'perStage';})(),
     stageBgGradients:(function(){var a=[],i=0;for(;;){var x=document.getElementById('cfg-bgg'+i+'a'),y=document.getElementById('cfg-bgg'+i+'b');if(!x||!y)break;a.push([x.value,y.value]);i++;}return a.length?a:null;})(),
     seamScale:(function(){var e=document.getElementById('cfg-seamScale');var v=e?parseFloat(e.value):1;return isNaN(v)?0.5:Math.max(0.3,v);})(),
@@ -426,29 +409,8 @@ var a=__U(__P.a),sp=__U(__P.sp),cfg=__U(__P.cfg);__R=null;__P=null;
         }catch(e){}
         return false;
       }
-      // Preview-only: reproduce the gate exactly, but report the redirect on
-      // screen instead of actually navigating. Without this the 1cl/2cl
-      // behaviour — the riskiest part of a playable — could only be checked by
-      // downloading a build and running it by hand.
-      var gateSimulate=cfg.gateSimulate===true;
-      function showSimulatedRedirect(url){
-        try{
-          var box=document.getElementById('rise-gate-sim');
-          if(!box){
-            box=document.createElement('div');box.id='rise-gate-sim';
-            box.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483646;padding:10px 12px;'
-              +'font:600 12px/1.4 system-ui,sans-serif;color:#0d0d14;background:#ffca6b;'
-              +'box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:center;word-break:break-all;';
-            document.body.appendChild(box);
-          }
-          box.textContent='SIMULATED REDIRECT · '+redirectNeed+' tap'+(redirectNeed===1?'':'s')
-            +' → '+url+' · геймплей заблокирован, как в реальной сборке';
-        }catch(e){}
-        return true;
-      }
       function openStore(url){
         url=normalizeStoreUrl(url);if(!url)return false;
-        if(gateSimulate)return showSimulatedRedirect(url);
         try{
           if(typeof window.__RISE_NETWORK_OPEN__==='function'){
             var handled=window.__RISE_NETWORK_OPEN__(url);
@@ -570,10 +532,7 @@ function safeToken(value,fallback){
 function networkClicks(variant,xclClicks){
   if(String(variant)==='1')return 1;
   if(String(variant)==='2')return 2;
-  // Clamped to 1, matching the gate itself (redirectNeed = max(1, …)) and the
-  // min="1" on the input. Previously the field accepted 0 and the gate quietly
-  // treated it as 1, so the exported build did not match what the UI showed.
-  const n=parseInt(xclClicks,10);return Number.isFinite(n)?Math.max(1,n):1;
+  const n=parseInt(xclClicks,10);return Number.isFinite(n)?Math.max(0,n):1;
 }
 function networkFileName(net,variant,naming,ext){
   const n=naming||{};
@@ -678,7 +637,7 @@ async function buildNetworkOutput(prepared,net,variant,naming,xclClicks){
   const cfg=JSON.parse(JSON.stringify(prepared.cfg));
   cfg.exportClicksToRedirect=networkClicks(variant,xclClicks);
   cfg.exportClickGateEnabled=true;
-  const html=adaptForNetwork(buildHTML(cfg,prepared.assetMap,prepared.sprMap,prepared.src),net,cfg.exportOrientation||cfg.orientation);
+  const html=adaptForNetwork(buildHTML(cfg,prepared.assetMap,prepared.sprMap,prepared.src),net,cfg.orientation);
   const info=NETWORK_INFO[net];let blob,filename;
   if(info.format==='html'){
     filename=networkFileName(net,variant,naming,'html');blob=new Blob([html],{type:'text/html'});
@@ -727,17 +686,10 @@ async function buildAndDownload(opts){
 }
 
 async function buildPreview(iframe,opts){
-  const{assetsBase='Assets',onProgress,onError,clickGate=null}=opts||{};
+  const{assetsBase='Assets',onProgress,onError}=opts||{};
   try{
     onProgress&&onProgress(0,'Building preview…');
     const cfg=readConfig(),sprites=getSprites();
-    // Optional gate emulation. `gateSimulate` keeps the redirect on-screen so the
-    // builder session is not hijacked by a real store tab.
-    if(clickGate&&clickGate.enabled){
-      cfg.exportClickGateEnabled=true;
-      cfg.exportClicksToRedirect=Math.max(1,parseInt(clickGate.clicks,10)||1);
-      cfg.gateSimulate=true;
-    }
     const src=await fetch('src/playable-template.js?v='+Date.now()).then(r=>r.text());
     const bundle=bundleForConfig(cfg,sprites);
     const map=await loadBundle(assetsBase,bundle,p=>onProgress&&onProgress(p*.35,`${Math.round(p*100)}%…`));
@@ -745,15 +697,7 @@ async function buildPreview(iframe,opts){
     const html=buildHTML(optimised.cfg,optimised.assetMap,optimised.sprMap,src);
     iframe.srcdoc=html;
     onProgress&&onProgress(1,'Ready — '+(new Blob([html]).size/1048576).toFixed(2)+' MB');
-    return true;
-  }catch(e){
-    console.error(e);
-    onError&&onError(e.message);
-    // Rethrow: the caller must not be able to mistake a failed build for a
-    // fresh one. Swallowing here is what let previewBuilt/previewDirty be
-    // reset while the iframe still showed the previous build.
-    throw e;
-  }
+  }catch(e){console.error(e);onError&&onError(e.message);}
 }
 
 W.RiseBuilder={buildAndDownload,buildPreview,readConfig,setSprite,getSprites,prepareNetworkBase,buildNetworkOutput,buildNetworkPack,downloadBlob,networkFileName,NETWORK_INFO,NETWORK_ORDER,_makeZip:makeZip,_buildHTML:buildHTML,_packPayload:packPayload,_bundleForConfig:bundleForConfig};
