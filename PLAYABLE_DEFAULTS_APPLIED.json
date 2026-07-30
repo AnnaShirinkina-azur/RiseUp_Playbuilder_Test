@@ -201,11 +201,13 @@
   "collisionForceControl": {
     "separateControl": true,
     "field": "cfg-collisionForce",
-    "default": 1.0,
+    "default": 0.15,
     "range": [
       0,
-      3
+      1
     ],
-    "effect": "scales only obstacle-to-obstacle transferred impulse and wake-up force; push force and bounciness remain independent"
+    "step": 0.01,
+    "response": "soft nonlinear: effective impulse = slider^2 * 0.55",
+    "effect": "very low obstacle-to-obstacle impulse transfer; 0 disables transferred momentum while keeping solid overlap resolution"
   }
 }
