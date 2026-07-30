@@ -216,30 +216,6 @@ function renderStageAssetRows(){
 }
 renderStageAssetRows();
 
-// ── Stage debug colours ───────────────────────────────────────────────────
-// One swatch per scene (Start + every mini-level + Finish), rebuilt whenever the
-// level count changes. Previously five hardcoded inputs served up to 20 stages,
-// so colours silently repeated every fifth scene and builder.js only exported
-// the first five.
-const STAGE_ACCENT_DEFAULTS=['#e05252','#52a0e0','#52e08a','#e07d52','#c052e0'];
-const stageAccentValues={};
-function renderStageAccentRows(){
-  const grid=$('stage-accent-grid');
-  if(!grid)return;
-  const total=getStageCount()+2;
-  // Remember what the user picked before the grid is thrown away.
-  for(let i=0;;i++){const el=$('cfg-stage'+i);if(!el)break;stageAccentValues[i]=el.value;}
-  let h='';
-  for(let i=0;i<total;i++){
-    const val=stageAccentValues[i]||STAGE_ACCENT_DEFAULTS[i%STAGE_ACCENT_DEFAULTS.length];
-    h+='<div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage'+i+'" value="'+val+'">'
-      +'<label title="'+bgStageLabel(i,total)+'">'+bgStageLabel(i,total).replace('Mini ','M')+'</label></div>';
-  }
-  grid.innerHTML=h;
-  bindHexColorInputs(grid);
-}
-renderStageAccentRows();
-
 // ── Per-level backgrounds ─────────────────────────────────────────────────
 const BG_GRAD_DEFAULTS=[["#5bc0de","#69c5ec"],["#ef5350","#f97f6f"],["#b03c02","#cc4a05"],["#f0a44c","#f9c178"],["#ee4630","#fa6a4b"],["#5bc0de","#69c5ec"]]; // [нижний, верхний]
 function bgStageLabel(i,total){return i===0?'Start':(i===total-1?'Finish':'Mini '+i);}
@@ -784,7 +760,7 @@ function networkNaming(){
   const value=(id,fallback)=>{const e=$(id),v=e&&String(e.value||'').trim();return v||fallback;};
   return {prefix:value('net-name-prefix','RISE'),number:value('net-name-number','001'),variant:value('net-name-variant','01'),locale:value('net-name-locale','en')};
 }
-function networkXclClicks(){const e=$('net-xcl-clicks'),v=e?parseInt(e.value,10):1;return isFinite(v)?Math.max(1,v):1;}
+function networkXclClicks(){const e=$('net-xcl-clicks'),v=e?parseInt(e.value,10):1;return isFinite(v)?Math.max(0,v):1;}
 function updateNetworkNamePreview(){
   const e=$('network-name-preview');if(!e||!RiseBuilder.networkFileName)return;
   e.textContent=RiseBuilder.networkFileName('mintegral',networkVariant,networkNaming(),'zip');
@@ -798,102 +774,6 @@ async function ensureNetworkPrepared(){
   networkPrepared=await RiseBuilder.prepareNetworkBase({assetsBase:'Assets',onProgress:setP});
   return networkPrepared;
 }
-// ── Pre-export validation ─────────────────────────────────────────────────
-// Three classes of silent failure used to reach the exported build unnoticed:
-//   * Win Card enabled with no authored Win line — the playable then finishes
-//     through a geometry "safety fallback" instead of the intended trigger.
-//   * Obstacles pushed outside the 844×844 active square — visible in one
-//     orientation, cropped or unreachable in the other.
-//   * Mini-levels parked out of the strip by a lowered Stages count — their
-//     content is preserved but is NOT exported.
-function editorApi(){return window.RiseLevelEditor||null;}
-function activeZoneHalf(){
-  const api=editorApi();
-  const size=(api&&api.getActiveZoneSize)?api.getActiveZoneSize():844;
-  return (parseFloat(size)||844)/2;
-}
-function obstacleHalfExtent(o){
-  const w=Math.abs(parseFloat(o.w)||0),h=Math.abs(parseFloat(o.h)||0);
-  const rot=(parseFloat(o.rotation)||0)*Math.PI/180;
-  const c=Math.abs(Math.cos(rot)),s=Math.abs(Math.sin(rot));
-  return {x:(w*c+h*s)/2,y:(w*s+h*c)/2};
-}
-// UI objects (text/cta/health/progress) are screen-anchored by design and may
-// legitimately sit outside the obstacle square, so they are not checked.
-const ZONE_EXEMPT_KINDS=['text','progress','health','cta','winTrigger','bg','tutorial'];
-function collectExportProblems(){
-  const problems=[];
-  const api=editorApi();
-  if(!api||!api.getLevelData)return problems;
-  let stages;
-  try{stages=api.getLevelData()||[];}catch(e){return problems;}
-  const label=i=>(api.getStageLabel?api.getStageLabel(i):'Scene '+i);
-
-  // 1. Win Card without an authored Win line.
-  const winCardOn=$('cfg-winEndCardEnabled')?$('cfg-winEndCardEnabled').checked:true;
-  const hasWinLine=stages.some(st=>(st||[]).some(o=>o&&o.kind==='winTrigger'));
-  if(winCardOn&&!hasWinLine){
-    problems.push({
-      level:'warn',
-      title:'Win Card включена, но Win line не размещена',
-      detail:'Победа сработает по геометрическому fallback (после прохода Finish), а не в заданной точке. Поставьте 🏁 Win line в Level Editor или отключите Win Card.'
-    });
-  }
-
-  // 2. Obstacles outside the active square.
-  const half=activeZoneHalf();
-  const overflow=[];
-  stages.forEach((st,si)=>{
-    (st||[]).forEach(o=>{
-      if(!o||ZONE_EXEMPT_KINDS.includes(o.kind))return;
-      const ext=obstacleHalfExtent(o);
-      const x=parseFloat(o.x)||0,y=parseFloat(o.y)||0;
-      const dx=Math.abs(x)+ext.x-half,dy=Math.abs(y)+ext.y-half;
-      if(dx>1||dy>1)overflow.push({scene:si,over:Math.round(Math.max(dx,dy))});
-    });
-  });
-  if(overflow.length){
-    const byScene={};
-    overflow.forEach(o=>{byScene[o.scene]=byScene[o.scene]||{n:0,max:0};byScene[o.scene].n++;byScene[o.scene].max=Math.max(byScene[o.scene].max,o.over);});
-    const parts=Object.keys(byScene).map(k=>label(parseInt(k,10))+' — '+byScene[k].n+' шт. (до +'+byScene[k].max+' px)');
-    problems.push({
-      level:'warn',
-      title:overflow.length+' препятствий вне активной зоны '+(half*2)+'×'+(half*2),
-      detail:parts.join('; ')+'. Включите ▣ Zones в редакторе: заштрихованные полосы обрезаются в одной из ориентаций.'
-    });
-  }
-
-  // 3. Parked mini-levels that hold content.
-  if(api.getParkedContentCount){
-    const parked=api.getParkedContentCount();
-    if(parked>0){
-      problems.push({
-        level:'warn',
-        title:parked+' сцен(ы) с расстановкой не попадут в сборку',
-        detail:'Они убраны из полосы уменьшением Stages count. Содержимое сохранено — поднимите Mini-levels, чтобы вернуть их в экспорт.'
-      });
-    }
-  }
-  return problems;
-}
-function renderExportProblems(problems){
-  const box=$('export-problems');
-  if(!box)return;
-  if(!problems.length){box.style.display='none';box.innerHTML='';return;}
-  box.style.display='';
-  box.innerHTML=problems.map(p=>
-    '<div class="export-problem '+p.level+'"><b>'+p.title+'</b><span>'+p.detail+'</span></div>'
-  ).join('');
-}
-// Returns true when the export may continue.
-function confirmExportProblems(action){
-  const problems=collectExportProblems();
-  renderExportProblems(problems);
-  if(!problems.length)return true;
-  const text=problems.map((p,i)=>(i+1)+'. '+p.title+'\n   '+p.detail).join('\n\n');
-  return confirm('Перед '+action+' найдены проблемы:\n\n'+text+'\n\nПродолжить всё равно?');
-}
-
 function renderNetworkSize(out){
   const row=$('network-row-'+out.net),size=$('network-size-'+out.net);if(!row||!size)return;
   if(out.maxBytes==null){row.className='network-row';size.textContent=(out.bytes/1048576).toFixed(2)+' MB';return;}
@@ -901,11 +781,7 @@ function renderNetworkSize(out){
   size.textContent=(out.bytes/1048576).toFixed(2)+' / '+Math.round(out.maxBytes/1048576)+' MB';
 }
 async function refreshNetworkLimits(){
-  if(networkBusy)return;const token=++networkLimitToken;
-  // Non-blocking here: the button only measures, so problems are surfaced in the
-  // panel without a modal.
-  renderExportProblems(collectExportProblems());
-  setNetworkBusy(true);setNetworkInfo('Подготовка оптимизированной сборки…');
+  if(networkBusy)return;const token=++networkLimitToken;setNetworkBusy(true);setNetworkInfo('Подготовка оптимизированной сборки…');
   NETWORK_IDS.forEach(net=>{const row=$('network-row-'+net),size=$('network-size-'+net);if(row)row.className='network-row checking';if(size)size.textContent='…';});
   try{
     const prepared=await ensureNetworkPrepared();
@@ -918,9 +794,7 @@ async function refreshNetworkLimits(){
   finally{setNetworkBusy(false);}
 }
 async function downloadNetwork(net){
-  if(networkBusy)return;
-  if(!confirmExportProblems('скачиванием '+net))return;
-  setNetworkBusy(true);setNetworkInfo('Сборка '+net+'…');
+  if(networkBusy)return;setNetworkBusy(true);setNetworkInfo('Сборка '+net+'…');
   try{
     const prepared=await ensureNetworkPrepared(),out=await RiseBuilder.buildNetworkOutput(prepared,net,networkVariant,networkNaming(),networkXclClicks());
     RiseBuilder.downloadBlob(out.blob,out.filename);renderNetworkSize(out);hideP();
@@ -929,23 +803,11 @@ async function downloadNetwork(net){
   finally{setNetworkBusy(false);}
 }
 async function downloadNetworkPack(){
-  if(networkBusy)return;
-  if(!confirmExportProblems('сборкой пака'))return;
-  setNetworkBusy(true);setNetworkInfo('Сборка пака 0/15…');
+  if(networkBusy)return;setNetworkBusy(true);setNetworkInfo('Сборка пака 0/15…');
   try{
     const prepared=await ensureNetworkPrepared();
     const pack=await RiseBuilder.buildNetworkPack(prepared,networkNaming(),networkXclClicks(),(p,msg)=>{setP(.1+p*.9,msg);setNetworkInfo(msg);});
-    RiseBuilder.downloadBlob(pack.blob,pack.filename);hideP();
-    // The pack used to report only its own zip size, so an individual build over
-    // its network limit shipped silently.
-    const over=(pack.outputs||[]).filter(o=>o&&o.withinLimit===false);
-    if(over.length){
-      const list=over.map(o=>o.filename+' ('+(o.bytes/1048576).toFixed(2)+'/'+Math.round(o.maxBytes/1048576)+' MB)').join(', ');
-      setNetworkInfo('⚠ Пак скачан: '+pack.filename+' — '+(pack.blob.size/1048576).toFixed(2)+' MB, 15 файлов. Превышают лимит сети: '+list,'error');
-      showErr(over.length+' файл(ов) в паке превышают лимит сети.');
-    }else{
-      setNetworkInfo('Пак скачан: '+pack.filename+' — '+(pack.blob.size/1048576).toFixed(2)+' MB, 15 файлов, все в лимитах.','ok');
-    }
+    RiseBuilder.downloadBlob(pack.blob,pack.filename);hideP();setNetworkInfo('Пак скачан: '+pack.filename+' — '+(pack.blob.size/1048576).toFixed(2)+' MB, 15 файлов.','ok');
   }catch(e){hideP();setNetworkInfo(e.message||String(e),'error');showErr(e.message||String(e));}
   finally{setNetworkBusy(false);}
 }
@@ -953,9 +815,9 @@ function resetNetworkExportUI(){
   networkVariant='x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b.dataset.networkVariant==='x'));
   updateNetworkNamePreview();invalidateNetworkExports();
 }
-document.querySelectorAll('[data-network-variant]').forEach(btn=>btn.addEventListener('click',()=>{networkVariant=btn.dataset.networkVariant||'x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b===btn));updateNetworkNamePreview();clearNetworkSizes();if(typeof updatePreviewGateLabel==='function')updatePreviewGateLabel();setNetworkInfo('Выбран вариант '+(networkVariant==='x'?'xcl':networkVariant+'cl')+'. Нажмите «Лимиты».');}));
-['net-name-prefix','net-name-number','net-name-variant','net-name-locale','net-xcl-clicks'].forEach(id=>{$(id)&&$(''+id).addEventListener('input',()=>{updateNetworkNamePreview();clearNetworkSizes();if(typeof updatePreviewGateLabel==='function')updatePreviewGateLabel();});});
-['cfg-storeAndroid','cfg-storeIos','cfg-exportOrientation'].forEach(id=>{const el=$(id);if(!el)return;const refresh=()=>{invalidateNetworkExports();};el.addEventListener('input',refresh);el.addEventListener('change',refresh);});
+document.querySelectorAll('[data-network-variant]').forEach(btn=>btn.addEventListener('click',()=>{networkVariant=btn.dataset.networkVariant||'x';document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b===btn));updateNetworkNamePreview();clearNetworkSizes();setNetworkInfo('Выбран вариант '+(networkVariant==='x'?'xcl':networkVariant+'cl')+'. Нажмите «Лимиты».');}));
+['net-name-prefix','net-name-number','net-name-variant','net-name-locale','net-xcl-clicks'].forEach(id=>{$(id)&&$(''+id).addEventListener('input',()=>{updateNetworkNamePreview();clearNetworkSizes();});});
+['cfg-storeAndroid','cfg-storeIos'].forEach(id=>{const el=$(id);if(!el)return;const refresh=()=>{invalidateNetworkExports();};el.addEventListener('input',refresh);el.addEventListener('change',refresh);});
 document.querySelectorAll('[data-network-download]').forEach(btn=>btn.addEventListener('click',()=>downloadNetwork(btn.dataset.networkDownload)));
 $('network-check-limits')&&$('network-check-limits').addEventListener('click',refreshNetworkLimits);
 $('network-download-pack')&&$('network-download-pack').addEventListener('click',downloadNetworkPack);
@@ -968,45 +830,11 @@ let previewBuilding=false;
 function previewApi(){
   try{return $('pif').contentWindow&&$('pif').contentWindow.RisePreviewControl;}catch(e){return null;}
 }
-function setPreviewStale(stale,msg){
-  const el=$('preview-stale');
-  if(el){
-    el.style.display=stale?'':'none';
-    el.className='preview-stale'+(msg?' error':'');
-    el.textContent=stale
-      ?(msg?'⚠ Сборка превью упала: '+msg+' — в окне осталась предыдущая версия.'
-           :'⚠ Настройки изменены — нажмите Update Preview.')
-      :'';
-  }
-  $('phone')?.classList.toggle('stale',!!stale);
-}
-function markPreviewDirty(){
-  previewDirty=true;
-  if(previewBuilt)setPreviewStale(true);
-  if(typeof invalidateNetworkExports==='function')invalidateNetworkExports();
-}
+function markPreviewDirty(){previewDirty=true;if(typeof invalidateNetworkExports==='function')invalidateNetworkExports();}
 document.addEventListener('input',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
 document.addEventListener('change',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
 document.addEventListener('pointerup',e=>{if(e.target&&e.target.id==='ec')markPreviewDirty();},true);
 document.addEventListener('keyup',e=>{if(['Delete','Backspace'].includes(e.key))markPreviewDirty();},true);
-// Click-gate emulation for the preview. The variant (xcl/1cl/2cl) and the tap
-// count are taken from the export card, so the preview gate matches whatever
-// would actually ship.
-function previewGateSettings(){
-  const box=$('preview-click-gate');
-  if(!box||!box.checked)return null;
-  const variant=(typeof networkVariant!=='undefined')?String(networkVariant):'x';
-  const clicks=variant==='1'?1:(variant==='2'?2:networkXclClicks());
-  return {enabled:true,clicks:clicks,variant:variant};
-}
-function updatePreviewGateLabel(){
-  const box=$('preview-click-gate'),lab=$('preview-gate-info');
-  if(!lab)return;
-  const g=previewGateSettings();
-  if(!box||!g){lab.style.display='none';lab.textContent='';return;}
-  lab.style.display='';
-  lab.textContent=(g.variant==='x'?'xcl':g.variant+'cl')+' · '+g.clicks+' тап'+(g.clicks===1?'':'а')+' до стора';
-}
 async function buildPreviewNow(){
   if(previewBuilding)return false;
   previewBuilding=true;
@@ -1016,21 +844,13 @@ async function buildPreviewNow(){
   if(updBtn){updBtn.disabled=true;updBtn.textContent='⏳…';}
   if(playBtn){playBtn.disabled=true;}
   try{
-    await RiseBuilder.buildPreview($('pif'),{assetsBase:'Assets',onProgress:setP,onError:showErr,clickGate:previewGateSettings()});
+    await RiseBuilder.buildPreview($('pif'),{assetsBase:'Assets',onProgress:setP,onError:showErr});
     hideP();
     previewBuilt=true;
     previewDirty=false;
-    setPreviewStale(false);
     $('btn-play')?.classList.remove('on');
     $('btn-pause')?.classList.remove('on');
     return true;
-  }catch(e){
-    // A failed build leaves the iframe showing the previous version. Keep the
-    // dirty flag so Play cannot silently run a stale build, and say so in the UI.
-    hideP();
-    previewDirty=true;
-    setPreviewStale(true,e&&e.message?e.message:String(e));
-    return false;
   }finally{
     previewBuilding=false;
     if(updBtn){updBtn.disabled=false;updBtn.textContent=oldUpd||'▶ Update Preview';}
@@ -1042,13 +862,6 @@ async function ensurePreviewBuilt(){
   return await buildPreviewNow();
 }
 $('btn-prev').addEventListener('click',async()=>{await buildPreviewNow();});
-// #preview-click-gate lives inside .pact, which is deliberately excluded from the
-// global markPreviewDirty listeners, so it triggers its own rebuild.
-$('preview-click-gate')?.addEventListener('change',async()=>{
-  updatePreviewGateLabel();
-  if(previewBuilt)await buildPreviewNow();
-});
-updatePreviewGateLabel();
 $('btn-play').addEventListener('click',async()=>{
   let api=previewApi();
   const canResume=api&&api.isPaused&&api.isPaused()&&!previewDirty;
@@ -1074,7 +887,7 @@ $('btn-stop').addEventListener('click',()=>{
 });
 
 // reset
-const DEFS={"cfg-exportOrientation":"landscape","preview-click-gate":false,"cfg-lives":3,"cfg-stageCount":4,"le-stage-count":4,"cfg-heightIndicatorEnabled":true,"cfg-heightStart":66,"cfg-heightFeetPerStage":100,"cfg-playerSize":2,"cfg-ballSizeUI":2,"cfg-balloonCount":1,"cfg-balloonSpacing":30,"cfg-playerDeathAnimSpeed":1,"cfg-deathPause":2.5,"cfg-shieldSize":1,"cfg-gameSpeed":3.2,"cfg-acceleration":0.4,"cfg-pushForce":7,"cfg-gravityModifier":1,"cfg-level1CenterSpeed":18,"cfg-level3BasketPower":0.6,"cfg-level3BallGravity":0.34,"cfg-chainReaction":true,"cfg-collisionForce":0.01,"cfg-scatterBounciness":0.1,"cfg-hpBarShowTime":2.0,"cfg-tutorialTime":4.8,"cfg-tutorialEnabled":true,"cfg-tutorialText":"PROTECT YOUR BALLOON!","cfg-tutorialTextSize":30,"cfg-tutorialX":50,"cfg-tutorialY":35,"cfg-tutorialCaptionGap":-0.5,"cfg-tutorialFont":"Baloo2","cfg-tutorialFailEnabled":true,"cfg-tutorialObstacleShape":"triangle","cfg-tutorialObstacleTint":"#c800ff","cfg-playerSpriteColor":"#00eeff","cfg-playerRopeColor":"#84ebfc","cfg-shieldSpriteColor":"#00eeff","cfg-bgSpriteColor":"#ffffff","cfg-stageAccents":false,"cfg-orientation":"landscape","cfg-backgroundMode":"common","cfg-seamScale":0.5,"cfg-seamMulti":true,"cfg-seamOverlayMode":"perStage","cfg-seamTint":"#ffffff","cfg-googleFontUrl":"","cfg-googleFontFamily":"","cfg-localFontFamily":"CustomFont","cfg-soundEnabled":true,"cfg-soundVolume":0.8,"cfg-vol-bgm":0.7,"cfg-vol-win":1,"cfg-vol-lose":1,"cfg-vol-hit":1,"cfg-vol-shield":0.9,"cfg-winEndCardEnabled":true,"cfg-loseEndCardEnabled":true,"cfg-tryAgainEnabled":true,"cfg-tryAgainDelay":0,"cfg-tryAgainDuration":0,"cfg-endCardScale":1,"cfg-endCardX":0,"cfg-endCardY":10,"cfg-endCardOverlay":0.68,"cfg-endCardOverlayColor":"#000000","cfg-endCardCta":true,"cfg-endCardCtaText":"TRY AGAIN","cfg-endCardFont":"Baloo2","cfg-endCardCtaY":"74","cfg-endCardCountdown":10,"cfg-storeAndroid":"https://play.google.com/store/apps/details?id=com.riseup.game&hl=en","cfg-storeIos":"https://apps.apple.com/us/app/rise-up-protect-the-balloon/id1354452189","net-name-prefix":"RISE","net-name-number":"001","net-name-variant":"01","net-name-locale":"en","net-xcl-clicks":1,"cfg-stage0":"#e05252","cfg-stage1":"#52a0e0","cfg-stage2":"#52e08a","cfg-stage3":"#e07d52","cfg-stage4":"#c052e0","cfg-bgg0a":"#5bc0de","cfg-bgg0b":"#69c5ec","cfg-bgg1a":"#ef5350","cfg-bgg1b":"#f97f6f","cfg-bgg2a":"#b03c02","cfg-bgg2b":"#cc4a05","cfg-bgg3a":"#f0a44c","cfg-bgg3b":"#f9c178","cfg-bgg4a":"#ee4630","cfg-bgg4b":"#fa6a4b","cfg-bgg5a":"#5bc0de","cfg-bgg5b":"#69c5ec","cfg-bgt0":"#ffffff","cfg-bgt1":"#ffffff","cfg-bgt2":"#ffffff","cfg-bgt3":"#ffffff","cfg-bgt4":"#ffffff","cfg-bgt5":"#ffffff","cfg-seamt0":"#ffffff","cfg-seamt1":"#ffffff","cfg-seamt2":"#ffffff","cfg-seamt3":"#ffffff","cfg-seamt4":"#ffffff","cfg-seamt5":"#ffffff"};
+const DEFS={"cfg-lives":3,"cfg-stageCount":4,"le-stage-count":4,"cfg-heightIndicatorEnabled":true,"cfg-heightStart":66,"cfg-heightFeetPerStage":100,"cfg-playerSize":2,"cfg-ballSizeUI":2,"cfg-balloonCount":1,"cfg-balloonSpacing":30,"cfg-playerDeathAnimSpeed":1,"cfg-deathPause":2.5,"cfg-shieldSize":1,"cfg-gameSpeed":3.2,"cfg-acceleration":0.4,"cfg-pushForce":7,"cfg-gravityModifier":1,"cfg-level1CenterSpeed":18,"cfg-level3BasketPower":0.6,"cfg-level3BallGravity":0.34,"cfg-chainReaction":true,"cfg-collisionForce":0.01,"cfg-scatterBounciness":0.1,"cfg-hpBarShowTime":2.0,"cfg-tutorialTime":4.8,"cfg-tutorialEnabled":true,"cfg-tutorialText":"PROTECT YOUR BALLOON!","cfg-tutorialTextSize":30,"cfg-tutorialX":50,"cfg-tutorialY":35,"cfg-tutorialCaptionGap":-0.5,"cfg-tutorialFont":"Baloo2","cfg-tutorialFailEnabled":true,"cfg-tutorialObstacleShape":"triangle","cfg-tutorialObstacleTint":"#c800ff","cfg-playerSpriteColor":"#00eeff","cfg-playerRopeColor":"#84ebfc","cfg-shieldSpriteColor":"#00eeff","cfg-bgSpriteColor":"#ffffff","cfg-stageAccents":false,"cfg-orientation":"landscape","cfg-backgroundMode":"common","cfg-seamScale":0.5,"cfg-seamMulti":true,"cfg-seamOverlayMode":"perStage","cfg-seamTint":"#ffffff","cfg-googleFontUrl":"","cfg-googleFontFamily":"","cfg-localFontFamily":"CustomFont","cfg-soundEnabled":true,"cfg-soundVolume":0.8,"cfg-vol-bgm":0.7,"cfg-vol-win":1,"cfg-vol-lose":1,"cfg-vol-hit":1,"cfg-vol-shield":0.9,"cfg-winEndCardEnabled":true,"cfg-loseEndCardEnabled":true,"cfg-tryAgainEnabled":true,"cfg-tryAgainDelay":0,"cfg-tryAgainDuration":0,"cfg-endCardScale":1,"cfg-endCardX":0,"cfg-endCardY":10,"cfg-endCardOverlay":0.68,"cfg-endCardOverlayColor":"#000000","cfg-endCardCta":true,"cfg-endCardCtaText":"TRY AGAIN","cfg-endCardFont":"Baloo2","cfg-endCardCtaY":"74","cfg-endCardCountdown":10,"cfg-storeAndroid":"https://play.google.com/store/apps/details?id=com.riseup.game&hl=en","cfg-storeIos":"https://apps.apple.com/us/app/rise-up-protect-the-balloon/id1354452189","net-name-prefix":"RISE","net-name-number":"001","net-name-variant":"01","net-name-locale":"en","net-xcl-clicks":1,"cfg-stage0":"#e05252","cfg-stage1":"#52a0e0","cfg-stage2":"#52e08a","cfg-stage3":"#e07d52","cfg-stage4":"#c052e0","cfg-bgg0a":"#5bc0de","cfg-bgg0b":"#69c5ec","cfg-bgg1a":"#ef5350","cfg-bgg1b":"#f97f6f","cfg-bgg2a":"#b03c02","cfg-bgg2b":"#cc4a05","cfg-bgg3a":"#f0a44c","cfg-bgg3b":"#f9c178","cfg-bgg4a":"#ee4630","cfg-bgg4b":"#fa6a4b","cfg-bgg5a":"#5bc0de","cfg-bgg5b":"#69c5ec","cfg-bgt0":"#ffffff","cfg-bgt1":"#ffffff","cfg-bgt2":"#ffffff","cfg-bgt3":"#ffffff","cfg-bgt4":"#ffffff","cfg-bgt5":"#ffffff","cfg-seamt0":"#ffffff","cfg-seamt1":"#ffffff","cfg-seamt2":"#ffffff","cfg-seamt3":"#ffffff","cfg-seamt4":"#ffffff","cfg-seamt5":"#ffffff"};
 function applyPlayableDefaultFields(){
   Object.entries(DEFS).forEach(([id,v])=>{
     const e=$(id);if(!e)return;
@@ -1084,18 +897,9 @@ function applyPlayableDefaultFields(){
   setOrientation(DEFS['cfg-orientation']||'landscape');
   if(typeof setBgMode==='function')setBgMode(DEFS['cfg-backgroundMode']||'perStage');
   syncSeamMode(DEFS['cfg-seamOverlayMode']||'perStage');
-  // The accent grid is generated, so its remembered values must be dropped too,
-  // otherwise a reset keeps the previously picked per-stage colours.
-  if(typeof stageAccentValues==='object'&&stageAccentValues){
-    Object.keys(stageAccentValues).forEach(k=>{delete stageAccentValues[k];});
-    if(typeof renderStageAccentRows==='function')renderStageAccentRows();
-  }
 }
 applyPlayableDefaultFields();
 $('btn-reset').addEventListener('click',()=>{
-  // "Clear current scene" asks before wiping one scene; this wipes every field,
-  // sprite, sound, font and the end card at once, so it has to ask too.
-  if(!confirm('Сбросить весь билдер к дефолтам?\n\nБудут потеряны: все настройки, загруженные спрайты и звуки, кастомные шрифты, эндкарта и параметры экспорта.\nРасстановка в Level Editor не затрагивается.'))return;
   applyPlayableDefaultFields();
   try{
     RiseBuilder.setSprite('endcard_win',END_CARD_DEFAULTS.win);
@@ -1125,14 +929,10 @@ const LE=(function(){
   let cur=0,sel=null,selSet=new Set(),mode='add',shape='rect',customShape=null,drag=false,doff={x:0,y:0},scaleRef=null,rotateRef=null,dragStart=null,groupAnchorUI={anchor:'cc'},groupRotationUI={rotation:0};
   let showZones=false;
   let showGrid=true;
-  // Active zone = the central square every obstacle layout must fit into. It is
-  // the obstacle design square (obstacleDesignSize(), 844×844) — the previous
-  // ACTIVE_W/ACTIVE_H=1020 constants were never read by anything and only made
-  // the tooltip and the drawn rectangle disagree.
-  // Passive zone = the screen extension around that square: horizontal bands in
-  // landscape, vertical bands in portrait. Content there is visible in one
-  // orientation and cropped in the other, so it is drawn as a warning area.
-  function activeZoneSize(){return obstacleDesignSize();}
+  // Active zone = central square the level should fit into (design units, square).
+  // Passive zone = the screen extension around it: vertical bands in portrait,
+  // horizontal bands in landscape. Purely a visual guide — placement is not restricted.
+  const ACTIVE_W=1020,ACTIVE_H=1020;
   let customShapeImageSrc=null,customShapeSvgPoints=null,customShapePrefabItems=null;
   let selectedPhysicsPrefabId=null;
   const BUILTIN_SHAPES={
@@ -1368,73 +1168,25 @@ const LE=(function(){
   }
 
 
-  // `lvls` layout is [START, mini1 … miniNS, FINISH]. Mini-levels that fall
-  // outside the current Stages count are parked here instead of being deleted,
-  // so lowering the counter (or scrubbing the spinner past a smaller value) is
-  // always reversible: raise it again and the scenes come back in order.
-  // stageStash[0] is the mini-level that would sit right after the last one.
-  const stageStash=[];
-  let stageSyncing=false;
-  function stageHasContent(arr){
-    return Array.isArray(arr)&&arr.some(o=>o&&o.kind!==PLAYER_KIND);
-  }
-  function parkedStageCount(){
-    return stageStash.filter(stageHasContent).length;
-  }
-  function renderStageStashNote(){
-    const el=$('le-stash-note');if(!el)return;
-    const parked=parkedStageCount(),total=stageStash.length;
-    if(!total){el.style.display='none';el.textContent='';return;}
-    el.style.display='';
-    el.textContent='⇧ '+total+' '+(total===1?'сцена':'сцен')+' убрано из полосы'
-      +(parked?' ('+parked+' с расстановкой)':' (пустые)')
-      +' — содержимое сохранено, поднимите Mini-levels, чтобы вернуть.';
-    el.className='le-stash-note'+(parked?' has-content':'');
-  }
   function syncStageInputs(n){
     n=Math.max(1,Math.min(20,parseInt(n,10)||1));
     const a=$('le-stage-count'),b=$('cfg-stageCount');
-    // NS is updated by the caller *before* the dispatch below; without the
-    // reentrancy guard the change listener on #cfg-stageCount re-enters
-    // setStageCount synchronously and blows the stack.
-    stageSyncing=true;
-    try{
-      if(a&&String(a.value)!==String(n))a.value=n;
-      if(b){
-        if(String(b.value)!==String(n))b.value=n;
-        b.dispatchEvent(new Event('input',{bubbles:true}));
-      }
-    }finally{stageSyncing=false;}
+    if(a)a.value=n;if(b){b.value=n;b.dispatchEvent(new Event('input',{bubbles:true}));}
     return n;
   }
   function setStageCount(n){
-    if(stageSyncing)return;
-    n=Math.max(1,Math.min(20,parseInt(n,10)||1));
-    // Split the strip into its three logical parts before resizing. Truncating
-    // `lvls` by length used to drop the FINISH scene as well and silently
-    // promote a mini-level into its slot.
-    const finish=lvls.length>1?lvls[lvls.length-1]:[];
-    const minis=lvls.length>2?lvls.slice(1,lvls.length-1):[];
-    const start=lvls.length?lvls[0]:[];
-    if(minis.length>n){
-      // Park the tail, newest-parked first, so restoring keeps the original order.
-      const removed=minis.splice(n,minis.length-n);
-      stageStash.unshift(...removed);
-    }else{
-      while(minis.length<n)minis.push(stageStash.length?stageStash.shift():[]);
-    }
-    lvls.splice(0,lvls.length,start,...minis,finish);
+    n=syncStageInputs(n);
     NS=n;
-    if(cur>=lvls.length)cur=lvls.length-1;
-    syncStageInputs(n);
+    const total=n+2;
+    while(lvls.length<total)lvls.push([]);
+    if(lvls.length>total)lvls.length=total;
+    if(cur>=total)cur=total-1;
     renderStageAssetRows();
-    renderStageAccentRows();
     renderBgStageRows();
     renderSeamRows();
-    renderStageStashNote();
     syncSeamMode();
-    bindHexColorInputs(document);
-    ensurePlayerObject();clearSelection();refreshWinStageSelect();resize(true);
+bindHexColorInputs(document);
+    ensurePlayerObject();clearSelection();resize(true);
   }
 
   function parseNumList(str){return (str.match(/-?\d*\.?\d+(?:e[-+]?\d+)?/ig)||[]).map(Number);}
@@ -1913,13 +1665,8 @@ const LE=(function(){
   $('et-del').addEventListener('click',()=>{const s=lvls[cur],ids=selectionIndices().filter(i=>!(s[i]&&s[i].kind===PLAYER_KIND));if(!ids.length)return;ids.sort((a,b)=>b-a).forEach(i=>s.splice(i,1));clearSelection();syncProps();draw();});
   $('et-clr').addEventListener('click',()=>{if(!confirm('Clear '+stageLabel(cur)+'?'))return;lvls[cur]=lvls[cur].filter(o=>o&&o.kind===PLAYER_KIND);clearSelection();syncProps();draw();});
   $('le-generate')?.addEventListener('click',()=>{setStageCount($('le-stage-count').value);});
-  // `change` instead of `input`: typing "12" into the spinner used to fire for
-  // the intermediate "1" first, tearing the strip down to a single mini-level
-  // before rebuilding it. Enter commits early for keyboard users.
-  $('le-stage-count')?.addEventListener('change',e=>setStageCount(e.target.value));
-  $('le-stage-count')?.addEventListener('keydown',e=>{if(e.key==='Enter')setStageCount(e.target.value);});
-  $('cfg-stageCount')?.addEventListener('change',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
-  $('cfg-stageCount')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&String(e.target.value)!==String(NS))setStageCount(e.target.value);});
+  $('le-stage-count')?.addEventListener('input',e=>setStageCount(e.target.value));
+  $('cfg-stageCount')?.addEventListener('input',e=>{if(String(e.target.value)!==String(NS))setStageCount(e.target.value);});
   $('le-zones')?.addEventListener('click',()=>{showZones=!showZones;$('le-zones').classList.toggle('on',showZones);draw();});
   $('le-grid')?.addEventListener('change',e=>{showGrid=!!e.target.checked;draw();});
 
@@ -2764,36 +2511,14 @@ const LE=(function(){
   // Portrait and landscape only change how much of that square is visible; they
   // never rescale or re-anchor the obstacle layout to the screen rectangle.
   function zoneRect(top,w,h,midX,midY){
-    const side=activeZoneSize()*zoom;
+    const side=obstacleDesignSize()*zoom;
     const x0=midX-side/2,y0=midY-side/2;
     return {sq:side,aw:side,ah:side,x0,y0,x1:x0+side,y1:y0+side,top,bottom:top+h,w};
   }
   function drawPassiveZone(top,w,h,midX,midY){ // call BEFORE obstacles
+    // Passive areas no longer receive a dark overlay. Zone visualization is
+    // limited to the outline and labels drawn by drawActiveZone().
     if(!showZones)return;
-    const z=zoneRect(top,w,h,midX,midY);
-    ctx.save();
-    // Hatched bands for the parts of the screen outside the active square.
-    // Drawn under the obstacles so an object sitting in a band stays readable
-    // while clearly showing that it is in crop-risk territory.
-    const bands=[];
-    if(z.y0>top+.5)bands.push({x:0,y:top,w:w,h:z.y0-top});
-    if(z.y1<top+h-.5)bands.push({x:0,y:z.y1,w:w,h:top+h-z.y1});
-    if(z.x0>.5)bands.push({x:0,y:Math.max(top,z.y0),w:z.x0,h:Math.min(top+h,z.y1)-Math.max(top,z.y0)});
-    if(z.x1<w-.5)bands.push({x:z.x1,y:Math.max(top,z.y0),w:w-z.x1,h:Math.min(top+h,z.y1)-Math.max(top,z.y0)});
-    bands.forEach(b=>{
-      if(b.w<=0||b.h<=0)return;
-      ctx.fillStyle='rgba(224,82,82,.07)';
-      ctx.fillRect(b.x,b.y,b.w,b.h);
-      ctx.save();
-      ctx.beginPath();ctx.rect(b.x,b.y,b.w,b.h);ctx.clip();
-      ctx.strokeStyle='rgba(224,82,82,.16)';ctx.lineWidth=1;
-      const step=10;
-      for(let d=-b.h;d<b.w+b.h;d+=step){
-        ctx.beginPath();ctx.moveTo(b.x+d,b.y);ctx.lineTo(b.x+d+b.h,b.y+b.h);ctx.stroke();
-      }
-      ctx.restore();
-    });
-    ctx.restore();
   }
   function drawActiveZone(top,w,h,midX,midY){ // call AFTER obstacles
     if(!showZones)return;
@@ -2810,7 +2535,7 @@ const LE=(function(){
     // active label
     if(z.sq>70){
       ctx.fillStyle='#52e08a';ctx.font='600 '+Math.max(10,Math.min(13,11*zoom))+'px system-ui,sans-serif';ctx.textAlign='left';
-      ctx.fillText('ACTIVE '+activeZoneSize()+'×'+activeZoneSize(),Math.max(6,z.x0+6),Math.max(top+15,z.y0+15));
+      ctx.fillText('ACTIVE '+obstacleDesignSize()+'×'+obstacleDesignSize(),Math.max(6,z.x0+6),Math.max(top+15,z.y0+15));
     }
     // passive label (only where a band actually exists)
     ctx.fillStyle='rgba(224,82,82,.85)';ctx.font='600 10px system-ui,sans-serif';ctx.textAlign='center';
@@ -2827,7 +2552,7 @@ const LE=(function(){
     const accentsOn=$('cfg-stageAccents')?$('cfg-stageAccents').checked:true;
     for(let si=0;si<totalStages();si++){
       const top=rowOf(si)*GH*zoom,h=GH*zoom,w=GW*zoom,midX=w/2,midY=top+h/2;
-      if(accentsOn){const ce=$('cfg-stage'+si)||$('cfg-stage'+(si%5));const sc=(ce&&ce.value)||palette[si%palette.length];ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);}
+      if(accentsOn){const ce=$('cfg-stage'+(si%5));const sc=(ce&&ce.value)||palette[si%palette.length];ctx.fillStyle='rgba('+hr(sc)+',.08)';ctx.fillRect(0,top,w,h);}
       // background image items — behind grid/obstacles, like in the playable
       (lvls[si]||[]).forEach((o,i)=>{if(o&&o.kind==='bg')drawBgItem(o,si,i);});
       ctx.strokeStyle=si===cur?'rgba(255,255,255,.55)':'rgba(255,255,255,.22)';ctx.lineWidth=si===cur?2:1;ctx.strokeRect(.5,top+.5,w-1,h-1);
@@ -3036,15 +2761,7 @@ const LE=(function(){
 
   setStageCount(NS);sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});
-  return{
-    resize,getLevelData,getPlayerStart,draw,setStageCount,
-    // Used by the pre-export validator and the stash indicator.
-    getParkedStages:()=>stageStash.map(s=>Array.isArray(s)?s.length:0),
-    getParkedContentCount:parkedStageCount,
-    getStageLabel:stageLabel,
-    getActiveZoneSize:()=>obstacleDesignSize(),
-    getStageCount:()=>NS
-  };
+  return{resize,getLevelData,getPlayerStart,draw,setStageCount};
 })();
 
 window.RiseLevelEditor=LE;
