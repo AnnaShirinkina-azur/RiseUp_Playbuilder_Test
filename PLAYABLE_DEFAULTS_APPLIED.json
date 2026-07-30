@@ -123,6 +123,7 @@
       "pushForce",
       "gravityModifier",
       "chainReaction",
+      "collisionForce",
       "scatterBounciness"
     ],
     "prefabSpecificControls": [
@@ -196,5 +197,15 @@
     "clickGate": "1cl exits and locks gameplay on the first user click; 2cl on the second; xcl uses configured count",
     "singleFileMraid": "AppLovin, Moloco and UnityAds HTML do not depend on a local mraid.js file; injected SDK is used when available"
   },
-  "rightInspectorScroll": "independent vertical scroll with fixed download bar, matching the left navigation behavior"
+  "rightInspectorScroll": "independent vertical scroll with fixed download bar, matching the left navigation behavior",
+  "collisionForceControl": {
+    "separateControl": true,
+    "field": "cfg-collisionForce",
+    "default": 1.0,
+    "range": [
+      0,
+      3
+    ],
+    "effect": "scales only obstacle-to-obstacle transferred impulse and wake-up force; push force and bounciness remain independent"
+  }
 }

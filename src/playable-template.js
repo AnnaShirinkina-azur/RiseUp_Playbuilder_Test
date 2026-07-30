@@ -1743,6 +1743,7 @@ class Game{
       }
     }
     const restitution=clamp(parseFloat(this.cfg.scatterBounciness)||0,0,.72);
+    const collisionForce=clamp(Number.isFinite(parseFloat(this.cfg.collisionForce))?parseFloat(this.cfg.collisionForce):1,0,3);
     const bodyRadius=o=>o.level4Role==='ball'?Math.max(6,Math.min(o.w,o.h)*.43):Math.max(5,o.cr);
     const bodyMass=o=>clamp((Math.max(8,o.w)*Math.max(8,o.h))/3600,.45,18);
 
@@ -1810,11 +1811,12 @@ class Game{
             const toward=Math.max(0,(mover.o.vx*nx+mover.o.vy*ny)*dir);
             const speed=Math.hypot(mover.o.vx,mover.o.vy);
             if(speed>.35||toward>.18){
-              const txv=mover.o.vx*.72+nx*dir*Math.max(.25,toward*.24);
-              const tyv=mover.o.vy*.72+ny*dir*Math.max(.25,toward*.24);
-              const spin=clamp((nx*mover.o.vy-ny*mover.o.vx)*.012+(Math.random()-.5)*.018,-.12,.12);
+              const txv=(mover.o.vx*.72+nx*dir*Math.max(.25,toward*.24))*collisionForce;
+              const tyv=(mover.o.vy*.72+ny*dir*Math.max(.25,toward*.24))*collisionForce;
+              const spin=clamp(((nx*mover.o.vy-ny*mover.o.vx)*.012+(Math.random()-.5)*.018)*collisionForce,-.24,.24);
               target.o.push(txv,tyv,spin);
-              mover.o.vx*=.88;mover.o.vy*=.88;
+              const retained=clamp(1-.12*collisionForce,.55,1);
+              mover.o.vx*=retained;mover.o.vy*=retained;
               this.fx.burst(target.o.x,target.o.y+target.top,this.cfg.particleColor);
             }
           }
@@ -1828,7 +1830,7 @@ class Game{
 
           const rvx=B.o.vx-A.o.vx,rvy=B.o.vy-A.o.vy,velN=rvx*nx+rvy*ny;
           if(velN<0){
-            const impulse=-(1+restitution)*velN/invSum;
+            const impulse=-(1+restitution)*velN/invSum*collisionForce;
             const ix=nx*impulse,iy=ny*impulse;
             if(invA){A.o.vx-=ix*invA;A.o.vy-=iy*invA;}
             if(invB){B.o.vx+=ix*invB;B.o.vy+=iy*invB;}
@@ -2649,7 +2651,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
-  chainReaction:true,scatterBounciness:0.1,
+  chainReaction:true,collisionForce:1,scatterBounciness:0.1,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:30,tutorialX:50,tutorialY:35,tutorialCaptionGap:-0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,
