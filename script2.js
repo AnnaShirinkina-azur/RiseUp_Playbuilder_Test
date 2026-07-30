@@ -1740,6 +1740,27 @@ bindHexColorInputs(document);
   function rowFromGlobalY(globalY){return Math.max(0,Math.min(totalStages()-1,Math.floor(globalY/GH)));}
   function stageFromGlobalY(globalY){return stageOf(rowFromGlobalY(globalY));}
   function stageLabel(si){return si===0?'Start scene':(si===NS+1?'Finish scene':'Mini-level '+String(si).padStart(2,'0'));}
+  function refreshWinStageSelect(selectedStage){
+    const e=$('win-stage');if(!e)return;
+    const count=totalStages(),target=Math.max(0,Math.min(count-1,selectedStage==null?cur:(parseInt(selectedStage,10)||0)));
+    if(e.options.length!==count){
+      e.innerHTML='';
+      for(let i=0;i<count;i++){const op=document.createElement('option');op.value=String(i);op.textContent=stageLabel(i);e.appendChild(op);}
+    }else{for(let i=0;i<count;i++)e.options[i].textContent=stageLabel(i);}
+    e.value=String(target);
+  }
+  function moveSelectedWinLineToStage(targetStage){
+    const o=selItem();if(!o||o.kind!=='winTrigger')return;
+    const next=Math.max(0,Math.min(totalStages()-1,parseInt(targetStage,10)||0));
+    if(next===cur){refreshWinStageSelect(cur);return;}
+    const oldArr=lvls[cur]||[],oldIndex=sel;
+    if(oldIndex==null||oldArr[oldIndex]!==o)return;
+    oldArr.splice(oldIndex,1);
+    cur=next;lvls[cur]=lvls[cur]||[];lvls[cur].push(o);
+    sel=lvls[cur].length-1;selSet=new Set([sel]);
+    wrap.scrollTop=Math.max(0,rowOf(cur)*GH*zoom-40);
+    syncProps();draw();markPreviewDirty();
+  }
   function toC(stageIndex,x,localY){return{x:(GW/2+x)*zoom,y:(rowOf(stageIndex)*GH+GH/2+localY)*zoom};}
   function anchorBaseLocal(anchor){
     const a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);
@@ -1897,9 +1918,9 @@ bindHexColorInputs(document);
       lvls[si].push(C);setSelection(lvls[si].length-1,false);syncProps();draw();return;
     }
     if(mode==='winTrigger'){
-      if(si<1||si>NS){alert('Win line можно ставить только на mini-level.');return;}
-      // One authored win line per playable. Moving it to another level replaces
-      // the previous trigger so runtime completion stays unambiguous.
+      // One authored win line per playable. It can be placed on Start, any
+      // mini-level or Finish scene. Moving it replaces the previous trigger so
+      // runtime completion stays unambiguous.
       lvls.forEach(st=>{for(let i=st.length-1;i>=0;i--)if(st[i]&&st[i].kind==='winTrigger')st.splice(i,1);});
       const W={kind:'winTrigger',coordMode:'center',x:0,y:Math.round(localY)};
       lvls[si].push(W);setSelection(lvls[si].length-1,false);mode='drag';clearToolButtons();$('et-sel').classList.add('on');syncProps();draw();markPreviewDirty();return;
@@ -1961,7 +1982,19 @@ bindHexColorInputs(document);
     if(!drag||sel===null)return;
     const rc=cv.getBoundingClientRect();const g=toG(e.clientX-rc.left,e.clientY-rc.top);
     const row=rowFromGlobalY(g.globalY),si=stageOf(row),localY=g.globalY-row*GH-GH/2;
-    if(si!==cur)return;
+    if(si!==cur){
+      const moving=lvls[cur]&&lvls[cur][sel];
+      if(moving&&moving.kind==='winTrigger'&&mode==='drag'){
+        const oldArr=lvls[cur],oldIndex=sel;
+        oldArr.splice(oldIndex,1);
+        cur=si;lvls[cur]=lvls[cur]||[];
+        moving.x=0;moving.y=Math.max(-GH/2,Math.min(GH/2,Math.round(localY-doff.y)));
+        lvls[cur].push(moving);sel=lvls[cur].length-1;selSet=new Set([sel]);
+        if($('win-y'))$('win-y').value=Math.round(moving.y);
+        refreshWinStageSelect(cur);draw();markPreviewDirty();return;
+      }
+      return;
+    }
     if(mode==='rotate'&&rotateRef){
       const a=Math.atan2(localY-rotateRef.pivot.y,g.x-rotateRef.pivot.x);
       let delta=(a-rotateRef.a0)*180/Math.PI;
@@ -2531,7 +2564,7 @@ bindHexColorInputs(document);
     $('ctabar').style.display=isCta?'':'none';
     if($('tutbar'))$('tutbar').style.display=isTut?'':'none';
     if($('winbar'))$('winbar').style.display=isWinTrigger?'':'none';
-    if(isWinTrigger){if($('win-y'))$('win-y').value=Math.round(parseFloat(o.y)||0);if($('win-level-label'))$('win-level-label').textContent=stageLabel(cur);}
+    if(isWinTrigger){if($('win-y'))$('win-y').value=Math.round(parseFloat(o.y)||0);refreshWinStageSelect(cur);}
     if(isTut){
       if($('tut-text'))$('tut-text').value=(o.text==null?TUT_TEXT_DEFAULT:o.text);
       $('tut-tsize').value=Math.max(8,Math.min(96,parseFloat($('cfg-tutorialTextSize')?.value)||o.textSize||30));
@@ -2600,6 +2633,7 @@ bindHexColorInputs(document);
     rebuildSegments(o);draw();inp.focus();try{inp.setSelectionRange(a,b);}catch(e){}
   }
   $('win-y')?.addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='winTrigger')return;o.x=0;o.y=Math.max(-GH/2,Math.min(GH/2,parseFloat($('win-y').value)||0));draw();markPreviewDirty();});
+  $('win-stage')?.addEventListener('change',()=>moveSelectedWinLineToStage($('win-stage').value));
   $('et-win-trigger')?.addEventListener('click',()=>{selectedTemplateId=null;selectedPhysicsPrefabId=null;renderTemplateList();renderPhysicsPrefabList();mode='winTrigger';clearToolButtons();$('et-win-trigger').classList.add('on');});
   $('et-text').addEventListener('click',()=>{selectedTemplateId=null;selectedPhysicsPrefabId=null;renderTemplateList();renderPhysicsPrefabList();mode='text';clearToolButtons();$('et-text').classList.add('on');});
   $('tx-text').addEventListener('input',()=>{const o=selItem();if(!o||o.kind!=='text')return;rebuildSegments(o);txColors=expandColors(o);draw();});

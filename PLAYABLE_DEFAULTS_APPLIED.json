@@ -96,7 +96,10 @@
     "level04StoreTriggerOnlyWhenWinCardDisabled": true,
     "winCardTriggersOnAuthoredWinLine": true,
     "winLineIsInvisibleInPlayable": true,
-    "winLineCanBePlacedOnAnyMiniLevel": true
+    "winLineCanBePlacedOnAnyMiniLevel": true,
+    "winLineCanBePlacedOnAnyScene": true,
+    "winLineCanBeMovedBetweenScenes": true,
+    "finishSceneWaitsForAuthoredWinLine": true
   },
   "editorRuntimeSync": "Level Editor wrapper restored; Lose End Card image/text use Y=0 reference in editor and runtime",
   "obstaclePrefabs": {

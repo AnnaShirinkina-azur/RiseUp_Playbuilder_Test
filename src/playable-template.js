@@ -1182,8 +1182,8 @@ class Game{
     this._levelNumberIndex=0;
     this._levelNumberT=0;
     this._levelNumberDuration=1100;
-    // Win Card is controlled by an authored, invisible win line placed in
-    // Level Editor. The legacy Level 04 store trigger remains available when
+    // Win Card is controlled by one authored, invisible win line placed on
+    // Start, any mini-level or Finish scene. The legacy Level 04 store trigger remains available when
     // Win Card is disabled.
     this._level4StoreTriggered=false;
     this._level4WinTriggered=false;
@@ -1508,7 +1508,19 @@ class Game{
         // Win as soon as the FINISH scene is the one on screen (i.e. start +
         // all mini-levels have passed), so the ball flies up through the
         // finish scene — not after it has already fallen past the player.
-        if(this.completedStages>=this.stages.length-1){
+        const hasAuthoredWinLine=this.stages.some(s=>s&&s.winLines&&s.winLines.length);
+        // Without an authored line, preserve the legacy behaviour and win as
+        // soon as Finish enters. With a line, let every scene keep moving until
+        // that exact line crosses the player — including a line inside Finish.
+        if(this.completedStages>=this.stages.length-1&&!hasAuthoredWinLine){
+          this.si=this.stages.length-1;
+          this.cb.onStageChange&&this.cb.onStageChange(this.si);
+          this._win();
+          return;
+        }
+        // Safety fallback: if a malformed/out-of-range authored line somehow
+        // misses the player, never leave the playable running after Finish.
+        if(this.completedStages>=this.stages.length&&hasAuthoredWinLine){
           this.si=this.stages.length-1;
           this.cb.onStageChange&&this.cb.onStageChange(this.si);
           this._win();
@@ -1610,7 +1622,7 @@ class Game{
       }
     }
     this._updateLevelNumber(dt);
-    // The invisible Win line is authored in Level Editor. It owns the exact
+    // The invisible Win line may be authored on any scene. It owns the exact
     // completion point and is checked before collision/store logic.
     if(st==='playing'&&this.tutDone&&this._triggerWinLineIfReady())return;
     // hp bar

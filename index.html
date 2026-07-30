@@ -687,7 +687,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <button class="et" id="et-progress">⚗ Progress</button>
           <button class="et" id="et-health">♥ Health</button>
           <button class="et" id="et-cta">CTA</button>
-          <button class="et" id="et-win-trigger" title="Добавить невидимую линию, после пересечения которой запускается Win Card">🏁 Win line</button>
+          <button class="et" id="et-win-trigger" title="Добавить невидимую линию в любую сцену; после пересечения запускается Win Card">🏁 Win line</button>
         </div>
         <div class="etgroup">
           <span class="etg-label">Изменения</span>
@@ -697,7 +697,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
           <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
           <button class="et" id="et-del">🗑 Del</button>
-          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
+          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current scene</button>
         </div>
         <div class="esep"></div>
         <span id="obs-props" style="display:flex;align-items:center;gap:6px;">
@@ -806,9 +806,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="winbar" style="display:none">
         <div class="lp" style="font-weight:800;color:#ff73d1;">🏁 Win line</div>
-        <div class="lp">Level <span id="win-level-label">Mini-level</span></div>
+        <div class="lp">Scene <select id="win-stage" class="cfg-select"><option value="0">Start scene</option></select></div>
         <div class="lp">Y <input type="number" id="win-y" value="0" min="-422" max="422" step="1"></div>
-        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Когда линия пересечёт позицию игрока, запускается Win Card. В playable линия невидима.</small>
+        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Линию можно поставить в Start scene, любом mini-level или Finish scene. Когда она пересечёт позицию игрока, запускается Win Card. В playable линия невидима.</small>
       </div>
       <div class="lblbar" id="ctabar" style="display:none">
         <div class="lp">CTA images</div>
@@ -1021,9 +1021,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=level2-old-physics-v1"></script>
-<script src="src/builder.js?v=level2-old-physics-v1"></script>
-<script src="script2.js?v=level2-old-physics-v1"></script>
+<script src="src/playable-template.js?v=win-line-anywhere-v1"></script>
+<script src="src/builder.js?v=win-line-anywhere-v1"></script>
+<script src="script2.js?v=win-line-anywhere-v1"></script>
 
 </body>
 </html>
