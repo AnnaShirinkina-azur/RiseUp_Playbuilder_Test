@@ -1436,17 +1436,36 @@ class Game{
     this._drawLevelNumeral(ctx,i,y,a);
   }
 
-  _level4Index(){return 4;}
+  // The "conversion stage" is the last playable mini-level before FINISH: the
+  // point where a tap or a shield hit may hand the player straight to the store
+  // (used only when the Win Card is disabled). It used to be hardcoded to 4,
+  // which silently broke the whole tap-to-store path for every stageCount other
+  // than the imported default of 4 — with stageCount=2 the index pointed past
+  // the end of `stages` and the feature disappeared without a trace.
+  // It is now derived from the configured level count, with an optional
+  // explicit override (1-based mini-level number) via cfg.conversionStage.
+  _conversionStageIndex(){
+    const last=this._lastMiniIndex();
+    const raw=parseInt(this.cfg&&this.cfg.conversionStage,10);
+    if(isFinite(raw)&&raw>=1)return Math.min(last,raw);
+    return last;
+  }
+  // Kept as an alias so older builds/configs that call _level4Index keep working.
+  _level4Index(){return this._conversionStageIndex();}
+  _conversionStage(){
+    const s=this.stages[this._conversionStageIndex()];
+    return s||null;
+  }
   _level4FirstObstacle(){
-    const s=this.stages[this._level4Index()];
+    const s=this._conversionStage();
     return s&&s.obs?s.obs.find(o=>o&&o.interactable!==false&&o.live)||null:null;
   }
   _isLevel4Reached(){
-    const i=this._level4Index(),s=this.stages[i];
+    const s=this._conversionStage();
     if(this.state!=='playing'||!this.tutDone||!s||s.done)return false;
     // Geometry is used instead of `si`: the stage counter advances only after
     // the previous band has completely left the viewport, which is too late
-    // for the authored Level 04 entrance.
+    // for the conversion-stage entrance.
     const playerY=this.ball?this.ball.y:CH*.8;
     return s.worldY+s.H>=playerY;
   }
@@ -1700,10 +1719,10 @@ class Game{
   }
 
   _hit(obs,top,who,stageIndex){
-    // Collision is the fallback Level 4 conversion trigger. It does not wait
-    // for the stage counter: touching the authored first obstacle is itself
-    // proof that the player has reached the final level.
-    if(who==='shield'&&stageIndex===this._level4Index()&&obs===this._level4FirstObstacle()&&!this._endCardsEnabled('win')){
+    // Collision is the fallback conversion trigger. It does not wait for the
+    // stage counter: touching the authored first obstacle is itself proof that
+    // the player has reached the final mini-level.
+    if(who==='shield'&&stageIndex===this._conversionStageIndex()&&obs===this._level4FirstObstacle()&&!this._endCardsEnabled('win')){
       this._triggerLevel4Store('collision');
       return;
     }
