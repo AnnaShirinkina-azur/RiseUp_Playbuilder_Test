@@ -39,7 +39,7 @@ function readConfig(){
     level3BasketPower:(function(){var v=g('cfg-level3BasketPower');return isNaN(v)?0.6:Math.max(.2,v);})(),
     level3BallGravity:(function(){var v=g('cfg-level3BallGravity');return isNaN(v)?0.34:Math.max(0,v);})(),
     hpBarShowTime:g('cfg-hpBarShowTime')*1000,
-    chainReaction:false,
+    chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialText:(function(){var e=document.getElementById('cfg-tutorialText');return (e&&e.value!=null)?e.value:'protect your balloon!';})(),

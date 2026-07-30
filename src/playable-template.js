@@ -1726,87 +1726,123 @@ class Game{
     this.tutDone=true;
   }
 
-  // Chain-reaction scatter physics, matching the Unity original:
-  // a knocked-out obstacle collides with its neighbours — kinematic pieces
-  // get knocked free (momentum transfer), already-flying pieces bounce off
-  // each other with a bit of restitution. One good swipe scatters a cluster.
+  // Rigid obstacle interaction. A protector hit wakes one obstacle; after
+  // that, contacts transfer momentum through the whole cluster. Kinematic
+  // interactable pieces can be knocked free, dynamic pieces exchange impulses,
+  // and non-interactable pieces remain immovable solid colliders.
   _scatterPhysics(){
     const chainEnabled=this.cfg.chainReaction!==false;
-    const list=[],statics=[];
+    const bodies=[],statics=[];
     for(let i=0;i<this.stages.length;i++){
       const st=this.stages[i];if(st.done)continue;
       const top=this._sst(i);
       for(const o of st.obs){
-        if(!o.live||o.level3Role)continue;
-        if(o.interactable)list.push({o,top});
-        else if(o.solid!==false)statics.push({o,top});
+        if(!o.live||o.level3Role||o.solid===false)continue;
+        const ref={o,top};
+        if(o.interactable)bodies.push(ref);else statics.push(ref);
       }
     }
-    const rest=Math.min(.18,this.cfg.scatterBounciness??.08);
-    for(let a=0;a<list.length;a++){
-      const A=list[a];if(A.o.kin)continue;      // only flying pieces initiate
-      const ar=A.o.level4Role==='ball'?Math.max(6,Math.min(A.o.w,A.o.h)*.43):A.o.cr;let ax=A.o.x,ay=A.o.y+A.top;
-      // Static/non-interactable objects do not receive momentum, but they are
-      // still real colliders. Resolve the moving body against their alpha
-      // silhouette before dynamic-vs-dynamic chain reactions.
-      // Every non-interactable object is an immovable physical collider.
-      // Sweep from the previous body position to the new one first, so even a
-      // fast body cannot tunnel completely through a thin wall between frames.
+    const restitution=clamp(parseFloat(this.cfg.scatterBounciness)||0,0,.72);
+    const bodyRadius=o=>o.level4Role==='ball'?Math.max(6,Math.min(o.w,o.h)*.43):Math.max(5,o.cr);
+    const bodyMass=o=>clamp((Math.max(8,o.w)*Math.max(8,o.h))/3600,.45,18);
+
+    // Fast dynamic bodies are swept against immovable colliders before the
+    // iterative pair solver. This prevents tunnelling through thin walls.
+    for(const A of bodies){
+      if(A.o.kin)continue;
+      const ar=bodyRadius(A.o);
       const sx=Number.isFinite(A.o.prevX)?A.o.prevX:A.o.x;
       const sy=(Number.isFinite(A.o.prevY)?A.o.prevY:A.o.y)+A.top;
       const ex=A.o.x,ey=A.o.y+A.top,travel=Math.hypot(ex-sx,ey-sy);
-      const sweepSteps=Math.min(32,Math.max(1,Math.ceil(travel/Math.max(3,ar*.3))));
-      let swept=false;
-      for(let step=1;step<=sweepSteps&&!swept;step++){
+      const sweepSteps=Math.min(40,Math.max(1,Math.ceil(travel/Math.max(2.5,ar*.25))));
+      let stopped=false;
+      for(let step=1;step<=sweepSteps&&!stopped;step++){
         const q=step/sweepSteps,qx=lerp(sx,ex,q),qy=lerp(sy,ey,q);
         for(const B of statics){
           const hit=B.o.circleContact(qx,qy-B.top,ar);if(!hit)continue;
           A.o.x=qx+hit.nx*hit.pen;A.o.y=qy-A.top+hit.ny*hit.pen;
           const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
-          if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
-          ax=A.o.x;ay=A.o.y+A.top;swept=true;break;
+          if(vn<0){A.o.vx-=hit.nx*vn*(1+restitution);A.o.vy-=hit.ny*vn*(1+restitution);}
+          const tx=-hit.ny,ty=hit.nx,vt=A.o.vx*tx+A.o.vy*ty;
+          A.o.vx-=tx*vt*.045;A.o.vy-=ty*vt*.045;
+          A.o.av*=.96;stopped=true;break;
         }
       }
-      // Multiple penetration passes keep bodies outside corners and stacked
-      // static colliders after the swept first contact.
-      for(let pass=0;pass<4;pass++){
-        let passHit=false;
+    }
+
+    // Four light solver passes are enough for piles and clusters while keeping
+    // the exported HTML inexpensive on ad-network devices.
+    for(let pass=0;pass<4;pass++){
+      // Dynamic against immovable geometry.
+      for(const A of bodies){
+        if(A.o.kin)continue;
+        const ar=bodyRadius(A.o),ax=A.o.x,ay=A.o.y+A.top;
         for(const B of statics){
           const hit=B.o.circleContact(ax,ay-B.top,ar);if(!hit)continue;
-          passHit=true;
-          A.o.x+=hit.nx*hit.pen;A.o.y+=hit.ny*hit.pen;
+          const correction=Math.max(0,hit.pen-.01)*.92;
+          A.o.x+=hit.nx*correction;A.o.y+=hit.ny*correction;
           const vn=A.o.vx*hit.nx+A.o.vy*hit.ny;
-          if(vn<0){A.o.vx-=hit.nx*vn*(1+rest);A.o.vy-=hit.ny*vn*(1+rest);}
+          if(vn<0){A.o.vx-=hit.nx*vn*(1+restitution);A.o.vy-=hit.ny*vn*(1+restitution);}
           const tx=-hit.ny,ty=hit.nx,vt=A.o.vx*tx+A.o.vy*ty;
-          A.o.vx-=tx*vt*.02;A.o.vy-=ty*vt*.02;
-          ax=A.o.x;ay=A.o.y+A.top;
+          A.o.vx-=tx*vt*.035;A.o.vy-=ty*vt*.035;
         }
-        if(!passHit)break;
       }
+
       if(!chainEnabled)continue;
-      for(let b=0;b<list.length;b++){
-        if(b===a)continue;
-        const B=list[b],br=B.o.cr;
-        const dx=B.o.x-ax,dy=(B.o.y+B.top)-ay,rr=ar+br;
-        if(dx*dx+dy*dy>rr*rr)continue;
-        const d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
-        if(B.o.kin){
-          const sp=Math.hypot(A.o.vx,A.o.vy);
-          if(sp<3.2)continue;                   // too slow to knock anything out
-          B.o.push(A.o.vx*.28+nx*sp*.10,A.o.vy*.28+ny*sp*.10,
-                   clamp(nx*.025+(Math.random()-.5)*.06,-.10,.10));
-          A.o.vx*=.78;A.o.vy*=.78;              // light momentum transfer
-          this.fx.burst(B.o.x,B.o.y+B.top,this.cfg.particleColor);
-        }else{
-          // both flying: separate the overlap + exchange impulse
-          const rel=(B.o.vx-A.o.vx)*nx+(B.o.vy-A.o.vy)*ny;
-          if(rel<0){
-            const j=-rel*(1+rest)/2;
-            A.o.vx-=nx*j;A.o.vy-=ny*j;B.o.vx+=nx*j;B.o.vy+=ny*j;
-            A.o.av+=(Math.random()-.5)*.015;B.o.av+=(Math.random()-.5)*.015;
+      for(let a=0;a<bodies.length;a++){
+        const A=bodies[a],ar=bodyRadius(A.o);
+        for(let b=a+1;b<bodies.length;b++){
+          const B=bodies[b];
+          if(A.o.kin&&B.o.kin)continue;
+          const ax=A.o.x,ay=A.o.y+A.top;
+          const br=bodyRadius(B.o),bx=B.o.x,by=B.o.y+B.top,rr=ar+br;
+          let dx=bx-ax,dy=by-ay,d2=dx*dx+dy*dy;
+          if(d2>=rr*rr)continue;
+          let d=Math.sqrt(d2),nx,ny;
+          if(d>1e-5){nx=dx/d;ny=dy/d;}else{nx=1;ny=0;d=0;}
+
+          // A moving piece wakes a kinematic neighbour. The new body inherits
+          // the impact velocity immediately, so the reaction continues through
+          // tightly packed obstacles instead of stopping at the first contact.
+          if(A.o.kin!==B.o.kin){
+            const mover=A.o.kin?B:A,target=A.o.kin?A:B;
+            const dir=A.o.kin?-1:1;
+            const toward=Math.max(0,(mover.o.vx*nx+mover.o.vy*ny)*dir);
+            const speed=Math.hypot(mover.o.vx,mover.o.vy);
+            if(speed>.35||toward>.18){
+              const txv=mover.o.vx*.72+nx*dir*Math.max(.25,toward*.24);
+              const tyv=mover.o.vy*.72+ny*dir*Math.max(.25,toward*.24);
+              const spin=clamp((nx*mover.o.vy-ny*mover.o.vx)*.012+(Math.random()-.5)*.018,-.12,.12);
+              target.o.push(txv,tyv,spin);
+              mover.o.vx*=.88;mover.o.vy*=.88;
+              this.fx.burst(target.o.x,target.o.y+target.top,this.cfg.particleColor);
+            }
           }
-          const ov=(rr-d)*.35;
-          A.o.x-=nx*ov;A.o.y-=ny*ov;B.o.x+=nx*ov;B.o.y+=ny*ov;
+
+          const invA=A.o.kin?0:1/bodyMass(A.o),invB=B.o.kin?0:1/bodyMass(B.o),invSum=invA+invB;
+          if(invSum<=0)continue;
+          const overlap=rr-d;
+          const correction=Math.max(0,overlap-.02)*.82/invSum;
+          if(invA){A.o.x-=nx*correction*invA;A.o.y-=ny*correction*invA;}
+          if(invB){B.o.x+=nx*correction*invB;B.o.y+=ny*correction*invB;}
+
+          const rvx=B.o.vx-A.o.vx,rvy=B.o.vy-A.o.vy,velN=rvx*nx+rvy*ny;
+          if(velN<0){
+            const impulse=-(1+restitution)*velN/invSum;
+            const ix=nx*impulse,iy=ny*impulse;
+            if(invA){A.o.vx-=ix*invA;A.o.vy-=iy*invA;}
+            if(invB){B.o.vx+=ix*invB;B.o.vy+=iy*invB;}
+
+            // Coulomb-like tangential impulse keeps glancing collisions from
+            // looking like frictionless circles and produces visible spin.
+            let tx=rvx-nx*velN,ty=rvy-ny*velN,tl=Math.hypot(tx,ty);
+            if(tl>1e-5){
+              tx/=tl;ty/=tl;
+              const jt=clamp(-(rvx*tx+rvy*ty)/invSum,-impulse*.16,impulse*.16);
+              if(invA){A.o.vx-=tx*jt*invA;A.o.vy-=ty*jt*invA;A.o.av-=jt*.0018;}
+              if(invB){B.o.vx+=tx*jt*invB;B.o.vy+=ty*jt*invB;B.o.av+=jt*.0018;}
+            }
+          }
         }
       }
     }
@@ -2613,7 +2649,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
-  chainReaction:false,scatterBounciness:0.1,
+  chainReaction:true,scatterBounciness:0.1,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:30,tutorialX:50,tutorialY:35,tutorialCaptionGap:-0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,

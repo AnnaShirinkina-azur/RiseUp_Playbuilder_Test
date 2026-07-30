@@ -356,6 +356,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
+      <div class="row"><label>Object collisions<small>Отброшенные препятствия толкают и отбрасывают другие</small></label><input type="checkbox" id="cfg-chainReaction" checked></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
         <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
     </div>
@@ -1018,7 +1019,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=network-export-ui-reference-v6"></script>
+<script src="src/playable-template.js?v=rigid-obstacle-collisions-v1"></script>
 <script src="src/builder.js?v=network-export-ui-reference-v6"></script>
 <script src="script2.js?v=network-export-ui-reference-v6"></script>
 

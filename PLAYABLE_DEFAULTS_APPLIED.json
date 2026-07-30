@@ -122,6 +122,7 @@
     "commonPhysicsPanel": [
       "pushForce",
       "gravityModifier",
+      "chainReaction",
       "scatterBounciness"
     ],
     "prefabSpecificControls": [
@@ -133,6 +134,7 @@
   },
   "level4Physics": "continuous shield support; repeated contact without per-touch kick; Level 4 obstacle ball remains solid against non-interactable walls",
   "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for obstacle bodies; protector/shield passes through them; swept collision prevents dynamic obstacles tunneling through thin walls",
+  "obstacleInteractionPhysics": "enabled by default; dynamic obstacles transfer mass-weighted impulse, friction and spin to other interactable obstacles; kinematic neighbours wake on impact; four solver passes stabilize clusters",
   "endCardRepair": "full-device editor viewport; stable central active zone; gameplay HUD and CTA suppressed while End Card is visible",
   "endCardLayoutFix": {
     "levelEditorContainer": "scrollable full-size wrapper restored",
