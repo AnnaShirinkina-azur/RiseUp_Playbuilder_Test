@@ -2046,7 +2046,7 @@ class Game{
       const img=this._spr('bg_stage'+v.i);
       if(imgOk(img)){
         const tint=(this.cfg.stageBgTints&&this.cfg.stageBgTints[v.i])||this.cfg.bgStageTint;
-        this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint,'bottom');
+        this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint);
       }
     }
   }
@@ -2106,7 +2106,12 @@ class Game{
       const {iw,ih}=sourceSize(source);
       const tileW=390*sizeFactor;
       const tileH=tileW*(ih/iw);
-      const boundary=v.top+v.H;
+      // The transition image belongs to the numbered corridor after this stage.
+      // Anchor it to the corridor's LOWER edge, not to the stage/corridor seam.
+      // This keeps the artwork next to the following level instead of floating
+      // at the top of the empty interlude.
+      const gap=this._levelGapRect(v.i);
+      const boundary=gap?gap.bottom:(v.top+v.H);
       const y=boundary-tileH*0.70;
       if(y>CH||y+tileH<0)return;
       tileAcrossWidth(source,y);

@@ -2140,7 +2140,7 @@ bindHexColorInputs(document);
       const im=getEditorImage(sm['bg_stage'+si]);
       if(imageReady(im)){
         const te=$('cfg-bgt'+si);
-        drawCoverImageFade(im,0,top,w,h,0,(te&&te.value)||'#ffffff','bottom');
+        drawCoverImageFade(im,0,top,w,h,0,(te&&te.value)||'#ffffff');
       }
     }
   }
