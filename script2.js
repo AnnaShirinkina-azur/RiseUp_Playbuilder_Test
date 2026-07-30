@@ -41,6 +41,22 @@ function bindHexColorInputs(root){
 }
 document.addEventListener('DOMContentLoaded',()=>bindHexColorInputs(document));
 let currentOrientation='portrait';
+// Project persistence state. The manual project file is the durable source;
+// IndexedDB keeps a local recovery copy between browser sessions.
+let projectDirty=false;
+let projectRestoring=false;
+let projectAutosaveTimer=null;
+let projectLastSavedAt=0;
+function setProjectStatus(text,state){
+  const el=$('project-save-status');if(!el)return;
+  el.textContent=text||'';el.className='project-status'+(state?' '+state:'');el.title=text||'';
+}
+function markProjectDirty(){
+  if(projectRestoring)return;
+  projectDirty=true;setProjectStatus('Есть несохранённые изменения','dirty');
+  clearTimeout(projectAutosaveTimer);
+  projectAutosaveTimer=setTimeout(()=>{if(typeof autosaveProject==='function')autosaveProject().catch(()=>{});},1200);
+}
 function setOrientation(or){
   currentOrientation=or;
   const hidden=$('cfg-orientation'); if(hidden) hidden.value=or;
@@ -60,6 +76,7 @@ document.addEventListener('click',e=>{
 // Warn before leaving the builder so the user can stay and save/export the current setup.
 // Modern browsers show their own localized confirmation text and intentionally ignore custom messages.
 window.addEventListener('beforeunload',function(e){
+  if(!projectDirty)return;
   e.preventDefault();
   e.returnValue='';
   return '';
@@ -784,7 +801,17 @@ try{
   document.addEventListener('keydown',e=>{if(e.key!=='Delete'&&e.key!=='Backspace')return;var c=cv();if(!c||c.offsetParent===null)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;e.preventDefault();toggleSelectedObject();});
   let dragging=false,last=null;const ecv=cv();if(ecv){ecv.addEventListener('pointerdown',e=>{const rc=ecv.getBoundingClientRect(),hx=(e.clientX-rc.left)*(ecv.width/rc.width),hy=(e.clientY-rc.top)*(ecv.height/rc.height),pk=pickAt(hx,hy);if(!pk)return;setSelected(pk);if(selected==='background')return;dragging=true;last={x:e.clientX,y:e.clientY};ecv.setPointerCapture&&ecv.setPointerCapture(e.pointerId);});ecv.addEventListener('pointermove',e=>{if(!dragging||!last)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;last={x:e.clientX,y:e.clientY};const r=ecv.getBoundingClientRect(),o=item();const ar=endCardActiveRect(ecv.width,ecv.height),logicalDx=dx/r.width*ecv.width,logicalDy=dy/r.height*ecv.height;o.x=Math.max(-200,Math.min(200,(o.x||0)+logicalDx/ar.w*100));o.y=Math.max(-200,Math.min(200,(o.y||0)+logicalDy/ar.h*100));syncFields();markPreviewDirty();});const stop=()=>{dragging=false;last=null;};ecv.addEventListener('pointerup',stop);ecv.addEventListener('pointercancel',stop);}
   Object.values(imgs).forEach(im=>im.onload=draw);
-  window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts)),resetToDefaults:()=>{Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,normalizeEndCardLayoutTree(JSON.parse(JSON.stringify(defaults))));setState('lose');syncFields();resize();}};
+  function setData(data){
+    if(!data||typeof data!=='object')throw new Error('Invalid End Card project data.');
+    const merged=JSON.parse(JSON.stringify(defaults));
+    ['win','lose'].forEach(st=>['portrait','landscape'].forEach(or=>{
+      if(data[st]&&data[st][or])merged[st][or]=Object.assign({},merged[st][or],JSON.parse(JSON.stringify(data[st][or])));
+    }));
+    normalizeEndCardLayoutTree(merged);
+    Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,merged);
+    selected='image';setState('lose');setOrientation('landscape');syncFields();resize();
+  }
+  window.RiseEndCardEditor={resize,draw,setState,setOrientation,getData:()=>JSON.parse(JSON.stringify(layouts)),setData,resetToDefaults:()=>{Object.keys(layouts).forEach(k=>delete layouts[k]);Object.assign(layouts,normalizeEndCardLayoutTree(JSON.parse(JSON.stringify(defaults))));setState('lose');syncFields();resize();}};
   setTimeout(()=>{setOrientation("landscape");syncFields();},50);
 })();
 
@@ -996,6 +1023,7 @@ function markPreviewDirty(){
   previewDirty=true;
   if(previewBuilt)setPreviewStale(true);
   if(typeof invalidateNetworkExports==='function')invalidateNetworkExports();
+  markProjectDirty();
 }
 document.addEventListener('input',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
 document.addEventListener('change',e=>{if(!e.target.closest('.pact')&&!e.target.closest('#network-export-card'))markPreviewDirty();},true);
@@ -3046,6 +3074,45 @@ const LE=(function(){
   $('cta-bg-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.bgSrc=null;draw();}});
   $('cta-text-clear').addEventListener('click',()=>{const o=selItem();if(o&&o.kind==='cta'){o.textSrc=null;draw();}});
 
+  function cloneProjectValue(value){return JSON.parse(JSON.stringify(value));}
+  function getProjectState(){
+    return {
+      stageCount:NS,
+      currentStage:cur,
+      levels:cloneProjectValue(lvls),
+      stageStash:cloneProjectValue(stageStash),
+      customTemplates:cloneProjectValue(svgTemplates.filter(t=>!t.lockedDefault)),
+      zoom:zoom,
+      autoFitZoom:autoFitZoom,
+      showZones:showZones,
+      showGrid:showGrid
+    };
+  }
+  function setProjectState(data){
+    if(!data||typeof data!=='object')throw new Error('Invalid Level Editor project data.');
+    const incoming=Array.isArray(data.levels)?cloneProjectValue(data.levels):null;
+    let count=Math.max(1,Math.min(20,parseInt(data.stageCount,10)||(incoming?incoming.length-2:NS)||1));
+    const next=incoming||Array.from({length:count+2},()=>[]);
+    while(next.length<count+2)next.splice(next.length-1,0,[]);
+    if(next.length>count+2){
+      const start=next[0]||[],finish=next[next.length-1]||[],minis=next.slice(1,-1).slice(0,count);
+      next.splice(0,next.length,start,...minis,finish);
+    }
+    lvls.splice(0,lvls.length,...next.map(x=>Array.isArray(x)?x:[]));
+    stageStash.splice(0,stageStash.length,...(Array.isArray(data.stageStash)?cloneProjectValue(data.stageStash):[]));
+    for(let i=svgTemplates.length-1;i>=0;i--)if(!svgTemplates[i].lockedDefault)svgTemplates.splice(i,1);
+    (Array.isArray(data.customTemplates)?cloneProjectValue(data.customTemplates):[]).forEach(t=>{if(t&&t.id&&!svgTemplates.some(x=>x.id===t.id))svgTemplates.push(t);});
+    NS=count;cur=Math.max(0,Math.min(lvls.length-1,parseInt(data.currentStage,10)||0));
+    zoom=Math.max(.08,Math.min(1.5,parseFloat(data.zoom)||zoom));
+    autoFitZoom=data.autoFitZoom!==false;showZones=!!data.showZones;showGrid=data.showGrid!==false;
+    if($('le-zoom'))$('le-zoom').value=zoom;
+    if($('le-zones'))$('le-zones').checked=showZones;
+    if($('le-grid'))$('le-grid').checked=showGrid;
+    syncStageInputs(NS);renderStageAssetRows();renderStageAccentRows();renderBgStageRows();renderSeamRows();renderStageStashNote();syncSeamMode();bindHexColorInputs(document);
+    selectedTemplateId=null;selectedPhysicsPrefabId=null;customShape=null;shape='rect';clearSelection();ensurePlayerObject();refreshWinStageSelect();renderTemplateList();renderPhysicsPrefabList();syncProps();resize(true);draw();
+    sv('le-zoom-v',Math.round(zoom*100)+'%');
+  }
+
   setStageCount(NS);sv('le-zoom-v',Math.round(zoom*100)+'%');
   window.addEventListener('resize',()=>{if($('rp-levels').classList.contains('on'))resize(true);});
   return{
@@ -3055,11 +3122,175 @@ const LE=(function(){
     getParkedContentCount:parkedStageCount,
     getStageLabel:stageLabel,
     getActiveZoneSize:()=>obstacleDesignSize(),
-    getStageCount:()=>NS
+    getStageCount:()=>NS,
+    getProjectState,setProjectState
   };
 })();
 
 window.RiseLevelEditor=LE;
+
+// ── Project save / load / local recovery ──────────────────────────────────
+const RISE_PROJECT_KIND='rise-playbuilder-project';
+const RISE_PROJECT_VERSION=1;
+const RISE_AUTOSAVE_DB='rise-playbuilder-projects';
+const RISE_AUTOSAVE_STORE='projects';
+const RISE_AUTOSAVE_KEY='autosave';
+function projectClone(v){return JSON.parse(JSON.stringify(v));}
+function collectProjectFormState(){
+  const out={};
+  document.querySelectorAll('input[id],select[id],textarea[id]').forEach(el=>{
+    if(!el.id||el.id.indexOf('project-')===0)return;
+    const type=String(el.type||'').toLowerCase();
+    if(type==='file'||type==='button'||type==='submit'||type==='reset')return;
+    if(type==='checkbox'||type==='radio')out[el.id]={checked:!!el.checked,value:el.value};
+    else out[el.id]={value:el.value};
+  });
+  return out;
+}
+function setRawProjectFormState(state){
+  if(!state||typeof state!=='object')return;
+  Object.keys(state).forEach(id=>{
+    const el=$(id),v=state[id];if(!el||!v)return;
+    const type=String(el.type||'').toLowerCase();
+    if(type==='checkbox'||type==='radio'){if(typeof v.checked==='boolean')el.checked=v.checked;if(v.value!=null)el.value=v.value;}
+    else if(v.value!=null)el.value=v.value;
+  });
+}
+function notifyProjectFormState(state){
+  if(!state||typeof state!=='object')return;
+  Object.keys(state).forEach(id=>{
+    const el=$(id);if(!el)return;
+    const type=String(el.type||'').toLowerCase();
+    if(type==='file'||type==='button'||type==='submit'||type==='reset')return;
+    try{el.dispatchEvent(new Event('input',{bubbles:true}));}catch(e){}
+    try{el.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
+  });
+}
+function collectProject(){
+  return {
+    kind:RISE_PROJECT_KIND,
+    version:RISE_PROJECT_VERSION,
+    savedAt:new Date().toISOString(),
+    builder:'Rise Playable Builder v22',
+    form:collectProjectFormState(),
+    orientation:currentOrientation,
+    networkVariant:(typeof networkVariant!=='undefined'?networkVariant:'x'),
+    sprites:(window.RiseBuilder&&RiseBuilder.getSprites?RiseBuilder.getSprites():{}),
+    levelEditor:(window.RiseLevelEditor&&RiseLevelEditor.getProjectState?RiseLevelEditor.getProjectState():null),
+    endCard:(window.RiseEndCardEditor&&RiseEndCardEditor.getData?RiseEndCardEditor.getData():null)
+  };
+}
+function projectFileName(){
+  const d=new Date(),pad=n=>String(n).padStart(2,'0');
+  return 'RiseUp_project_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.riseproject';
+}
+function refreshProjectSpriteUI(sprites){
+  const map=sprites||{};
+  Object.keys(map).forEach(key=>{
+    const src=map[key];
+    if(key.indexOf('audio_')===0){
+      const snd=key.slice(6),th=$('th-audio-'+snd);if(th){th.textContent='✔';th.title='Saved project audio';th.style.color='var(--acc)';}
+      return;
+    }
+    ['th-'+key,'th-'+key+'-visuals','th-'+key+'-level'].forEach(id=>{
+      document.querySelectorAll('[id="'+id+'"]').forEach(th=>{if(!src)return;const im=document.createElement('img');im.src=src;th.replaceChildren(im);});
+    });
+  });
+  ['bgm','win','lose','hit','shield'].forEach(key=>{if(!map['audio_'+key]){const th=$('th-audio-'+key);if(th){th.textContent=SND_ICON[key]||'🔊';th.title='';th.style.color='';}}});
+}
+function applyProjectSprites(sprites){
+  if(!window.RiseBuilder||!RiseBuilder.setSprite)return;
+  const current=RiseBuilder.getSprites?RiseBuilder.getSprites():{};
+  Object.keys(current).forEach(k=>RiseBuilder.setSprite(k,null));
+  Object.entries(sprites||{}).forEach(([k,v])=>{if(v!=null)RiseBuilder.setSprite(k,v);});
+}
+async function applyProject(project,opts){
+  opts=opts||{};
+  if(!project||project.kind!==RISE_PROJECT_KIND)throw new Error('Это не файл проекта Rise Playable Builder.');
+  if((parseInt(project.version,10)||0)>RISE_PROJECT_VERSION)throw new Error('Проект создан в более новой версии билдера.');
+  projectRestoring=true;clearTimeout(projectAutosaveTimer);setProjectStatus('Загрузка проекта…','');
+  try{
+    setRawProjectFormState(project.form);
+    applyProjectSprites(project.sprites||{});
+    if(project.levelEditor&&window.RiseLevelEditor&&RiseLevelEditor.setProjectState)RiseLevelEditor.setProjectState(project.levelEditor);
+    // Dynamic stage controls are recreated by Level Editor; apply values again.
+    setRawProjectFormState(project.form);
+    notifyProjectFormState(project.form);
+    if(project.endCard&&window.RiseEndCardEditor&&RiseEndCardEditor.setData)RiseEndCardEditor.setData(project.endCard);
+    if(project.orientation==='portrait'||project.orientation==='landscape')setOrientation(project.orientation);
+    if(typeof networkVariant!=='undefined'&&project.networkVariant){
+      networkVariant=project.networkVariant;
+      document.querySelectorAll('[data-network-variant]').forEach(b=>b.classList.toggle('on',b.dataset.networkVariant===networkVariant));
+      if(typeof updateNetworkNamePreview==='function')updateNetworkNamePreview();
+    }
+    refreshProjectSpriteUI(project.sprites||{});
+    const customFont=(project.sprites||{}).custom_font;
+    if(customFont&&typeof syncLocalFontOption==='function')syncLocalFontOption(customFont);
+    if(typeof syncGoogleFontOption==='function')syncGoogleFontOption();
+    bindHexColorInputs(document);
+    if(window.RiseBgUI){RiseBgUI.renderBgStageRows();RiseBgUI.renderSeamRows();}
+    if(window.RiseLevelEditor){RiseLevelEditor.resize();RiseLevelEditor.draw();}
+    if(window.RiseEndCardEditor)RiseEndCardEditor.resize();
+    previewDirty=true;if(previewBuilt)setPreviewStale(true);
+    if(typeof invalidateNetworkExports==='function')invalidateNetworkExports();
+    projectDirty=false;projectLastSavedAt=Date.now();
+    setProjectStatus(opts.autosave?'Автосохранение восстановлено':'Проект загружен','saved');
+  }finally{projectRestoring=false;}
+}
+function openProjectDb(){
+  return new Promise((resolve,reject)=>{
+    if(!window.indexedDB){reject(new Error('IndexedDB unavailable'));return;}
+    const req=indexedDB.open(RISE_AUTOSAVE_DB,1);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(RISE_AUTOSAVE_STORE))db.createObjectStore(RISE_AUTOSAVE_STORE);};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('IndexedDB open failed'));
+  });
+}
+async function writeAutosave(project){
+  const db=await openProjectDb();
+  return new Promise((resolve,reject)=>{const tx=db.transaction(RISE_AUTOSAVE_STORE,'readwrite');tx.objectStore(RISE_AUTOSAVE_STORE).put({savedAt:Date.now(),project},RISE_AUTOSAVE_KEY);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error||new Error('Autosave failed'));};});
+}
+async function readAutosave(){
+  const db=await openProjectDb();
+  return new Promise((resolve,reject)=>{const tx=db.transaction(RISE_AUTOSAVE_STORE,'readonly'),req=tx.objectStore(RISE_AUTOSAVE_STORE).get(RISE_AUTOSAVE_KEY);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('Autosave read failed'));tx.oncomplete=()=>db.close();});
+}
+async function autosaveProject(){
+  if(projectRestoring||!projectDirty)return;
+  const project=collectProject();await writeAutosave(project);
+  setProjectStatus('Автосохранено локально · есть изменения','dirty');
+}
+async function saveProjectFile(){
+  const project=collectProject();
+  const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});
+  if(window.RiseBuilder&&RiseBuilder.downloadBlob)RiseBuilder.downloadBlob(blob,projectFileName());
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=projectFileName();a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+  await writeAutosave(project).catch(()=>{});
+  projectDirty=false;projectLastSavedAt=Date.now();setProjectStatus('Проект сохранён','saved');
+}
+async function loadProjectFile(file){
+  if(!file)return;
+  if(projectDirty&&!confirm('Загрузить другой проект? Текущие несохранённые изменения будут заменены.'))return;
+  const text=await file.text();let project;
+  try{project=JSON.parse(text);}catch(e){throw new Error('Файл проекта повреждён или содержит неверный JSON.');}
+  await applyProject(project);await writeAutosave(project).catch(()=>{});
+}
+$('btn-project-save')&&$('btn-project-save').addEventListener('click',()=>saveProjectFile().catch(e=>{setProjectStatus('Ошибка сохранения','error');alert('Не удалось сохранить проект: '+e.message);}));
+$('btn-project-load')&&$('btn-project-load').addEventListener('click',()=>{$('project-load-input')&&$('project-load-input').click();});
+$('project-load-input')&&$('project-load-input').addEventListener('change',e=>{const input=e.target,file=input.files&&input.files[0];loadProjectFile(file).catch(err=>{setProjectStatus('Ошибка загрузки','error');alert('Не удалось загрузить проект: '+err.message);}).finally(()=>{input.value='';});});
+$('btn-reset')&&$('btn-reset').addEventListener('click',()=>setTimeout(markProjectDirty,0));
+document.addEventListener('keydown',e=>{
+  const mod=e.ctrlKey||e.metaKey;if(!mod)return;
+  if(e.key.toLowerCase()==='s'){e.preventDefault();saveProjectFile().catch(err=>alert('Не удалось сохранить проект: '+err.message));}
+  if(e.key.toLowerCase()==='o'){e.preventDefault();$('project-load-input')&&$('project-load-input').click();}
+});
+setTimeout(async()=>{
+  if(projectDirty)return;
+  try{
+    const saved=await readAutosave();if(!saved||!saved.project)return;
+    const date=saved.savedAt?new Date(saved.savedAt).toLocaleString():'ранее';
+    if(confirm('Найдено локальное автосохранение от '+date+'.\n\nВосстановить проект?'))await applyProject(saved.project,{autosave:true});
+    else setProjectStatus('Проект не сохранён','');
+  }catch(e){setProjectStatus('Проект не сохранён','');}
+},700);
 
 // ── Text labels — level text with per-segment colors (must match playable-template.js) ──
 
