@@ -318,15 +318,16 @@ class Obs{
     // Non-interactable artwork still remains a solid collider.
     this.solid=o.solid!==false;this._alphaCollider=null;this._alphaColliderTried=false;
     this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.prevX=this.x;this.prevY=this.y;
-    // Contact latch for repeatable shield collisions (used by the Level 4 ball).
-    // It rearms only after the protector and obstacle separate, so a single
-    // sustained overlap cannot apply an impulse every frame.
+    // Contact latches rearm only after the protector and obstacle separate.
+    // This lets every new touch apply another impulse while preventing a
+    // sustained overlap from applying the same hit on every animation frame.
     this.shieldTouching=false;
+    this.protectorTouching=false;
     // Runtime-only role used by the Level 3 basket simulation.
     this.physicsPrefab=o.physicsPrefab||null;this.physicsGroupId=o.physicsGroupId||null;this.physicsRole=o.physicsRole||null;
     this.level3Role=null;this.level3Follow=null;this.level3Safe=false;this.level4Role=null;
   }
-  reset(){this.x=this.ix;this.y=this.iy;this.prevX=this.x;this.prevY=this.y;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;}
+  reset(){this.x=this.ix;this.y=this.iy;this.prevX=this.x;this.prevY=this.y;this.t=0;this.vx=0;this.vy=0;this.av=0;this.rot=0;this.live=true;this.kin=true;this.shieldTouching=false;this.protectorTouching=false;}
   // Approximate collision radius for obstacle-vs-obstacle contacts.
   get cr(){return (this.w+this.h)*.27;}
   push(fx,fy,spin=0,allowDynamic=false){
@@ -1639,8 +1640,23 @@ class Game{
           this.shield.flash=180;
           if(stage.level4&&stage.level4.justTouched&&stage.level4.contactCooldown<=0){this.snd.play('shield');stage.level4.contactCooldown=120;}
         }
-        const hits=stage.hits?stage.hits(this.shield.x,this.shield.y,this.shield.r,top,false,false):[];
-        for(const sh of hits){if(sh!==level4Ball)this._hit(sh,top,'shield',i);}
+        // Include already-flying obstacles. Each object has its own contact
+        // latch: one continuous overlap counts as one hit, separation rearms
+        // it, and the next touch applies a fresh impulse.
+        const hits=stage.hits?stage.hits(this.shield.x,this.shield.y,this.shield.r,top,true,false):[];
+        // Level 3 loose balls are controlled only through the basket and must
+        // not become directly hittable because dynamic contacts are enabled.
+        const repeatHits=hits.filter(o=>o!==level4Ball&&o.level3Role!=='ball');
+        const touching=new Set(repeatHits);
+        for(const o of stage.obs){
+          if(o!==level4Ball&&o.level3Role!=='ball'&&!touching.has(o))o.protectorTouching=false;
+        }
+        for(const sh of repeatHits){
+          if(!sh.protectorTouching){
+            sh.protectorTouching=true;
+            this._hit(sh,top,'shield',i);
+          }
+        }
       }
       outer:for(let i=0;i<this.stages.length;i++){
         const top=this._sst(i);
@@ -1691,13 +1707,15 @@ class Game{
       // No forced downward velocity: hit from below sends the piece UP,
       // then gravity pulls it back in an arc.
       const svx=this.shield.vx||0,svy=this.shield.vy||0;
-      const repeatable=stageIndex===this._level4Index()&&obs===this._level4FirstObstacle();
+      // Every interactable obstacle can be touched and redirected again after
+      // it separates from the protector, including while it is already flying.
+      const repeatable=true;
       let nx=dx/len,ny=dy/len;
       const base=f*.55; // softer minimum kick, closer to Luna preview
-      // For repeatable Level 4 contacts use relative velocity. A moving ball
-      // can therefore be caught and redirected by the protector indefinitely.
-      const rvx=repeatable?svx-(obs.vx||0):svx;
-      const rvy=repeatable?svy-(obs.vy||0):svy;
+      // Relative velocity makes a second touch alter the current trajectory
+      // instead of merely adding the same one-time launch vector.
+      const rvx=svx-(obs.vx||0);
+      const rvy=svy-(obs.vy||0);
       const drive=Math.max(0,rvx*nx+rvy*ny);
       const vx=nx*(base+drive*.35)+svx*.35;
       const vy=ny*(base+drive*.35)+svy*.35;
