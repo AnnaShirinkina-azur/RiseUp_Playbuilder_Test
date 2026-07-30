@@ -1950,20 +1950,22 @@ class Game{
     return true;
   }
 
-  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint){
+  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint,valign){
     if(!imgOk(bg))return false;
     const off=document.createElement('canvas');
     off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
     const oc=off.getContext('2d');
     const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
     const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-    oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
+    const dx=(w-dw)/2;
+    const dy=valign==='bottom'?(h-dh):(h-dh)/2;
+    oc.drawImage(bg,dx,dy,dw,dh);
     if(tint&&String(tint).toLowerCase()!=='#ffffff'){
       oc.globalCompositeOperation='multiply';
       oc.fillStyle=tint;
       oc.fillRect(0,0,w,h);
       oc.globalCompositeOperation='destination-in';
-      oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
+      oc.drawImage(bg,dx,dy,dw,dh);
       oc.globalCompositeOperation='source-over';
     }
     if(fade>0){
@@ -2044,7 +2046,7 @@ class Game{
       const img=this._spr('bg_stage'+v.i);
       if(imgOk(img)){
         const tint=(this.cfg.stageBgTints&&this.cfg.stageBgTints[v.i])||this.cfg.bgStageTint;
-        this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint);
+        this._drawCoverFade(ctx,img,0,v.top,CW,v.H,0,tint,'bottom');
       }
     }
   }

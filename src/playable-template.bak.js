@@ -695,14 +695,16 @@ class Game{
     return true;
   }
 
-  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint){
+  _drawCoverFade(ctx,bg,x,y,w,h,fade,tint,valign){
     if(!imgOk(bg))return false;
     const off=document.createElement('canvas');
     off.width=Math.max(1,Math.round(w));off.height=Math.max(1,Math.round(h));
     const oc=off.getContext('2d');
     const sc=Math.max(w/bg.naturalWidth,h/bg.naturalHeight);
     const dw=bg.naturalWidth*sc,dh=bg.naturalHeight*sc;
-    oc.drawImage(bg,(w-dw)/2,(h-dh)/2,dw,dh);
+    const dx=(w-dw)/2;
+    const dy=valign==='bottom'?(h-dh):(h-dh)/2;
+    oc.drawImage(bg,dx,dy,dw,dh);
     if(tint&&String(tint).toLowerCase()!=='#ffffff'){
       oc.globalCompositeOperation='source-atop';
       oc.fillStyle=tint;
