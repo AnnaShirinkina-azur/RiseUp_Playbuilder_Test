@@ -57,6 +57,14 @@ document.addEventListener('click',e=>{
   if(b)setOrientation(b.dataset.or);
 });
 
+// Warn before leaving the builder so the user can stay and save/export the current setup.
+// Modern browsers show their own localized confirmation text and intentionally ignore custom messages.
+window.addEventListener('beforeunload',function(e){
+  e.preventDefault();
+  e.returnValue='';
+  return '';
+});
+
 // Luna-like inspector: left side is navigation, right side contains settings
 (function initInspector(){
   const ws=document.querySelector('.ws'), sb=document.querySelector('.sb');
