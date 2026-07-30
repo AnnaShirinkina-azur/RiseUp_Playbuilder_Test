@@ -1778,7 +1778,7 @@ class Game{
       }
     }
     const restitution=clamp(parseFloat(this.cfg.scatterBounciness)||0,0,.72);
-    const collisionForce=clamp(Number.isFinite(parseFloat(this.cfg.collisionForce))?parseFloat(this.cfg.collisionForce):.15,0,1);
+    const collisionForce=clamp(Number.isFinite(parseFloat(this.cfg.collisionForce))?parseFloat(this.cfg.collisionForce):.01,0,1);
     // A soft, non-linear response gives much finer control near zero.
     // At the maximum setting the transferred impulse is still only 55% of
     // the previous implementation; low values become almost imperceptible.
@@ -2690,7 +2690,7 @@ class Game{
 
 const DEF={
   lives:3,gameSpeed:3.2,acceleration:0.4,deathPause:2500,obstaclePushForce:7,gravityModifier:1,level1CenterSpeed:18,level3BasketPower:0.6,level3BallGravity:0.34,
-  chainReaction:true,collisionForce:.15,scatterBounciness:0.1,
+  chainReaction:true,collisionForce:.01,scatterBounciness:0.1,
   hpBarShowTime:2000,tutorialDisplayTime:4800,tutorialAnimEnabled:true,tutorialFailEnabled:true,tutorialObstacleShape:"triangle",tutorialObstacleTint:"#c800ff",tutorialText:"PROTECT YOUR BALLOON!",tutorialTextSize:30,tutorialX:50,tutorialY:35,tutorialCaptionGap:-0.5,
   heightIndicatorEnabled:true,heightStart:66,heightFeetPerStage:100,heightAccentColor:'#a552ff',heightOutlineColor:'#7d33ce',
   playerColor:'#ffffff',playerOutlineColor:'#ffffff',playerSize:2,playerDeathAnimSpeed:1,playerSpriteColor:"#00eeff",playerRopeColor:"#84ebfc",playerStart:null,

@@ -206,7 +206,7 @@
   "collisionForceControl": {
     "separateControl": true,
     "field": "cfg-collisionForce",
-    "default": 0.15,
+    "default": 0.01,
     "range": [
       0,
       1
