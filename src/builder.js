@@ -40,7 +40,7 @@ function readConfig(){
     level3BallGravity:(function(){var v=g('cfg-level3BallGravity');return isNaN(v)?0.34:Math.max(0,v);})(),
     hpBarShowTime:g('cfg-hpBarShowTime')*1000,
     chainReaction:(function(){var e=document.getElementById('cfg-chainReaction');return e?e.checked:true;})(),
-    collisionForce:(function(){var v=g('cfg-collisionForce');return isNaN(v)?1:Math.max(0,Math.min(3,v));})(),
+    collisionForce:(function(){var v=g('cfg-collisionForce');return isNaN(v)?0.15:Math.max(0,Math.min(1,v));})(),
     scatterBounciness:(function(){var v=g('cfg-scatterBounciness');return isNaN(v)?0.1:v;})(),
     tutorialDisplayTime:g('cfg-tutorialTime')*1000,
     tutorialText:(function(){var e=document.getElementById('cfg-tutorialText');return (e&&e.value!=null)?e.value:'protect your balloon!';})(),
