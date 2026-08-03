@@ -905,6 +905,7 @@ $('btn-stop').addEventListener('click',()=>{
 // Save / Load builder project (.json)
 const RISE_PROJECT_FORMAT='rise-playbuilder-project';
 const RISE_PROJECT_VERSION=1;
+const RISE_DEFAULT_PROJECT=(window.RISE_ATTACHED_DEFAULT_PROJECT&&typeof window.RISE_ATTACHED_DEFAULT_PROJECT==='object')?window.RISE_ATTACHED_DEFAULT_PROJECT:null;
 function cloneProjectValue(value){return JSON.parse(JSON.stringify(value));}
 function collectProjectFormState(){
   const out={};
@@ -968,7 +969,16 @@ function applyPlayableDefaultFields(){
   syncSeamMode(DEFS['cfg-seamOverlayMode']||'perStage');
 }
 applyPlayableDefaultFields();
-$('btn-reset').addEventListener('click',()=>{
+$('btn-reset').addEventListener('click',async()=>{
+  if(RISE_DEFAULT_PROJECT){
+    try{
+      await applyProjectSnapshot(cloneProjectValue(RISE_DEFAULT_PROJECT));
+      return;
+    }catch(err){
+      console.error('Attached default project reset failed',err);
+    }
+  }
+
   applyPlayableDefaultFields();
   try{
     RiseBuilder.setSprite('endcard_win',END_CARD_DEFAULTS.win);
@@ -983,6 +993,7 @@ $('btn-reset').addEventListener('click',()=>{
   ['bgm','win','lose','hit','shield'].forEach(clearSnd);
   const l=document.getElementById('google-font-link'); if(l)l.remove();
   if(typeof resetNetworkExportUI==='function')resetNetworkExportUI();
+
 });
 
 setOrientation("landscape");
@@ -2916,3 +2927,15 @@ function textLabelSize(ctx,L){
   var maxW=1;for(var i=0;i<lineStrs.length;i++)maxW=Math.max(maxW,ctx.measureText(lineStrs[i]).width);ctx.restore();
   return {w:maxW,h:size*1.18*lineStrs.length};
 }
+
+
+// Apply the attached JSON snapshot as the real initial state.
+// This runs after the Level Editor and End Card editor APIs exist, so levels,
+// sprites and per-orientation layouts are restored together with form fields.
+(function applyAttachedProjectDefaultsOnStartup(){
+  if(!RISE_DEFAULT_PROJECT)return;
+  Promise.resolve().then(()=>applyProjectSnapshot(cloneProjectValue(RISE_DEFAULT_PROJECT))).then(()=>{
+    previewBuilt=false;
+    markPreviewDirty();
+  }).catch(err=>console.error('Attached default project startup failed',err));
+})();
