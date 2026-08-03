@@ -862,8 +862,8 @@ const LE=(function(){
       const sc=parseFloat($('cfg-seamScale')?.value)||1;
       const iw=seam.naturalWidth||seam.width||1,ih=seam.naturalHeight||seam.height||1;
       const sh=Math.max(8,Math.min(h*.5,w*(ih/iw)*sc));
-      // seams sit on the boundary between neighbouring rows
-      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h-sh/2,w,sh);
+      // Draw downward over the old/current row; do not cover the new row above.
+      for(let r=1;r<totalStages();r++)ctx.drawImage(seam,0,r*h,w,sh);
     }
   }
   function hr(h){const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?parseInt(r[1],16)+','+parseInt(r[2],16)+','+parseInt(r[3],16):'200,200,200';}
