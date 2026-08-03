@@ -159,6 +159,7 @@ function progressLocal(L){
 }
 function ctaLocal(L){return progressLocal(L);}
 function healthLocal(L){return progressLocal(L);}
+function heightLocal(L){return progressLocal(L);}
 function anchorBoxLocal(anchor,ax,ay,w,h){var a=anchor||'cc',av=a.charAt(0),ah=a.charAt(1);return{x:ah==='l'?ax:(ah==='r'?ax-w:ax-w/2),y:av==='t'?ay:(av==='b'?ay-h:ay-h/2),w:w,h:h};}
 function uiBaseScale(L){
   var dw=parseFloat(L&&L.designW)||390, dh=parseFloat(L&&L.designH)||844;
@@ -181,9 +182,11 @@ function textDrawSize(L){var k=uiBaseScale(L);return {size:(L.baseSize||L.size||
 function progressDrawSize(L){var k=uiBaseScale(L);return {w:(L.baseW||L.w||64)*k,h:(L.baseH||L.h||300)*k};}
 function healthDrawSize(L){var k=hudCounterScale();return {heartW:(L.baseHeartW||L.heartW||36)*k,gap:(L.baseGap!=null?L.baseGap:(L.gap==null?6:L.gap))*k};}
 function ctaDrawSize(L){var portrait=CW<CH,k=hudCounterScale()*(portrait?.8:1);return {w:(L.baseW||L.w||260)*k,h:(L.baseH||L.h||86)*k};}
+function heightDrawSize(L){var k=hudCounterScale()*Math.max(.25,Math.min(4,parseFloat(L&&L.scale)||1));return {w:(L.baseW||L.w||180)*k,h:(L.baseH||L.h||104)*k};}
 function progressBoxLocal(L){var a=progressLocal(L),d=progressDrawSize(L);return anchorBoxLocal(L.anchor||'cl',a.x,a.y,d.w,d.h);}
 function healthBoxLocal(L){var a=healthLocal(L),d=healthDrawSize(L),cnt=L.count||3,w=cnt*d.heartW+(cnt-1)*d.gap;return anchorBoxLocal(L.anchor||'tc',a.x,a.y,w,d.heartW);}
 function ctaBoxLocal(L){var a=ctaLocal(L),d=ctaDrawSize(L),anchor=L.anchor||'bc';if(CW<CH)anchor=anchor.charAt(0)+'c';return anchorBoxLocal(anchor,CW<CH?0:a.x,a.y,d.w,d.h);}
+function heightBoxLocal(L){var a=heightLocal(L),d=heightDrawSize(L);return anchorBoxLocal(L.anchor||'tr',a.x,a.y,d.w,d.h);}
 
 // ── Text labels — level text with per-segment colors (must match index.html) ──
 var FONT_CSS=W.RiseFontCSS={
@@ -1117,6 +1120,7 @@ class Game{
     this.progressBars=[];
     this.healthBars=[];
     this.ctaButtons=[];
+    this.heightIndicators=[];
     this.tutorialObj=null;
     const requestedCount=Math.max(1,Math.min(20,parseInt(c.stageCount,10)||5));
     // levelData may include fixed Start scene at index 0 and Finish scene at the last index.
@@ -1131,6 +1135,7 @@ class Game{
           if(o&&o.kind==='progress'){var po=Object.assign({},o);po.flaskImg=makeImg(po.flaskSrc);po.fillImg=makeImg(po.fillSrc);this.progressBars.push(po);return;}
           if(o&&o.kind==='health'){var ho=Object.assign({},o);ho.count=Math.max(1,parseInt(this.cfg.lives,10)||ho.count||3);ho.heartImg=makeImg(ho.heartSrc||this.cfg.defaultHeartSrc);ho.bgImg=ho.bgSrc?makeImg(ho.bgSrc):null;ho.breakLImg=ho.breakLSrc?makeImg(ho.breakLSrc):null;ho.breakRImg=ho.breakRSrc?makeImg(ho.breakRSrc):null;this.healthBars.push(ho);return;}
           if(o&&o.kind==='cta'){var co=Object.assign({},o);co.bgImg=makeImg(co.bgSrc);co.textImg=makeImg(co.textSrc);this.ctaButtons.push(co);return;}
+          if(o&&o.kind==='height'){var hi=Object.assign({},o);hi.arrowImg=makeImg(hi.arrowSrc);this.heightIndicators.push(hi);return;}
           if(o&&o.kind==='tutorial'){this.tutorialObj=Object.assign({},o);return;}
           if(o&&o.kind==='winTrigger'){winLines.push({y:layoutY(o),triggered:false,prevScreenY:null});return;}
           if(o&&o.kind==='bg'){bgs.push(new BgImg(o,this._spr('bgimg_'+o.imgId)));return;}
@@ -2166,7 +2171,7 @@ class Game{
       this._drawProgressBars(ctx);
       this._drawHealthBars(ctx);
       this._drawCtas(ctx);
-      this._drawHeightIndicator(ctx);
+      this._drawHeightIndicators(ctx);
       if(!this.tutDone&&this.state==='playing'&&this.tutPhase==='learn'&&this.tutA>0)this._drawTut(ctx);
       if(this.hpA>0&&!(this.healthBars&&this.healthBars.length))this._drawHp(ctx);
     }
@@ -2175,61 +2180,58 @@ class Game{
     if(this.state==='endcard')this._drawEnd(ctx);
   }
 
-  _heightValue(){
-    const start=parseFloat(this.cfg.heightStart);
-    const perStage=parseFloat(this.cfg.heightFeetPerStage);
+  _heightValue(indicator){
+    const start=parseFloat(indicator&&indicator.start);
+    const perStage=parseFloat(indicator&&indicator.feetPerStage);
     const base=isFinite(start)?start:66;
     const rate=isFinite(perStage)?Math.max(0,perStage):100;
     return Math.max(0,Math.floor(base+(this._heightTravelStages||0)*rate));
   }
 
-  _drawHeightIndicator(ctx){
-    if(this.cfg.heightIndicatorEnabled===false||!this._startedAt)return;
+  _drawHeightIndicators(ctx){
+    const indicators=(this.heightIndicators&&this.heightIndicators.length)?this.heightIndicators:[];
+    if(!indicators.length||!this._startedAt)return;
     if(this.state==='endcard'||this.state==='finished'||this.state==='lost')return;
     const elapsed=Date.now()-this._startedAt;
     const raw=clamp(elapsed/720,0,1),show=raw*raw*(3-2*raw);
     if(show<=0)return;
 
-    if(!this._heightArrow)this._heightArrow=this._spr('height_arrow')||makeImg(this.cfg.defaultHeightArrowSrc);
-    const portrait=CW<=CH;
-    const scale=hudCounterScale();
-    const right=(portrait?18:28)*scale;
-    const top=(portrait?30:24)*scale;
-    const numberSize=(portrait?54:50)*scale;
-    const ftSize=21*scale;
-    const arrowSize=64*scale;
-    const numberX=CW-right-48*scale-(1-show)*125*scale;
-    const numberY=top+numberSize*.53;
-    const arrowX=numberX-88*scale;
-    const arrowY=top+40*scale;
-    const purple=this.cfg.heightAccentColor||'#a552ff';
-    const outline=this.cfg.heightOutlineColor||'#7d33ce';
+    for(const indicator of indicators){
+      const box=heightBoxLocal(indicator),x=CW/2+box.x-(1-show)*125*box.w/180,y=CH/2+box.y;
+      const scale=Math.min(box.w/180,box.h/104);
+      const numberSize=50*scale,ftSize=21*scale,arrowSize=64*scale;
+      const numberX=x+122*scale,numberY=y+30*scale;
+      const arrowX=x+34*scale,arrowY=y+40*scale;
+      const accent=indicator.accentColor||this.cfg.heightAccentColor||'#a552ff';
+      const outline=indicator.outlineColor||this.cfg.heightOutlineColor||'#7d33ce';
+      const textColor=indicator.textColor||'#ffffff';
+      const arrowColor=indicator.arrowColor||'#ffffff';
+      const arrow=imgOk(indicator.arrowImg)?indicator.arrowImg:(this._heightArrow||(this._heightArrow=this._spr('height_arrow')||makeImg(this.cfg.defaultHeightArrowSrc)));
 
-    ctx.save();
-    ctx.globalAlpha=show;
-    if(imgOk(this._heightArrow)){
-      ctx.save();ctx.translate(arrowX,arrowY);ctx.rotate(-Math.PI/2);
-      drawTintedImage(ctx,this._heightArrow,-arrowSize/2+3*scale,-arrowSize/2+3*scale,arrowSize,arrowSize,purple);
-      drawTintedImage(ctx,this._heightArrow,-arrowSize/2,-arrowSize/2,arrowSize,arrowSize,'#ffffff');
+      ctx.save();ctx.globalAlpha=show;
+      if(imgOk(arrow)){
+        ctx.save();ctx.translate(arrowX,arrowY);ctx.rotate(-Math.PI/2);
+        drawTintedImage(ctx,arrow,-arrowSize/2+3*scale,-arrowSize/2+3*scale,arrowSize,arrowSize,accent);
+        drawTintedImage(ctx,arrow,-arrowSize/2,-arrowSize/2,arrowSize,arrowSize,arrowColor);
+        ctx.restore();
+      }else{
+        const arrowPath=()=>{ctx.beginPath();ctx.moveTo(-10*scale,22*scale);ctx.lineTo(-10*scale,-5*scale);ctx.lineTo(-23*scale,-5*scale);ctx.lineTo(0,-29*scale);ctx.lineTo(23*scale,-5*scale);ctx.lineTo(10*scale,-5*scale);ctx.lineTo(10*scale,22*scale);ctx.closePath();};
+        ctx.save();ctx.translate(arrowX+3*scale,arrowY+3*scale);ctx.fillStyle=accent;arrowPath();ctx.fill();ctx.restore();
+        ctx.save();ctx.translate(arrowX,arrowY);ctx.fillStyle=arrowColor;arrowPath();ctx.fill();ctx.restore();
+      }
+
+      const family='Arial, Helvetica, sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+      ctx.font='900 '+Math.round(numberSize)+'px '+family;
+      ctx.lineWidth=Math.max(3,5*scale);ctx.strokeStyle=outline;ctx.fillStyle=textColor;
+      const value=String(this._heightValue(indicator));
+      ctx.strokeText(value,numberX,numberY);ctx.fillText(value,numberX,numberY);
+      ctx.font='900 '+Math.round(ftSize)+'px '+family;
+      ctx.lineWidth=Math.max(2,3.5*scale);
+      const ftY=y+78*scale;
+      ctx.strokeText('FT',numberX,ftY);ctx.fillText('FT',numberX,ftY);
       ctx.restore();
-    }else{
-      // Fallback keeps the HUD usable if a custom export strips the source PNG.
-      const arrowPath=()=>{ctx.beginPath();ctx.moveTo(-10*scale,22*scale);ctx.lineTo(-10*scale,-5*scale);ctx.lineTo(-23*scale,-5*scale);ctx.lineTo(0,-29*scale);ctx.lineTo(23*scale,-5*scale);ctx.lineTo(10*scale,-5*scale);ctx.lineTo(10*scale,22*scale);ctx.closePath();};
-      ctx.save();ctx.translate(arrowX+3*scale,arrowY+3*scale);ctx.fillStyle=purple;arrowPath();ctx.fill();ctx.restore();
-      ctx.save();ctx.translate(arrowX,arrowY);ctx.fillStyle='#fff';arrowPath();ctx.fill();ctx.restore();
     }
-
-    const family='Arial, Helvetica, sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
-    ctx.font='900 '+Math.round(numberSize)+'px '+family;
-    ctx.lineWidth=Math.max(3,5*scale);ctx.strokeStyle=outline;ctx.fillStyle='#ffffff';
-    const value=String(this._heightValue());
-    ctx.strokeText(value,numberX,numberY);ctx.fillText(value,numberX,numberY);
-    ctx.font='900 '+Math.round(ftSize)+'px '+family;
-    ctx.lineWidth=Math.max(2,3.5*scale);
-    const ftY=top+numberSize+20*scale;
-    ctx.strokeText('FT',numberX,ftY);ctx.fillText('FT',numberX,ftY);
-    ctx.restore();
   }
 
   _flaskPath(ctx,x,y,w,h){

@@ -341,10 +341,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
-      <div class="sec">Height indicator</div>
-      <div class="row"><label>Show height<small>Динамический показатель высоты справа сверху</small></label><input type="checkbox" id="cfg-heightIndicatorEnabled" checked></div>
-      <div class="row"><label>Start height (ft)<small>Начальное значение</small></label><input type="number" id="cfg-heightStart" value="66" min="0" max="99999" step="1"></div>
-      <div class="row"><label>Feet per level<small>Рост значения за высоту одного обычного уровня</small></label><input type="number" id="cfg-heightFeetPerStage" value="100" min="0" max="10000" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -691,6 +687,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <button class="et" id="et-text">🅣 Text</button>
           <button class="et" id="et-progress">⚗ Progress</button>
           <button class="et" id="et-health">♥ Health</button>
+          <button class="et" id="et-height" title="Добавить динамический счётчик высоты. Это обычный UI-объект: его можно выбрать и удалить кнопкой Del.">↥ Height</button>
           <button class="et" id="et-cta">CTA</button>
           <button class="et" id="et-win-trigger" title="Добавить невидимую линию в любую сцену; после пересечения запускается Win Card">🏁 Win line</button>
         </div>
@@ -808,6 +805,25 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="lp">Offset X% <input type="number" id="hb-offx" value="0" min="-200" max="200" step="1"></div>
         <div class="lp">Y% <input type="number" id="hb-offy" value="-44" min="-200" max="200" step="1"></div>
+      </div>
+      <div class="lblbar" id="heightbar" style="display:none">
+        <div class="lp" style="font-weight:800;">↥ Height indicator</div>
+        <div class="lp">Start FT<input type="number" id="height-start" value="66" min="0" max="99999" step="1"></div>
+        <div class="lp">FT per level<input type="number" id="height-per-stage" value="100" min="0" max="10000" step="1"></div>
+        <div class="lp">Scale<input type="number" id="height-scale" value="1" min="0.25" max="4" step="0.05"></div>
+        <div class="lp">Text<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="height-text-color" value="#ffffff"></div>
+        <div class="lp">Accent<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="height-accent-color" value="#a552ff"></div>
+        <div class="lp">Outline<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="height-outline-color" value="#7d33ce"></div>
+        <div class="lp">Anchor
+          <div class="anchor-grid" id="height-anchor">
+            <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr" class="on"></button>
+            <button data-a="cl"></button><button data-a="cc"></button><button data-a="cr"></button>
+            <button data-a="bl"></button><button data-a="bc"></button><button data-a="br"></button>
+          </div>
+        </div>
+        <div class="lp">Offset X% <input type="number" id="height-offx" value="-3.5" min="-200" max="200" step="0.1"></div>
+        <div class="lp">Y% <input type="number" id="height-offy" value="3" min="-200" max="200" step="0.1"></div>
+        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Один индикатор на игру. Чтобы убрать его из playable, выберите объект и нажмите Del.</small>
       </div>
       <div class="lblbar" id="winbar" style="display:none">
         <div class="lp" style="font-weight:800;color:#ff73d1;">🏁 Win line</div>
@@ -1027,9 +1043,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 </script>
 
 <script src="src/default-project.js?v=rise-play001-01-defaults"></script>
-<script src="src/playable-template.js?v=endcard-defaults-v1"></script>
-<script src="src/builder.js?v=endcard-defaults-v1"></script>
-<script src="script2.js?v=rise-play001-01-defaults"></script>
+<script src="src/playable-template.js?v=height-editor-v1"></script>
+<script src="src/builder.js?v=height-editor-v1"></script>
+<script src="script2.js?v=height-editor-v1"></script>
 
 </body>
 </html>

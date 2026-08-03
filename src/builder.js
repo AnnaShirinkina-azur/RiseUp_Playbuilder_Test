@@ -29,9 +29,6 @@ function readConfig(){
   }
   return{
     lives:g('cfg-lives'),gameSpeed:g('cfg-gameSpeed'),acceleration:g('cfg-acceleration'),stageCount:g('cfg-stageCount')||1,
-    heightIndicatorEnabled:(function(){var e=document.getElementById('cfg-heightIndicatorEnabled');return e?e.checked:true;})(),
-    heightStart:(function(){var v=g('cfg-heightStart');return isNaN(v)?66:v;})(),
-    heightFeetPerStage:(function(){var v=g('cfg-heightFeetPerStage');return isNaN(v)?100:Math.max(0,v);})(),
     deathPause:(function(){var v=g('cfg-deathPause');return isNaN(v)?2500:Math.max(0,v*1000);})(),
     obstaclePushForce:g('cfg-pushForce'),gravityModifier:g('cfg-gravityModifier'),
     // Backward-compatible config key: now controls rigid side-group squeeze speed on level 1.
@@ -137,7 +134,8 @@ const FONT_FALLBACKS={
   LiberationSans:'fonts/optimized/LiberationSans.woff2'
 };
 function bundleForConfig(cfg,sprMap){
-  const out=IMAGE_FALLBACK_BUNDLE.slice();
+  const hasHeight=Array.isArray(cfg&&cfg.levelData)&&cfg.levelData.some(stage=>Array.isArray(stage)&&stage.some(o=>o&&o.kind==='height'));
+  const out=IMAGE_FALLBACK_BUNDLE.filter(path=>path!=='textures/height_arrow.png'||hasHeight);
   if(cfg.soundEnabled!==false){
     Object.keys(AUDIO_FALLBACKS).forEach(k=>{if(!sprMap['audio_'+k])out.push(AUDIO_FALLBACKS[k]);});
   }
