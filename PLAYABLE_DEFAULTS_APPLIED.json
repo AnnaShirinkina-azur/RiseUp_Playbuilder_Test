@@ -1,80 +1,222 @@
 {
-  "cfg": {
-    "lives": 3,
-    "gameSpeed": 3.2,
-    "acceleration": 0.4,
-    "stageCount": 1,
-    "obstaclePushForce": 7,
-    "gravityModifier": 1,
-    "hpBarShowTime": 2000,
-    "chainReaction": false,
-    "scatterBounciness": 0.1,
-    "tutorialDisplayTime": 3500,
-    "playerSize": 2,
-    "playerDeathAnimSpeed": 1,
-    "playerStart": {
-      "coordMode": "center",
-      "x": 0,
-      "y": 169
-    },
-    "shieldSize": 1,
-    "stageBgGradients": [
-      [
-        "#5BC0DE",
-        "#69C5EC"
-      ],
-      [
-        "#EF5350",
-        "#F97F6F"
-      ],
-      [
-        "#B03C02",
-        "#CC4A05"
-      ]
-    ],
-    "seamScale": 0.5,
-    "soundVolume": 0.8,
-    "soundVolumes": {
-      "bgm": 0.7,
-      "win": 1,
-      "lose": 1,
-      "hit": 1,
-      "shield": 0.9
-    },
-    "endCard": {
-      "enabled": true,
-      "scale": 1,
-      "x": 0,
-      "y": 0,
-      "overlay": 0.55,
-      "showCta": true,
-      "ctaText": "PLAY NOW",
-      "ctaY": 74
-    }
-  },
-  "level_counts": [
-    0,
-    20,
+  "source": "RISE_play001_01_st_xcl_en_applovin.html",
+  "applied": true,
+  "levelCounts": [
+    2,
+    26,
+    98,
+    11,
+    3,
     0
   ],
-  "sprite_keys": [
+  "spriteKeys": [
+    "background",
     "bg_seam_stage0",
     "bg_seam_stage1",
+    "bg_seam_stage10",
+    "bg_seam_stage11",
+    "bg_seam_stage12",
+    "bg_seam_stage13",
+    "bg_seam_stage14",
+    "bg_seam_stage15",
+    "bg_seam_stage16",
+    "bg_seam_stage17",
+    "bg_seam_stage18",
+    "bg_seam_stage19",
     "bg_seam_stage2",
+    "bg_seam_stage20",
+    "bg_seam_stage21",
+    "bg_seam_stage3",
+    "bg_seam_stage4",
+    "bg_seam_stage5",
+    "bg_seam_stage6",
+    "bg_seam_stage7",
+    "bg_seam_stage8",
+    "bg_seam_stage9",
+    "endcard_countdown_badge",
     "endcard_lose_bg",
     "endcard_lose_button",
+    "endcard_lose_landscape_cta_bg",
     "endcard_lose_logo",
+    "endcard_lose_portrait_cta_bg",
     "endcard_win",
-    "endcard_win_frame"
+    "endcard_win_frame",
+    "endcard_win_landscape_cta_bg",
+    "endcard_win_landscape_image",
+    "endcard_win_portrait_cta_bg",
+    "height_arrow",
+    "player",
+    "player_death",
+    "shield",
+    "tutorial_triangle"
   ],
-  "patched_sprite_keys": [
-    "bg_seam_stage0",
-    "bg_seam_stage1",
-    "bg_seam_stage2",
-    "endcard_lose_bg",
-    "endcard_lose_button",
-    "endcard_lose_logo",
-    "endcard_win",
-    "endcard_win_frame"
-  ]
+  "spriteCount": 39,
+  "defaultsSummary": {
+    "lives": 3,
+    "orientation": "landscape",
+    "deathPauseMs": 2500,
+    "tutorialText": "PROTECT YOUR BALLOON!",
+    "tutorialTextSizePx": 30,
+    "tutorialXPercent": 50,
+    "tutorialYPercent": 35,
+    "tutorialCaptionGapTriangleHeights": -0.5,
+    "tutorialFailEnabled": true,
+    "winEndCardEnabled": true,
+    "loseEndCardEnabled": true,
+    "endCardYPercent": 10,
+    "endCardCountdown": 10,
+    "winCtaText": "PLAY NOW",
+    "winCtaHeight": 110,
+    "winCtaFontSize": 30,
+    "winCtaBgTint": "#c800ff",
+    "winCtaCustomSprite": true,
+    "loseImageYPercent": 0,
+    "loseCountdownYPercent": 0,
+    "winLandscapeArtworkScale": 0.85,
+    "winLandscapeCustomArtwork": true,
+    "endCardLayouts": "Imported exactly from AppLovin playable: Win/Lose x Portrait/Landscape"
+  },
+  "gameplayPreserved": {
+    "level0Corridor": false,
+    "heightCheckpointRespawn": true,
+    "checkpointRespawn": true,
+    "deathPause": true,
+    "level3BasketContactRelease": true,
+    "portraitCtaScaleFix": true,
+    "level4WinCardToggleGate": false,
+    "editableWinLine": true
+  },
+  "endCardFeatures": {
+    "independentWinLoseToggles": true,
+    "winAndLoseLayoutsImported": true,
+    "loseCountdownPreserved": true,
+    "loseCardObjectsDraggable": true,
+    "independentWinLoseLayouts": true,
+    "independentPortraitLandscapeLayouts": true,
+    "perLayoutOverlayFontAndCtaVisibility": true,
+    "perLayoutBackgroundArtworkAndCtaSprites": true,
+    "ctaPositionUsesSavedXInBothOrientations": true,
+    "winCardTriggersOnLevel04Arrival": false,
+    "level04StoreTriggerOnlyWhenWinCardDisabled": true,
+    "winCardTriggersOnAuthoredWinLine": true,
+    "winLineIsInvisibleInPlayable": true,
+    "winLineCanBePlacedOnAnyMiniLevel": true,
+    "winLineCanBePlacedOnAnyScene": true,
+    "winLineCanBeMovedBetweenScenes": true,
+    "finishSceneWaitsForAuthoredWinLine": true
+  },
+  "editorRuntimeSync": "Level Editor wrapper restored; Lose End Card image/text use Y=0 reference in editor and runtime",
+  "obstaclePrefabs": {
+    "folder": "Obstacles / Prefabs",
+    "level1Squeeze": true,
+    "level3BasketAndBalls": true,
+    "physicsMetadataExported": true,
+    "editableAsWholeOrIndividual": true,
+    "level2GridCorridor": true,
+    "level2GridCorridorCollisionMode": "none",
+    "availablePrefabs": [
+      "Level 1 — Squeeze Walls",
+      "Level 2 — Grid Corridor",
+      "Level 3 — Basket & Balls"
+    ],
+    "preview": "live SVG rendered from prefab object code; no generated thumbnail images"
+  },
+  "prefabsPanel": "separate sidebar item under Obstacles",
+  "levelNumberFormat": "0, 01, 02, 03, 04",
+  "levelNumberFont": "Roboto Mono",
+  "defaultImport": "Exact End Card configuration and artwork from uploaded AppLovin playable; current builder/gameplay features preserved",
+  "prefabPhysicsPanel": {
+    "separateSidebarSubitem": true,
+    "commonPhysicsPanel": [
+      "pushForce",
+      "gravityModifier",
+      "chainReaction",
+      "collisionForce",
+      "scatterBounciness"
+    ],
+    "prefabSpecificControls": [
+      "level1CenterSpeed",
+      "level3BasketPower",
+      "level3BallGravity"
+    ],
+    "level2UsesCommonPhysics": false,
+    "level2OldPhysicsNoObjectCollisions": true
+  },
+  "level4Physics": "continuous shield support; repeated contact without per-touch kick; Level 4 obstacle ball remains solid against non-interactable walls",
+  "nonInteractableCollision": "non-interactable obstacles are immovable physical colliders for obstacle bodies; protector/shield passes through them; swept collision prevents dynamic obstacles tunneling through thin walls",
+  "obstacleInteractionPhysics": "enabled by default; dynamic obstacles transfer mass-weighted impulse, friction and spin to other interactable obstacles; kinematic neighbours wake on impact; four solver passes stabilize clusters",
+  "endCardRepair": "full-device editor viewport; stable central active zone; gameplay HUD and CTA suppressed while End Card is visible",
+  "endCardLayoutFix": {
+    "levelEditorContainer": "scrollable full-size wrapper restored",
+    "loseImageReferenceY": 0,
+    "loseTextReferenceY": 0,
+    "activeZone": "editor-only visual guide; does not affect Level Editor layout"
+  },
+  "exportOptimization": {
+    "targetMaxMB": 5,
+    "dataUrlRegistry": true,
+    "deduplicatesAcross": [
+      "sprites",
+      "level data",
+      "End Card layouts",
+      "CTA sprites",
+      "fallback assets"
+    ],
+    "duplicateCtaStoredOnce": true,
+    "rasterCompression": "WebP with max dimension 1280 and original fallback when conversion is not smaller",
+    "customAudioCompression": "large uncompressed uploads are downmixed/resampled when the result is smaller",
+    "defaultAudio": "mono MP3 fallbacks",
+    "fontCompression": "subset WOFF2 fallbacks",
+    "dynamicBundle": "only assets used by the current configuration are embedded",
+    "sizeIndicator": "shows final MB against 5 MB after export",
+    "validatedDefaultExportMB": 0.91
+  },
+  "serviceMenu": {
+    "title": "Служебное",
+    "androidStoreField": "cfg-storeAndroid",
+    "iosStoreField": "cfg-storeIos",
+    "runtimeRouting": "iOS devices use iOS URL; other devices use Android URL; missing URL falls back to the other platform"
+  },
+  "networkExport": {
+    "networks": [
+      "AppLovin",
+      "Moloco",
+      "Mintegral",
+      "UnityAds",
+      "GoogleAds",
+      "Generic"
+    ],
+    "variants": [
+      "xcl",
+      "1cl",
+      "2cl"
+    ],
+    "pack": "5 paid networks x 3 click variants",
+    "formats": {
+      "AppLovin": "HTML",
+      "Moloco": "HTML",
+      "Mintegral": "ZIP",
+      "UnityAds": "HTML",
+      "GoogleAds": "ZIP",
+      "Generic": "HTML"
+    },
+    "sizeLimitMB": 5,
+    "assetOptimization": "shared prepared base reused across all network builds",
+    "storeLinks": "Android/iOS URLs are embedded into every network build with platform fallback and URL normalization",
+    "clickGate": "1cl exits and locks gameplay on the first user click; 2cl on the second; xcl uses configured count",
+    "singleFileMraid": "AppLovin, Moloco and UnityAds HTML do not depend on a local mraid.js file; injected SDK is used when available"
+  },
+  "rightInspectorScroll": "independent vertical scroll with fixed download bar, matching the left navigation behavior",
+  "collisionForceControl": {
+    "separateControl": true,
+    "field": "cfg-collisionForce",
+    "default": 0.01,
+    "range": [
+      0,
+      1
+    ],
+    "step": 0.01,
+    "response": "soft nonlinear: effective impulse = slider^2 * 0.55",
+    "effect": "very low obstacle-to-obstacle impulse transfer; 0 disables transferred momentum while keeping solid overlap resolution"
+  }
 }

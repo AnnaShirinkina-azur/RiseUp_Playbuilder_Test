@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap">
 <title>Rise Playable Builder</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -17,9 +18,13 @@ header{padding:12px 20px;border-bottom:1px solid var(--brd);display:flex;align-i
 .logo{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;}
 .logo-icon{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,var(--acc),var(--red));display:flex;align-items:center;justify-content:center;font-size:16px;}
 .badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(124,108,245,.15);color:var(--acc);border:1px solid rgba(124,108,245,.25);}
-.ws{flex:1;display:grid;grid-template-columns:250px 1fr 340px;overflow:hidden;}
+.ws{flex:1 1 0;display:grid;grid-template-columns:250px minmax(0,1fr) minmax(380px,420px);overflow:hidden;min-height:0;height:0;}
 /* Luna-like left navigation */
-.sb{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;padding:16px 12px;gap:14px;}
+.sb{background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;min-height:0;overflow-x:hidden;overflow-y:auto;padding:16px 12px;gap:14px;overscroll-behavior:contain;scrollbar-gutter:stable;}
+.sb::-webkit-scrollbar{width:5px;}
+.sb::-webkit-scrollbar-track{background:transparent;}
+.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:999px;}
+.sb::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.24);}
 .tabs{display:flex;flex-direction:column;gap:8px;border-bottom:none;padding:0;flex-shrink:0;}
 .param-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:4px 4px 2px;}
 .param-group{display:flex;flex-direction:column;gap:5px;}
@@ -32,6 +37,11 @@ header{padding:12px 20px;border-bottom:1px solid var(--brd);display:flex;align-i
 .tab::after{content:"›";opacity:.45;}
 .tab:hover{color:var(--txt);background:rgba(255,255,255,.035);}
 .tab.on{color:#fff;background:rgba(124,108,245,.16);border-color:rgba(124,108,245,.35);}
+.tab.tab-child{width:calc(100% - 14px);margin-left:14px;padding-left:14px;font-size:12px;}
+.tab.tab-child::before{content:'📁';font-size:12px;margin-right:7px;opacity:.85;}
+.tab.tab-child::after{margin-left:auto;}
+.tab[data-panel="prefab-physics"]::before{content:'⚙';}
+.panel-note{font-size:11px;line-height:1.4;color:var(--dim);padding:8px 10px;margin:0 0 10px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.02);}
 .pnl{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:3px;}
 .pnl.on{display:flex;}
 .pnl::-webkit-scrollbar{width:3px;}
@@ -67,6 +77,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .tpl-card{width:100%;display:grid;grid-template-columns:38px 1fr auto;gap:8px;align-items:center;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);padding:6px;color:var(--txt);cursor:pointer;text-align:left;}
 .tpl-card:hover,.tpl-card.on{border-color:var(--acc);background:rgba(124,108,245,.13);}
 .tpl-card .thumb{width:34px;height:34px;}
+.prefab-folder{margin:8px 0 4px;border:1px solid var(--brd);border-radius:var(--r2);background:rgba(255,255,255,.018);overflow:hidden;}
+.prefab-folder>summary{list-style:none;cursor:pointer;padding:8px 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--txt);display:flex;align-items:center;gap:7px;}
+.prefab-folder>summary::-webkit-details-marker{display:none;}
+.prefab-folder>summary:before{content:'▾';color:var(--mut);font-size:10px;transition:transform .15s;}
+.prefab-folder:not([open])>summary:before{transform:rotate(-90deg);}
+.prefab-folder .tpl-list{margin:0;padding:0 7px 8px;}
+.physics-prefab-card{grid-template-columns:78px minmax(0,1fr);padding:8px;}
+.physics-prefab-card .thumb{width:72px;height:72px;aspect-ratio:1/1;border-radius:12px;background:#0b0b19;border-color:rgba(255,255,255,.08);padding:3px;overflow:hidden;}
+.physics-prefab-card .physics-prefab-preview{display:block;width:100%;height:100%;overflow:hidden;filter:drop-shadow(0 0 3px rgba(125,108,245,.28));}
+.physics-prefab-card .tpl-meta{color:#aaa0ff;}
 .tpl-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tpl-meta{font-size:10px;color:var(--dim);margin-top:1px;}
 .tpl-del{background:transparent;border:0;color:var(--dim);font-size:15px;cursor:pointer;padding:2px 5px;}
@@ -85,13 +105,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;}
 .btn-s{background:var(--surf2);color:var(--txt);border:1px solid var(--brd);}
 .btn-s:hover{border-color:var(--acc);color:var(--acc);}
-.btn-dl{background:linear-gradient(135deg,var(--acc),#9c5df5);color:#fff;width:100%;padding:11px;font-size:14px;}
-.btn-dl:hover{opacity:.9;transform:translateY(-1px);}
-.btn-dl:disabled{opacity:.45;pointer-events:none;transform:none;}
 /* center preview + right inspector */
-.inspector{background:var(--surf);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;}
-.inspector-head{padding:14px 16px;border-bottom:1px solid var(--brd);font-size:16px;font-weight:800;}
-.inspector .pnl{padding:14px 16px;}
+.inspector{background:var(--surf);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;min-height:0;height:100%;max-height:100%;}
+.inspector-head{padding:14px 16px;border-bottom:1px solid var(--brd);font-size:16px;font-weight:800;flex:0 0 auto;}
+.inspector-scroll{flex:1 1 auto;min-height:0;height:0;padding-bottom:18px;overflow-x:hidden;overflow-y:scroll;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent;}
+.inspector-scroll::-webkit-scrollbar{width:7px;}
+.inspector-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.025);}
+.inspector-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px;border:2px solid transparent;background-clip:padding-box;}
+.inspector-scroll::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.34);background-clip:padding-box;}
+.inspector .pnl{padding:14px 16px 22px;min-height:0;height:auto!important;overflow:visible!important;flex:0 0 auto;width:100%;}
+.inspector .pnl.on{display:flex;height:auto!important;overflow:visible!important;}
+.inspector .bbar{display:none!important;}
 .right{display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 .rtabs{display:flex;border-bottom:1px solid var(--brd);padding:0 18px;gap:2px;flex-shrink:0;background:var(--bg);}
 .rtab{padding:11px 13px 9px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;}
@@ -116,9 +140,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .editor-phone.landscape{width:80%;height:80%;border-radius:26px;}
 .end-pane{display:none;flex-direction:column;min-height:0;overflow:hidden;}
 .end-pane.on{display:flex;}
+#end-phone{width:auto;height:auto;max-width:calc(100% - 24px);max-height:calc(100% - 24px);flex:0 0 auto;}
 #end-canvas{display:block;background:#080810;}
+/* Shared editor canvas wrapper. Keep the Level Editor scrollable and full-size. */
 .ec-wrap{flex:1;position:relative;outline:none;overflow:auto;background:#080810;border-radius:20px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;text-align:center;min-width:0;min-height:0;}
 .ec-wrap canvas{display:block;margin:0 auto;}
+/* End Card uses a fitted device viewport; scope its fixed sizing locally so it
+   cannot collapse the Level Editor strip. */
+#end-wrap{flex:0 0 auto;overflow:hidden;}
+#end-wrap canvas{margin:0;}
 .level-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surf);border-bottom:1px solid var(--brd);flex-wrap:wrap;}
 .level-toolbar .mini{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px;font-weight:600;}
 .level-toolbar input[type=number]{width:58px;font-size:12px;padding:4px 6px;}
@@ -155,9 +185,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .ep input[type=number]{width:50px;font-size:12px;padding:3px 5px;}
 .ep .hex-color{width:86px;height:24px;}
 /* ── Fonts (for label previews in the editor) ── */
-@font-face{font-family:'Baloo2';font-weight:700;src:url('Assets/fonts/Baloo2-Bold.ttf')}
-@font-face{font-family:'Kameron';font-weight:600;src:url('Assets/fonts/Kameron-SemiBold.ttf')}
-@font-face{font-family:'LiberationSans';src:url('Assets/fonts/LiberationSans.ttf')}
+@font-face{font-family:'Baloo2';font-weight:700;src:url('Assets/fonts/optimized/Baloo2-Bold.woff2') format('woff2')}
+@font-face{font-family:'Kameron';font-weight:600;src:url('Assets/fonts/optimized/Kameron-SemiBold.woff2') format('woff2')}
+@font-face{font-family:'LiberationSans';src:url('Assets/fonts/optimized/LiberationSans.woff2') format('woff2')}
 /* ── Labels editor ── */
 .lblbar{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-top:1px solid var(--brd);flex-shrink:0;flex-wrap:wrap;background:var(--surf);}
 .lblbar .lp{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dim);font-weight:600;}
@@ -209,12 +239,68 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 .color-eyedropper:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .color-eyedropper:disabled{opacity:.38;cursor:not-allowed}
 
+/* Service / store links */
+.service-card{margin-top:10px;border:1px solid var(--brd);border-radius:14px;background:var(--surf2);overflow:hidden}
+.service-card>summary{list-style:none;cursor:pointer;padding:14px 16px;font-size:16px;color:var(--txt);display:flex;align-items:center;gap:10px}
+.service-card>summary::-webkit-details-marker{display:none}
+.service-card>summary::before{content:'⌄';font-size:18px;color:var(--dim);transform:rotate(-90deg);transition:transform .15s}
+.service-card[open]>summary::before{transform:rotate(0deg)}
+.service-card-body{padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.service-field{display:flex;flex-direction:column;gap:7px;color:var(--dim);font-size:14px}
+.service-field input{width:100%;min-width:0;height:46px;padding:0 14px;border-radius:9px;border:1px solid var(--brd);background:#090b12;color:var(--txt);font:14px system-ui,sans-serif}
+.service-field input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,108,245,.15)}
+
+/* Network export — matches the reference network builder UI */
+.network-export-card{margin-top:12px;margin-bottom:18px;border-radius:10px;background:var(--surf2)}
+.network-export-card>summary{padding:10px 12px;font-size:16px;min-height:44px}
+.network-export-card .service-card-body{padding:2px 12px 12px;gap:8px}
+.network-export-note{display:none}
+.network-name-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
+.network-field{display:flex;flex-direction:column;gap:3px;color:var(--dim);font-size:11px;min-width:0}
+.network-field input{width:100%;min-width:0;height:auto;padding:6px 8px;border-radius:5px;border:1px solid var(--brd);background:#0a0e14;color:var(--txt);font:12px system-ui,sans-serif}
+.network-field input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,108,245,.15)}
+.network-segment{display:flex;gap:0;border:1px solid var(--brd);border-radius:6px;overflow:hidden;background:#0a0e14;min-width:0}
+.network-segment button{flex:1;width:auto;min-width:0;border:0;border-radius:0;background:#0a0e14;color:var(--dim);padding:6px 4px;font:600 11.5px system-ui,sans-serif;cursor:pointer}
+.network-segment button+button{border-left:1px solid var(--brd)}
+.network-segment button.on{background:var(--acc);color:#fff}
+.network-name-preview{padding:6px 7px;border:1px solid var(--brd);border-radius:5px;background:#0a0e14;color:#8fa9ff;font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.4;overflow-wrap:anywhere}
+.network-list{display:flex;flex-direction:column;gap:4px;min-width:0}
+.network-row{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 9px;border:1px solid var(--brd);border-left:3px solid var(--brd);border-radius:6px;background:#0a0e14;min-width:0;transition:border-left-color .2s}
+.network-row.ok{border-left-color:#67d76d}
+.network-row.over{border-left-color:#ff6577}
+.network-row.checking{border-left-color:#d6a84d}
+.network-row-name{min-width:68px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.network-row-format{flex:0 0 auto;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.07);color:var(--dim);font-size:9.5px}
+.network-row-size{flex:1;min-width:0;text-align:right;color:var(--dim);font:11px system-ui,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.network-row.ok .network-row-size{color:#67d76d}
+.network-row.over .network-row-size{color:#ff6577}
+.network-row.checking .network-row-size{color:#d6a84d}
+.network-download{flex:0 0 auto;width:auto!important;min-width:0;padding:4px 9px!important;border:1px solid var(--brd)!important;border-radius:5px!important;background:var(--surf3)!important;color:var(--txt)!important;font-size:11px!important;font-weight:500!important;white-space:nowrap}
+.network-download:hover{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.22)!important}
+.network-pack-row{display:flex;gap:6px;align-items:stretch}
+.network-pack{flex:1;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:auto!important;padding:8px 14px!important;border-radius:8px!important}
+.network-pack small{font-size:10px;font-weight:400;opacity:.65}
+.network-limits{flex:0 0 auto;width:auto!important;padding:9px 10px!important;background:var(--surf3)!important;border:1px solid var(--brd)!important;color:var(--txt)!important;border-radius:8px!important;font-size:11px!important}
+.network-info{min-height:14px;color:var(--dim);font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.network-info:empty{display:none}
+.network-info.ok{color:#67d76d}.network-info.error{color:#ff6577}
+.network-build-status{display:flex;flex-direction:column;gap:7px;padding:0;border-top:0}
+.network-build-status .prog,.network-build-status .err,.network-build-status .sz{margin:0}
+
+@media(max-width:1280px){.ws{grid-template-columns:230px minmax(0,1fr) 380px}}
+@media(max-width:1080px){.ws{grid-template-columns:220px minmax(0,1fr) 360px}}
+
 </style>
 </head>
 <body>
 <header>
   <div class="logo"><div class="logo-icon">🎈</div>Rise Playable Builder<span class="badge">v22 Luna UI</span></div>
-  <button class="btn btn-s" id="btn-reset">↺ Reset</button>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="btn btn-s" id="btn-save-project" type="button">↓ Save JSON</button>
+    <button class="btn btn-s" id="btn-load-project" type="button">↑ Load JSON</button>
+    <input id="project-json-input" type="file" accept=".json,application/json" hidden>
+    <button class="btn btn-s" id="btn-reset" type="button">↺ Reset</button>
+  </div>
 </header>
 
 <div class="ws">
@@ -225,6 +311,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <button class="tab on" data-panel="player">Player</button>
         <button class="tab" data-panel="speed">Speed</button>
         <button class="tab" data-panel="obstacles-physics">Obstacles / Physics</button>
+        <button class="tab tab-child" data-panel="prefab-physics">Prefab Physics</button>
         <button class="tab" data-panel="timing">Tutorial</button>
         <button class="tab" data-panel="endcard-gameplay">End Card</button>
       </div>
@@ -233,6 +320,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <button class="tab" data-panel="main-ball">Main ball</button>
         <button class="tab" data-panel="shield">Shield</button>
         <button class="tab" data-panel="obstacles-visual">Obstacles</button>
+        <button class="tab tab-child" data-panel="prefabs">Prefabs</button>
         <button class="tab" data-panel="environment">Environment</button>
         <button class="tab" data-panel="stage-accents">Stage debug colors</button>
         <button class="tab" data-panel="text-fonts">Text / fonts</button>
@@ -241,14 +329,22 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div class="acc-body on" id="acc-audio">
         <button class="tab" data-panel="sounds">Sounds</button>
       </div>
+      <button class="acc-head on" data-acc="service">Служебное</button>
+      <div class="acc-body on" id="acc-service">
+        <button class="tab" data-panel="service">Ссылки и экспорт</button>
+      </div>
     </div>
 
     <div class="pnl on" id="panel-player" data-title="Player">
       <div class="sec">Player</div>
       <div class="row"><label>Lives<small>Hits before lose</small></label><input type="number" id="cfg-lives" value="3" min="1" max="9"></div>
-      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="1" min="1" max="20" step="1"></div>
+      <div class="row"><label>Stages count<small>Количество стеджей на уровне</small></label><input type="number" id="cfg-stageCount" value="4" min="1" max="20" step="1"></div>
       <div class="row wide"><label>Death anim speed<small>1 = default, higher = faster</small></label>
         <div class="rr"><input type="range" id="cfg-playerDeathAnimSpeed" value="1" min="0.25" max="3" step="0.05" oninput="sv('cfg-playerDeathAnimSpeed-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-playerDeathAnimSpeed-v">1.00×</span></div></div>
+      <div class="sec">Height indicator</div>
+      <div class="row"><label>Show height<small>Динамический показатель высоты справа сверху</small></label><input type="checkbox" id="cfg-heightIndicatorEnabled" checked></div>
+      <div class="row"><label>Start height (ft)<small>Начальное значение</small></label><input type="number" id="cfg-heightStart" value="66" min="0" max="99999" step="1"></div>
+      <div class="row"><label>Feet per level<small>Рост значения за высоту одного обычного уровня</small></label><input type="number" id="cfg-heightFeetPerStage" value="100" min="0" max="10000" step="1"></div>
     </div>
 
     <div class="pnl" id="panel-speed" data-title="Speed">
@@ -257,7 +353,6 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-gameSpeed" value="3.2" min="1" max="12" step="0.1" oninput="sv('cfg-gameSpeed-v',this.value)"><span id="cfg-gameSpeed-v">3.2</span></div></div>
       <div class="row wide"><label>Acceleration<small>Speed added per stage</small></label>
         <div class="rr"><input type="range" id="cfg-acceleration" value="0.4" min="0" max="3" step="0.05" oninput="sv('cfg-acc-v',parseFloat(this.value).toFixed(2))"><span id="cfg-acc-v">0.40</span></div></div>
-      <div class="row"><label>Death pause (s)<small>Пауза после смерти до рестарта (анимация разбивания)</small></label><input type="number" id="cfg-deathPause" value="1.5" min="0" max="6" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-physics" data-title="Obstacles / Physics">
@@ -266,18 +361,40 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-pushForce" value="7" min="1" max="20" step="0.5" oninput="sv('cfg-push-v',this.value)"><span id="cfg-push-v">7</span></div></div>
       <div class="row wide"><label>Gravity modifier / сила гравитации<small>Obstacle fall after hit ×</small></label>
         <div class="rr"><input type="range" id="cfg-gravityModifier" value="1" min="0" max="4" step="0.05" oninput="sv('cfg-grav-v',parseFloat(this.value).toFixed(2))"><span id="cfg-grav-v">1.00</span></div></div>
+      <div class="row"><label>Object collisions<small>Отброшенные препятствия взаимодействуют друг с другом</small></label><input type="checkbox" id="cfg-chainReaction" checked></div>
+      <div class="row wide"><label>Collision force / Сила коллизии<small>Мягкая передача импульса между предметами; 0 — без передачи</small></label>
+        <div class="rr"><input type="range" id="cfg-collisionForce" value="0.01" min="0" max="1" step="0.01" oninput="sv('cfg-collision-force-v',parseFloat(this.value).toFixed(2)+'×')"><span id="cfg-collision-force-v">0.01×</span></div></div>
       <div class="row wide"><label>Bounciness<small>Упругость столкновений кусков</small></label>
         <div class="rr"><input type="range" id="cfg-scatterBounciness" value="0.1" min="0" max="1" step="0.05" oninput="sv('cfg-bounce-v',parseFloat(this.value).toFixed(2))"><span id="cfg-bounce-v">0.10</span></div></div>
+    </div>
+
+    <div class="pnl" id="panel-prefab-physics" data-title="Prefab Physics">
+      <div class="sec">Prefab Physics</div>
+      <div class="panel-note">Настройки применяются только к соответствующим physics-prefab группам и не влияют на обычные препятствия. Level 2 использует старую физику без столкновений между препятствиями.</div>
+      <div class="sec">Level 1 — Squeeze Walls</div>
+      <div class="row wide"><label>Side squeeze speed<small>px/s; left and right formations move as rigid groups after reaching the player</small></label>
+        <div class="rr"><input type="range" id="cfg-level1CenterSpeed" value="18" min="0" max="300" step="1" oninput="sv('cfg-level1CenterSpeed-v',Math.round(this.value))"><span id="cfg-level1CenterSpeed-v">18</span></div></div>
+      <div class="sec">Level 3 — Basket &amp; Balls</div>
+      <div class="row wide"><label>Basket power<small>How strongly the protector drives and flicks the basket</small></label>
+        <div class="rr"><input type="range" id="cfg-level3BasketPower" value="0.6" min="0.2" max="3" step="0.05" oninput="sv('cfg-level3BasketPower-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BasketPower-v">0.60</span></div></div>
+      <div class="row wide"><label>Ball gravity<small>Gravity inside the basket; higher values make the balls settle faster</small></label>
+        <div class="rr"><input type="range" id="cfg-level3BallGravity" value="0.34" min="0" max="1.2" step="0.02" oninput="sv('cfg-level3BallGravity-v',parseFloat(this.value).toFixed(2))"><span id="cfg-level3BallGravity-v">0.34</span></div></div>
     </div>
 
     <div class="pnl" id="panel-timing" data-title="Tutorial">
       <div class="sec">Tutorial</div>
       <div class="row"><label>Enable tutorial<small>Обучение на старте: рука + пирамида + надпись (объект Tutorial в Level Editor). Выкл — игра стартует сразу, без задержки</small></label><input type="checkbox" id="cfg-tutorialEnabled" checked></div>
-      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2" min="0.5" max="8" step="0.1"></div>
+      <div class="row"><label>Tutorial text<small>Надпись в туториале. Перенос строки — Enter</small></label><textarea id="cfg-tutorialText" rows="2" placeholder="protect your balloon!" style="width:180px;min-height:44px;resize:vertical;line-height:1.25">PROTECT YOUR BALLOON!</textarea></div>
+      <div class="row"><label>Text size (px)<small>Базовый размер текста туториала. Масштабируется вместе с композицией</small></label><input type="number" id="cfg-tutorialTextSize" value="30" min="8" max="96" step="1"></div>
+      <div class="row"><label>Tutorial X (%)<small>Положение центра тутора по горизонтали: 0 — слева, 50 — центр, 100 — справа</small></label><input type="number" id="cfg-tutorialX" value="50" min="0" max="100" step="1"></div>
+      <div class="row"><label>Tutorial Y (%)<small>Положение центра тутора по вертикали: 0 — сверху, 50 — центр, 100 — снизу</small></label><input type="number" id="cfg-tutorialY" value="35" min="0" max="100" step="1"></div>
+      <div class="row"><label>Text gap (triangle h)<small>Расстояние от нижней границы надписи до верхней границы треугольников, в высотах треугольника</small></label><input type="number" id="cfg-tutorialCaptionGap" value="-0.5" min="-2" max="5" step="0.1"></div>
+      <div class="row"><label>HP bar (s)<small>Seconds</small></label><input type="number" id="cfg-hpBarShowTime" value="2.0" min="0.5" max="8" step="0.1"></div>
       <div class="row"><label>Tutorial (s)<small>Время на обучение после старта</small></label><input type="number" id="cfg-tutorialTime" value="4.8" min="1" max="12" step="0.1"></div>
       <div class="row"><label>Fail tutorial<small>Если блоки не сбиты — игрок погибает</small></label><input type="checkbox" id="cfg-tutorialFailEnabled" checked></div>
-      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square" selected>Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
-      <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+      <div class="row"><label>Obstacle sprite<small>Дефолт, если туториал не размещён в Level Editor</small></label><select id="cfg-tutorialObstacleShape" class="cfg-select"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle" selected>Triangle</option></select></div>
+      <div class="row"><label>Triangle tint<small>Цвет изображения треугольников в туториале</small></label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-tutorialObstacleTint" value="#c800ff"></div>
+      <div class="row"><label>Font<small>Шрифт текста туториала</small></label><select id="cfg-tutorialFont" class="font-select cfg-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
       <div class="sec">Hand sprite</div>
       <div class="sp-row"><div class="sp-up">
         <div class="thumb" id="th-tutorial_hand"><img src="Assets/textures/tutorial_hand.svg" alt="tutorial hand"></div>
@@ -289,10 +406,13 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-endcard-gameplay" data-title="End Card">
       <div class="sec">End Card</div>
-      <div class="row"><label>Enable end card<small>Show win / lose end card after result</small></label><input type="checkbox" id="cfg-endCardEnabled" checked></div>
-      <div class="row"><label>Show Try Again<small>Показывать экран после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
-      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="1.2" min="0" max="30" step="0.1"></div>
-      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0" min="0" max="60" step="0.1"></div>
+      <div class="row"><label>Enable Win Card<small>Показывать Win Card после успешного прохождения</small></label><input type="checkbox" id="cfg-winEndCardEnabled" checked></div>
+      <div class="row"><label>Enable Lose Card<small>Показывать Lose Card после последней смерти</small></label><input type="checkbox" id="cfg-loseEndCardEnabled" checked></div>
+      <div class="row"><label>Show countdown<small>Показывать обратный отсчёт и CTA после проигрыша</small></label><input type="checkbox" id="cfg-tryAgainEnabled" checked></div>
+      <div class="row"><label>Countdown from<small>Начальное число обратного отсчёта</small></label><input type="number" id="cfg-endCardCountdown" value="10" min="1" max="99" step="1"></div>
+      <div class="row"><label>Death animation pause (s)<small>Пауза после смерти для анимации разбития сердца перед рестартом или lose-эндкартой</small></label><input type="number" id="cfg-deathPause" value="2.5" min="0" max="10" step="0.1"></div>
+      <div class="row"><label>Try Again delay (s)<small>Через сколько секунд после смерти появляется экран</small></label><input type="number" id="cfg-tryAgainDelay" value="0.0" min="0" max="30" step="0.1"></div>
+      <div class="row"><label>Try Again duration (s)<small>Сколько секунд показывать; 0 = без ограничения</small></label><input type="number" id="cfg-tryAgainDuration" value="0.0" min="0" max="60" step="0.1"></div>
     </div>
 
     <div class="pnl" id="panel-main-ball" data-title="Main ball">
@@ -309,8 +429,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('player',this)"></label>
         <button class="x-btn" onclick="clearSpr('player')">✕</button>
       </div></div>
-      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#ffffff"></div>
-      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#ffffff"></div>
+      <div class="row"><label>Balloon color<small>Tint / override color in playable</small></label><input type="color" class="hex-color" id="cfg-playerSpriteColor" value="#00eeff"></div>
+      <div class="row"><label>Rope color<small>Independent tint for the string</small></label><input type="color" class="hex-color" id="cfg-playerRopeColor" value="#84ebfc"></div>
     </div>
 
     <div class="pnl" id="panel-shield" data-title="Shield">
@@ -322,7 +442,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <label class="ul-btn">+ Custom sprite<input type="file" accept="image/*" style="display:none" onchange="loadSpr('shield',this)"></label>
         <button class="x-btn" onclick="clearSpr('shield')">✕</button>
       </div></div>
-      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#ffffff"></div>
+      <div class="row"><label>Sprite color</label><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-shieldSpriteColor" value="#00eeff"></div>
     </div>
 
     <div class="pnl" id="panel-obstacles-visual" data-title="Obstacle templates">
@@ -341,13 +461,19 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       <div id="tpl-list" class="tpl-list"><div class="tpl-empty">No templates yet. Upload SVG, PNG or Unity packages here.</div></div>
     </div>
 
+    <div class="pnl" id="panel-prefabs" data-title="Obstacle prefabs">
+      <div class="sec">Prefabs</div>
+      <div class="row wide"><label>Physics prefabs<small>Готовые группы препятствий с собственной физикой. Выберите prefab, затем поставьте его в Level Editor.</small></label></div>
+      <div id="physics-prefab-list" class="tpl-list"></div>
+    </div>
+
     <div class="pnl" id="panel-environment" data-title="Environment">
       <div class="sec">Screen orientation</div>
-      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn on" data-or="portrait">Portrait</button><button class="orbtn" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="portrait"></div>
+      <div class="row wide"><label>Playable orientation<small>Только превью/редактор. Выгружаемый HTML — один файл, сам адаптируется под portrait и landscape при повороте.</small></label><div class="orbar" id="orientation-main"><button class="orbtn" data-or="portrait">Portrait</button><button class="orbtn on" data-or="landscape">Landscape</button></div><input type="hidden" id="cfg-orientation" value="landscape"></div>
       <div class="sec">Background mode</div>
       <div class="row wide"><label>Mode<small>Per level: у каждого мини-уровня свой фон (картинка или градиент из 2 цветов), едет вместе с волной; стык можно перекрыть спрайтом. Single image: одна статичная картинка на всю игру.</small></label>
         <div class="orbar" id="bg-mode-bar"><button class="orbtn on" data-bgmode="perStage">Per level</button><button class="orbtn" data-bgmode="common">Single image</button></div>
-        <input type="hidden" id="cfg-backgroundMode" value="perStage"></div>
+        <input type="hidden" id="cfg-backgroundMode" value="common"></div>
       <div id="bg-perstage-box">
         <div class="row wide"><label>Seam overlay<small>Спрайт, перекрывающий стык/край мини-уровня (например, облака). Рисуется поверх всех слоёв. Можно использовать одну общую картинку или отдельную картинку для каждого уровня: Start, Mini и Finish.</small></label></div>
         <div class="row wide seam-mode-row"><label>Mode<small>Per level: у каждого мини-уровня свой PNG-оверлей. Single image: один общий PNG для всех стыков.</small></label>
@@ -379,7 +505,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-stage-accents" data-title="Stage debug colors">
       <div class="sec">Stage debug colors</div>
-      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents" checked></div>
+      <div class="row"><label>Debug accents<small>Цветовая подсветка стейджей (для отладки)</small></label><input type="checkbox" id="cfg-stageAccents"></div>
       <div class="cgrid">
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage0" value="#e05252"><label>S1</label></div>
         <div class="cc"><input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-stage1" value="#52a0e0"><label>S2</label></div>
@@ -392,8 +518,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div class="pnl" id="panel-text-fonts" data-title="Text / fonts">
       <div class="sec">Google Fonts</div>
-      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;"></div>
-      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
+      <div class="row wide"><label>Google Fonts URL<small>Paste fonts.googleapis.com/css2 link or fonts.google.com/specimen link</small></label><input type="text" id="cfg-googleFontUrl" placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:7px 9px;outline:none;" value=""></div>
+      <div class="row"><label>Detected family<small>Used in text labels</small></label><input type="text" id="cfg-googleFontFamily" placeholder="Roboto" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;" value=""></div>
       <div class="row wide"><button class="btn btn-s" id="cfg-googleFontApply" type="button">Load font</button><small id="cfg-googleFontStatus" style="color:var(--dim);font-size:11px;line-height:1.35;display:block;margin-top:6px;">Шрифт появится в списке Font у текстовых элементов.</small></div>
       <div class="sec">Local font</div>
       <div class="row"><label>Font name<small>Название в списке Font</small></label><input type="text" id="cfg-localFontFamily" value="CustomFont" style="width:150px;background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r2);color:var(--txt);font-size:13px;padding:5px 7px;outline:none;"></div>
@@ -457,11 +583,59 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="rr"><input type="range" id="cfg-vol-shield" value="0.9" min="0" max="1" step="0.05" oninput="sv('cfg-vol-shield-v',Math.round(this.value*100)+'%')"><span id="cfg-vol-shield-v">90%</span></div></div>
     </div>
 
-    <div class="bbar">
-      <div class="prog" id="prog"><div class="prog-bg"><div class="prog-fill" id="pf"></div></div><div class="prog-msg" id="pm"></div></div>
-      <div class="err" id="err"></div>
-      <div class="sz" id="sz"></div>
-      <button class="btn btn-dl" id="btn-dl">⬇ Download Playable HTML</button>
+    <div class="pnl" id="panel-service" data-title="Служебное">
+      <div class="sec">Служебное</div>
+      <details class="service-card">
+        <summary>Ссылки на сторы</summary>
+        <div class="service-card-body">
+          <label class="service-field">Android
+            <input type="url" id="cfg-storeAndroid" value="https://play.google.com/store/apps/details?id=com.riseup.game&amp;hl=en" placeholder="https://play.google.com/store/apps/details?id=..." spellcheck="false">
+          </label>
+          <label class="service-field">iOS
+            <input type="url" id="cfg-storeIos" value="https://apps.apple.com/us/app/rise-up-protect-the-balloon/id1354452189" placeholder="https://apps.apple.com/app/id..." spellcheck="false">
+          </label>
+        </div>
+      </details>
+
+      <details class="service-card network-export-card" id="network-export-card" open>
+        <summary>Экспорт под сети</summary>
+        <div class="service-card-body">
+          <div class="network-export-note">Оптимизация ассетов применяется автоматически. Индивидуальная кнопка скачивает выбранный click-вариант; пак содержит 5 рекламных сетей × 3 варианта.</div>
+          <div class="network-name-grid">
+            <label class="network-field">Префикс<input type="text" id="net-name-prefix" value="RISE" spellcheck="false"></label>
+            <label class="network-field">Номер плеебла<input type="text" id="net-name-number" value="001" spellcheck="false"></label>
+            <label class="network-field">Вариант<input type="text" id="net-name-variant" value="01" spellcheck="false"></label>
+            <label class="network-field">Локаль<input type="text" id="net-name-locale" value="en" spellcheck="false"></label>
+          </div>
+          <label class="network-field">Количество кликов
+            <span class="network-segment" id="network-variant-segment">
+              <button type="button" class="on" data-network-variant="x">xcl</button>
+              <button type="button" data-network-variant="1">1cl</button>
+              <button type="button" data-network-variant="2">2cl</button>
+            </span>
+          </label>
+          <label class="network-field">Кликов при экспорте (xcl)<input type="number" id="net-xcl-clicks" value="1" min="0" max="99" step="1"></label>
+          <div class="network-name-preview" id="network-name-preview">RISE_play001_01_st_xcl_en_mintegral.zip</div>
+          <div class="network-list" id="network-list">
+            <div class="network-row" id="network-row-applovin"><span class="network-row-name">AppLovin</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-applovin">—</span><button type="button" class="network-download" data-network-download="applovin">↓ скачать</button></div>
+            <div class="network-row" id="network-row-moloco"><span class="network-row-name">Moloco</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-moloco">—</span><button type="button" class="network-download" data-network-download="moloco">↓ скачать</button></div>
+            <div class="network-row" id="network-row-mintegral"><span class="network-row-name">Mintegral</span><span class="network-row-format">ZIP</span><span class="network-row-size" id="network-size-mintegral">—</span><button type="button" class="network-download" data-network-download="mintegral">↓ скачать</button></div>
+            <div class="network-row" id="network-row-unity"><span class="network-row-name">UnityAds</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-unity">—</span><button type="button" class="network-download" data-network-download="unity">↓ скачать</button></div>
+            <div class="network-row" id="network-row-googleads"><span class="network-row-name">GoogleAds</span><span class="network-row-format">ZIP</span><span class="network-row-size" id="network-size-googleads">—</span><button type="button" class="network-download" data-network-download="googleads">↓ скачать</button></div>
+            <div class="network-row" id="network-row-generic"><span class="network-row-name">Generic</span><span class="network-row-format">HTML</span><span class="network-row-size" id="network-size-generic">—</span><button type="button" class="network-download" data-network-download="generic">↓ скачать</button></div>
+          </div>
+          <div class="network-pack-row">
+            <button type="button" class="btn network-pack" id="network-download-pack">Скачать пак<small>5 сетей × 3 варианта</small></button>
+            <button type="button" class="btn network-limits" id="network-check-limits">↻ Лимиты</button>
+          </div>
+          <div class="network-info" id="network-info"></div>
+          <div class="network-build-status" aria-live="polite">
+            <div class="prog" id="prog"><div class="prog-bg"><div class="prog-fill" id="pf"></div></div><div class="prog-msg" id="pm"></div></div>
+            <div class="err" id="err"></div>
+            <div class="sz" id="sz"></div>
+          </div>
+        </div>
+      </details>
     </div>
   </aside>
 
@@ -488,7 +662,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 
     <div id="rp-levels" class="ed-pane">
       <div class="level-toolbar">
-        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="1" min="1" max="20" step="1"></div>
+        <div class="mini">Mini-levels <input type="number" id="le-stage-count" value="4" min="1" max="20" step="1"></div>
         <button class="et" id="le-generate">Generate level strip</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="le-zoom" value="0.55" min="0.25" max="2" step="0.05"><span id="le-zoom-v">55%</span></div>
@@ -518,23 +692,27 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <button class="et" id="et-progress">⚗ Progress</button>
           <button class="et" id="et-health">♥ Health</button>
           <button class="et" id="et-cta">CTA</button>
+          <button class="et" id="et-win-trigger" title="Добавить невидимую линию в любую сцену; после пересечения запускается Win Card">🏁 Win line</button>
         </div>
         <div class="etgroup">
           <span class="etg-label">Изменения</span>
           <button class="et" id="et-sel">✥ Drag</button>
           <button class="et" id="et-scale" title="Выбери объект и тяни от его центра: дальше — больше, ближе — меньше">⤡ Scale</button>
+          <button class="et" id="et-rotate" title="Выбери obstacle или template и тяни вокруг центра выделения">↻ Rotate</button>
           <button class="et" id="tpl-whole" title="Whole: template behaves like one locked group">Whole</button>
           <button class="et" id="tpl-individual" title="Individual: edit every template element separately">Individual</button>
           <button class="et" id="et-del">🗑 Del</button>
-          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current mini-level</button>
+          <button class="et" id="et-clr" style="color:var(--red);">✕ Clear current scene</button>
         </div>
         <div class="esep"></div>
         <span id="obs-props" style="display:flex;align-items:center;gap:6px;">
           <div class="ep">Scale<input type="number" id="os" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale X<input type="number" id="osx" value="1" min="0.05" max="20" step="0.05"></div>
           <div class="ep">Scale Y<input type="number" id="osy" value="1" min="0.05" max="20" step="0.05"></div>
-          <div class="ep">Color<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff"></div>
+          <div class="ep">Color<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="oc" value="#ffffff" data-no-eyedropper="1"></div>
           <div class="ep">Move±<input type="number" id="om" value="0" min="0" max="180"></div>
+          <div class="ep">Rotate°<input type="number" id="orot" value="0" min="-3600" max="3600" step="1" title="Поворот obstacle; для Whole-template вращает всю группу вокруг общего центра"></div>
+          <label class="ep" title="Включено: obstacle сталкивается с shield и balloon. Выключено: только декоративный объект без коллизий.">Interactable<input type="checkbox" id="ointeractable" checked></label>
           <div class="ep">Anchor
             <div class="anchor-grid" id="ob-anchor">
               <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
@@ -631,6 +809,12 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         <div class="lp">Offset X% <input type="number" id="hb-offx" value="0" min="-200" max="200" step="1"></div>
         <div class="lp">Y% <input type="number" id="hb-offy" value="-44" min="-200" max="200" step="1"></div>
       </div>
+      <div class="lblbar" id="winbar" style="display:none">
+        <div class="lp" style="font-weight:800;color:#ff73d1;">🏁 Win line</div>
+        <div class="lp">Scene <select id="win-stage" class="cfg-select"><option value="0">Start scene</option></select></div>
+        <div class="lp">Y <input type="number" id="win-y" value="0" min="-422" max="422" step="1"></div>
+        <small style="color:var(--dim);font-size:11px;line-height:1.25;">Линию можно поставить в Start scene, любом mini-level или Finish scene. Когда она пересечёт позицию игрока, запускается Win Card. В playable линия невидима.</small>
+      </div>
       <div class="lblbar" id="ctabar" style="display:none">
         <div class="lp">CTA images</div>
         <label class="ul-btn">+ Button bg<input type="file" accept="image/*" style="display:none" onchange="loadCtaPart('bg',this)"></label><button class="x-btn" id="cta-bg-clear" type="button">✕</button>
@@ -654,8 +838,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
       </div>
       <div class="lblbar" id="tutbar" style="display:none">
         <div class="lp">Tutorial</div>
-        <div class="lp">Text <textarea id="tut-text" rows="2" style="width:180px;min-height:44px;resize:vertical;line-height:1.25"></textarea></div>
-        <div class="lp">Text size <input type="number" id="tut-tsize" value="18" min="8" max="72" step="1"></div>
+        <div class="lp" style="opacity:.7">Text → вкладка «Tutorial» в настройках</div>
+        <div class="lp">Text size <input type="number" id="tut-tsize" value="30" min="8" max="72" step="1"></div>
         <div class="lp">Text color <input type="color" class="hex-color" inputmode="text" spellcheck="false" id="tut-tcolor" value="#ffffff"></div>
         <div class="esep"></div>
         <div class="lp">Blocks <select id="tut-shape"><option value="square">Square</option><option value="circle">Circle</option><option value="triangle">Triangle</option></select></div>
@@ -678,14 +862,14 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
     <div id="rp-endcard" class="ed-pane end-pane">
       <div class="level-toolbar">
         <div class="mini">State</div>
-        <button class="et on" id="end-state-win" type="button">Win</button>
-        <button class="et" id="end-state-lose" type="button">Lose</button>
+        <button class="et" id="end-state-win" type="button">Win</button>
+        <button class="et on" id="end-state-lose" type="button">Lose countdown</button>
         <div class="esep"></div>
         <div class="mini">Zoom <input type="range" id="end-zoom" value="0.75" min="0.35" max="1.4" step="0.05"><span id="end-zoom-v">75%</span></div>
         <div class="esep"></div>
         <label class="mini">Show CTA <input type="checkbox" id="cfg-endCardCta" checked></label>
         <div class="esep"></div>
-        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
+        <label class="mini">Font <select id="cfg-endCardFont" class="font-select"><option value="Baloo2" selected>Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></label>
       </div>
       <div class="orbar" id="orientation-endcard" style="padding:8px 12px;background:var(--surf);"><button class="orbtn on" data-or="portrait">📱 Portrait</button><button class="orbtn" data-or="landscape">▭ Landscape</button></div>
       <div class="editor-stage"><div class="editor-phone" id="end-phone"><div class="ec-wrap" id="end-wrap"><canvas id="end-canvas"></canvas></div></div></div>
@@ -712,7 +896,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-text-width-wrap" style="display:none">Width<input type="number" id="cfg-endCardTextWidth" value="180" min="1" max="2000" step="1"></div>
           <div class="ep" id="end-text-height-wrap" style="display:none">Height<input type="number" id="cfg-endCardTextHeight" value="40" min="1" max="1000" step="1"></div>
           <div class="ep">X%<input type="number" id="cfg-endCardX" value="0" min="-200" max="200" step="1"></div>
-          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="0" min="-200" max="200" step="1"></div>
+          <div class="ep">Y%<input type="number" id="cfg-endCardY" value="10" min="-200" max="200" step="1"></div>
           <div class="ep">Anchor<div class="anchor-grid" id="end-anchor">
             <button data-a="tl"></button><button data-a="tc"></button><button data-a="tr"></button>
             <button data-a="cl"></button><button data-a="cc" class="on"></button><button data-a="cr"></button>
@@ -721,9 +905,10 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
         </div>
         <div class="etgroup">
           <span class="etg-label">Content</span>
-          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardCtaText" value="PLAY NOW" style="width:140px"></div>
+          <div class="ep" id="end-text-content-wrap">Text<input type="text" id="cfg-endCardObjectText" value="TRY AGAIN" style="width:140px"></div>
           <div class="ep" id="end-text-size-wrap">Size<input type="number" id="cfg-endCardTextSize" value="17" min="6" max="160" step="1" style="width:58px"></div>
           <div class="ep" id="end-obj-font-wrap">Font<select id="cfg-endCardObjFont" class="font-select"><option value="">General</option><option value="Baloo2">Baloo 2</option><option value="Kameron">Kameron</option><option value="LiberationSans">Liberation Sans</option><option value="sans">System sans</option><option value="serif">Serif</option><option value="mono">Mono</option></select></div>
+          <div class="ep" id="end-image-tint-wrap" style="display:none">Image tint<input type="color" class="hex-color" inputmode="text" spellcheck="false" id="cfg-endCardImageTint" value="#ffffff" title="Tints only the selected center image"></div>
           <div class="ep" id="end-cta-tint-wrap" style="display:none">Button color<input type="color" id="cfg-endCardCtaTint" value="#ffffff" title="Tints the default or custom CTA background sprite"></div>
           <div class="ep" id="end-text-color-wrap">Base<input type="color" id="cfg-endCardTextColor" value="#ffffff"></div>
           <div class="ep" id="end-text-accent-wrap">Accent<input type="color" id="cfg-endCardAccentColor" value="#52e08a"></div>
@@ -733,8 +918,8 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
           <div class="ep" id="end-bg-fill-wrap" style="display:none">Background<select id="cfg-endCardBgFill"><option value="image">Image</option><option value="solid">Solid color</option><option value="gradient">Gradient</option></select></div>
           <div class="ep" id="end-bg-colorA-wrap" style="display:none">Color<input type="color" id="cfg-endCardBgColorA" value="#69c5ec"></div>
           <div class="ep" id="end-bg-colorB-wrap" style="display:none">Color 2<input type="color" id="cfg-endCardBgColorB" value="#39a2d8"></div>
-          <div class="ep">Overlay<input type="range" id="cfg-endCardOverlay" value="0.55" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">55%</span></div>
-          <div class="ep">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
+          <div class="ep" id="end-overlay-wrap">Overlay<input type="range" id="cfg-endCardOverlay" value="0.68" min="0" max="1" step="0.01" style="width:90px" oninput="sv('cfg-endCardOverlay-v',Math.round(this.value*100)+'%')"><span id="cfg-endCardOverlay-v">68%</span></div>
+          <div class="ep" id="end-overlay-color-wrap">Overlay color<input type="color" id="cfg-endCardOverlayColor" value="#000000"></div>
           <input type="hidden" id="cfg-endCardCtaY" value="74">
         </div>
       </div>
@@ -800,7 +985,7 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
   }
 
   function enhance(input) {
-    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1') return;
+    if (!(input instanceof HTMLInputElement) || input.dataset.eyedropperReady === '1' || input.dataset.noEyedropper === '1') return;
     input.dataset.eyedropperReady = '1';
 
     const wrap = document.createElement('span');
@@ -841,9 +1026,9 @@ input[type=color]{width:46px;height:30px;padding:2px;border-radius:8px;backgroun
 })();
 </script>
 
-<script src="src/playable-template.js?v=64-endcard-object-controls"></script>
-<script src="src/builder.js?v=43-endcard-object-controls"></script>
-<script src="script2.js?v=endcard-cta-sprite-2"></script>
+<script src="src/playable-template.js?v=endcard-defaults-v1"></script>
+<script src="src/builder.js?v=endcard-defaults-v1"></script>
+<script src="script2.js?v=endcard-defaults-v1"></script>
 
 </body>
 </html>
